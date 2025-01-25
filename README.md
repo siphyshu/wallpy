@@ -1,5 +1,7 @@
 # 🥷 Wallpy Sensei
 
+> **Note**: Version 2 is in active development on the [`v2-dev`](/tree/v2-dev) branch.
+
 A dynamic wallpaper tool that allows you to change wallpapers based on the time of the day. The idea for this little weekend project came after I came across [this](https://www.mattvince.com/product/zelda-wind-waker-wallpaper-4-pack/) wallpaper pack. You can use it to change your wallpapers 24/7 and even add your own custom wallmaps. Try it!
 
 
@@ -31,13 +33,3 @@ Common steps for all operating systems,
 6. Naviagate to Conditions tab and uncheck "Start the task only if the computer is on AC power"
 
 https://user-images.githubusercontent.com/52672162/190489223-657b1fd5-25c9-4c1c-95c7-2d12cb6997c2.mp4
-
-### MacOS & Linux
-The logic that tells the OS to periodically check the schedule and change the wallpaper isn't implemented yet. I will probably get to it soon but until I do so, feel free to contribute to the project by opening a pull request.
-
-## To-Do
-- [x] Update README.md
-- [x] Add map.json for initial wallpacks
-- [ ] Write "Adding Wallpacks" section for README.md
-- [ ] Add macOS and Linux compatibility
-- [ ] Improve time-state logic for wallmaps
