@@ -1,6 +1,6 @@
 [project]
 name = "wallpy-sensei"
-version = "2.1.0"
+version = "2.2.0"
 description = ""
 authors = [
     {name = "Jaiyank Saxena",email = "siphyshu@gmail.com"}
