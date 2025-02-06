@@ -1,6 +1,6 @@
 [project]
 name = "wallpy-sensei"
-version = "2.2.0"
+version = "2.3.0"
 description = ""
 authors = [
     {name = "Jaiyank Saxena",email = "siphyshu@gmail.com"}
@@ -12,7 +12,8 @@ dependencies = [
     "typer (>=0.15.1,<0.16.0)",
     "rich (>=13.9.4,<14.0.0)",
     "watchdog (>=6.0.0,<7.0.0)",
-    "pywin32 (>=308,<309)"
+    "pywin32 (>=308,<309)",
+    "astral (>=3.2,<4.0)"
 ]
 
 
