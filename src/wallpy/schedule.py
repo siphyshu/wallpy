@@ -94,3 +94,130 @@ class TimeSpecParser:
             base=event,
             offset=offset
         )
+
+
+class ScheduleParser:
+    """Parser for schedule files and components"""
+    
+    def __init__(self):
+        self.time_parser = TimeSpecParser()
+    
+    def parse_meta(self, data: dict) -> ScheduleMeta:
+        """Parse schedule metadata section"""
+        try:
+            meta = ScheduleMeta(
+                type=ScheduleType(data["type"]),
+                name=data["name"],
+                author=data.get("author"),
+                description=data.get("description"),
+                version=data.get("version", "1.0")
+            )
+            logging.info("Parsed metadata successfully.")
+            return meta
+        except KeyError as e:
+            logging.error(f"Missing key in metadata: {e}")
+            raise ValueError(f"Missing required meta field: {e}") from e
+
+    def parse_timeblocks(self, data: dict) -> Dict[str, TimeBlock]:
+        """Parse timeblocks section"""
+        blocks = {}
+        for name, spec in data.items():
+            try:
+                block = TimeBlock(
+                    name=name,
+                    start=self.time_parser.parse(spec["start"]),
+                    end=self.time_parser.parse(spec["end"]),
+                    images=[Path(img) for img in spec["images"]],
+                    shuffle=spec.get("shuffle", False)
+                )
+                blocks[name] = block
+                logging.info(f"Parsed timeblock '{name}' successfully.")
+            except KeyError as e:
+                logging.error(f"Missing key in timeblock '{name}': {e}")
+                raise ValueError(f"Missing required field in timeblock '{name}': {e}") from e
+            except Exception as e:
+                logging.error(f"Error parsing timeblock '{name}': {e}")
+                raise
+        return blocks
+    
+    def parse_days(self, data: dict) -> Dict[str, DaySchedule]:
+        """Parse days-of-week schedule"""
+        days = {}
+        for day, spec in data.items():
+            try:
+                if isinstance(spec, str):
+                    days[day] = DaySchedule(images=[Path(spec)])
+                else:
+                    days[day] = DaySchedule(
+                        images=[Path(img) for img in spec["images"]],
+                        shuffle=spec.get("shuffle", False)
+                    )
+                logging.info(f"Parsed day schedule for '{day}' successfully.")
+            except KeyError as e:
+                logging.error(f"Missing key in day schedule for '{day}': {e}")
+                raise ValueError(f"Missing required field in day schedule for '{day}': {e}") from e
+            except Exception as e:
+                logging.error(f"Error parsing day schedule for '{day}': {e}")
+                raise
+        return days
+    
+    def parse_location(self, data: dict) -> Location:
+        """Parse location data"""
+        try:
+            location = Location(
+                latitude=data.get("latitude", 0.0),
+                longitude=data.get("longitude", 0.0),
+                timezone=data.get("timezone", "UTC"),
+                name=data.get("name", "location"),
+                region=data.get("region", "region")
+            )
+            logging.info("Parsed location successfully.")
+            return location
+        except Exception as e:
+            logging.error(f"Error parsing location data: {e}")
+            raise ValueError("Error parsing location data") from e
+    
+    def parse_file(self, path: Path) -> Schedule:
+        """Parse a schedule file into a Schedule object"""
+        try:
+            with open(path, "rb") as f:
+                data = tomli.load(f)
+            logging.info(f"Loaded schedule file from {path}.")
+        except Exception as e:
+            logging.error(f"Failed to load schedule file from {path}: {e}")
+            raise ValueError(f"Failed to load schedule file: {e}") from e
+        
+        try:
+            meta_data = data["meta"]
+        except KeyError as e:
+            logging.error(f"Missing 'meta' section in schedule file: {e}")
+            raise ValueError("Missing 'meta' section in schedule file") from e
+        
+        meta = self.parse_meta(meta_data)
+        schedule = Schedule(meta=meta)
+        
+        if meta.type == ScheduleType.TIMEBLOCKS:
+            try:
+                schedule.timeblocks = self.parse_timeblocks(data["timeblocks"])
+            except KeyError as e:
+                logging.error(f"Missing 'timeblocks' section in schedule file: {e}")
+                raise ValueError("Missing 'timeblocks' section in schedule file") from e
+            
+            if "location" in data:
+                try:
+                    schedule.location = self.parse_location(data["location"])
+                except Exception as e:
+                    logging.error(f"Error parsing location: {e}")
+                    raise
+        elif meta.type == ScheduleType.DAYS:
+            try:
+                schedule.days = self.parse_days(data["days"])
+            except KeyError as e:
+                logging.error(f"Missing 'days' section in schedule file: {e}")
+                raise ValueError("Missing 'days' section in schedule file") from e
+        else:
+            logging.error(f"Unknown schedule type: {meta.type}")
+            raise ValueError(f"Unknown schedule type: {meta.type}")
+        
+        logging.info("Schedule file parsed successfully.")
+        return schedule
