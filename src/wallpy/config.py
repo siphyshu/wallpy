@@ -1,143 +1,284 @@
 # config.py
 from pathlib import Path
 import tomli
+import tomli_w
 import sys
-from platformdirs import user_config_path, user_pictures_dir
+import logging
+from typing import Dict, List, Optional, TypedDict
+from dataclasses import dataclass
+from platformdirs import user_config_path
 
-class ConfigManager:
-    COMMON_PATHS = {
-        "linux": [
+class PackMeta(TypedDict):
+    """Type definition for pack metadata"""
+    path: Path
+    schedule: Path
+
+class ConfigData(TypedDict):
+    """Type definition for config file structure"""
+    active: Dict[str, str]
+    wallpacks: Dict[str, Dict[str, str]]
+
+@dataclass
+class SearchPaths:
+    """OS-specific wallpaper search paths"""
+    linux: List[str] = None
+    darwin: List[str] = None
+    win32: List[str] = None
+
+    def __post_init__(self):
+        self.linux = [
             "/usr/share/backgrounds",
             "~/.local/share/wallpapers",
             "/usr/share/wallpapers"
-        ],
-        "darwin": [
+        ]
+        self.darwin = [
             "~/Pictures/Wallpapers",
             "/Library/Desktop Pictures"
-        ],
-        "win32": [
-            "~/Pictures",
-            "C:/Users/Public/Wallpapers",
+        ]
+        self.win32 = [
+            "~/Pictures/Wallpapers",
+            "C:/Users/Public/Pictures/Wallpapers",
             "~/AppData/Local/Microsoft/Windows/Themes"
         ]
-    }
+
+    def get_for_platform(self) -> List[Path]:
+        """Get paths for current platform"""
+        platform_paths = getattr(self, sys.platform, [])
+        return [Path(p).expanduser() for p in platform_paths]
 
 
+class ConfigManager:
+    """Manages wallpaper configuration and pack discovery"""
+    
     def __init__(self):
+        self.logger = logging.getLogger("wallpy.config")
+        self.search_paths = SearchPaths()
         self.config_dir = user_config_path("wallpy-sensei")
         self.config_file = self.config_dir / "config.toml"
+        self.packs_dir = self.config_dir / "packs"
+        
+        # Ensure directories exist
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        self.packs_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Load configuration
         self.data = self._load_config()
         self.wallpacks = self._merge_packs()
         self.active_pack = self._validate_active_pack()
 
-
-    def _load_config(self):
-        """Load TOML config or create default if missing"""
+    def _load_config(self) -> ConfigData:
+        """Load or create configuration file"""
         if not self.config_file.exists():
-            self._create_default_config()
+            self.logger.info("No config file found, creating default")
+            return self._create_default_config()
         
-        with open(self.config_file, "rb") as f:
-            return tomli.load(f)
-
-
-    def _create_default_config(self):
-        """Initialize default config and pack structure"""
-        self.config_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create default pack
-        default_pack_path = self.config_dir / "packs/default"
-        default_pack_path.mkdir(parents=True, exist_ok=True)
-        
-        # Default schedule
-        (default_pack_path / "schedule.toml").write_text("""[day]
-start = "08:00"
-end = "18:00"
-images = ["day.jpg"]
-""")
-        
-        # Placeholder image
-        (default_pack_path / "day.jpg").touch()
-        
-        # Write config
-        config_content = f"""[active]
-pack = "default"
-
-[wallpacks.default]
-path = "{default_pack_path.as_posix()}"
-"""
-        self.config_file.write_text(config_content)
-
-
-    def _merge_packs(self):
-        """Combine config-defined and auto-discovered packs"""
-        config_packs = {
-            name: self._process_pack_meta(meta)
-            for name, meta in self.data.get("wallpacks", {}).items()
-        }
-        return {**self._find_auto_packs(), **config_packs}
-
-
-    def _find_auto_packs(self):
-        """Discover valid packs in OS-specific locations"""
-        found = {}
-        for path in self._get_os_paths():
-            if not path.exists():
-                continue
+        try:
+            with open(self.config_file, "rb") as f:
+                data = tomli.load(f)
             
-            for pack_dir in path.iterdir():
-                if pack_dir.is_dir() and (pack_dir / "schedule.toml").exists():
-                    found[pack_dir.name] = {
-                        "path": pack_dir.resolve(),
-                        "schedule": pack_dir / "schedule.toml"
-                    }
+            self._validate_config_structure(data)
+            return data
+        except Exception as e:
+            self.logger.error(f"Failed to load config: {e}")
+            self.logger.info("Creating new default config")
+            return self._create_default_config()
+
+    def _validate_config_structure(self, data: dict) -> None:
+        """Validate config file structure"""
+        required_sections = ["active", "wallpacks"]
+        for section in required_sections:
+            if section not in data:
+                raise ValueError(f"Missing required section: {section}")
+        
+        if "pack" not in data["active"]:
+            raise ValueError("No active pack specified")
+        
+        if not isinstance(data["wallpacks"], dict):
+            raise ValueError("Invalid wallpacks section")
+
+    def _create_default_config(self) -> ConfigData:
+        """Create default configuration"""
+        # Create default pack
+        default_pack = self._create_default_pack()
+        
+        # Create config structure
+        config: ConfigData = {
+            "active": {"pack": "default"},
+            "wallpacks": {
+                "default": {
+                    "path": str(default_pack.relative_to(self.config_dir))
+                }
+            }
+        }
+        
+        # Save config
+        with open(self.config_file, "wb") as f:
+            tomli_w.dump(config, f)
+        
+        return config
+
+    def _create_default_pack(self) -> Path:
+        """Create a default wallpaper pack"""
+        pack_path = self.packs_dir / "default"
+        pack_path.mkdir(parents=True, exist_ok=True)
+        
+        # Create default schedule
+        schedule = {
+            "meta": {
+                "type": "timeblocks",
+                "name": "Default Pack",
+                "author": "wallpy-sensei",
+                "description": "Default wallpaper pack"
+            },
+            "timeblocks": {
+                "day": {
+                    "start": "sunrise",
+                    "end": "sunset",
+                    "images": ["day.jpg"]
+                },
+                "night": {
+                    "start": "sunset",
+                    "end": "sunrise",
+                    "images": ["night.jpg"]
+                }
+            }
+        }
+        
+        with open(pack_path / "schedule.toml", "wb") as f:
+            tomli_w.dump(schedule, f)
+        
+        # Create placeholder images
+        (pack_path / "day.jpg").touch()
+        (pack_path / "night.jpg").touch()
+        
+        return pack_path
+
+    def _merge_packs(self) -> Dict[str, PackMeta]:
+        """Combine configured and discovered packs"""
+        discovered = self._find_auto_packs()
+        configured = self._process_configured_packs()
+        
+        # Configured packs take precedence over discovered ones
+        return {**discovered, **configured}
+
+    def _find_auto_packs(self) -> Dict[str, PackMeta]:
+        """Discover valid packs in search paths"""
+        found: Dict[str, PackMeta] = {}
+        
+        # Search in config directory first
+        found.update(self._scan_directory(self.packs_dir))
+        
+        # Search in platform-specific locations
+        for search_path in self.search_paths.get_for_platform():
+            if search_path.exists():
+                found.update(self._scan_directory(search_path))
+        
         return found
 
+    def _scan_directory(self, path: Path) -> Dict[str, PackMeta]:
+        """Scan directory for valid wallpaper packs"""
+        found = {}
+        for item in path.iterdir():
+            if not item.is_dir():
+                continue
+                
+            schedule_file = item.resolve() / "schedule.toml"
+            if schedule_file.exists():
+                found[item.name] = PackMeta(
+                    path=item.resolve(),
+                    schedule=schedule_file
+                )
+        return found
 
-    def _get_os_paths(self):
-        """Get validated OS-specific search paths"""
-        platform = sys.platform
-        paths = self.COMMON_PATHS.get(platform, [])
-        return [Path(p).expanduser() for p in paths if Path(p).expanduser().exists()]
+    def _process_configured_packs(self) -> Dict[str, PackMeta]:
+        """Process packs from config file"""
+        configured = {}
+        for name, meta in self.data.get("wallpacks", {}).items():
+            try:
+                raw_path = Path(meta["path"])
+                if raw_path.is_absolute():
+                    pack_path = raw_path
+                else:
+                    pack_path = (self.packs_dir / raw_path).resolve()
+                
+                if pack_path.exists():
+                    configured[name] = PackMeta(
+                        path=pack_path,
+                        schedule=pack_path / "schedule.toml"
+                    )
+                else:
+                    self.logger.warning(f"Configured pack not found: {name} at {pack_path}")
+            except Exception as e:
+                self.logger.error(f"Error processing pack '{name}': {e}")
+        return configured
 
-
-    def _process_pack_meta(self, meta):
-        """Resolve paths relative to config directory"""
-        raw_path = Path(meta["path"])
-        
-        # Resolve relative to config directory if not absolute
-        if raw_path.is_absolute():
-            resolved_path = raw_path.expanduser()
-        else:
-            resolved_path = (self.config_dir / "packs" / raw_path).expanduser()
-        
-        return { 
-            "path": resolved_path.resolve(),
-            "schedule": resolved_path / "schedule.toml"
-        }
-
-
-    def _validate_active_pack(self):
-        """Validate active pack configuration"""
-        active_name = self.data.get("active", {}).get("pack", "")
-        
+    def _validate_active_pack(self) -> PackMeta:
+        """Validate and return active pack configuration"""
+        active_name = self.data.get("active", {}).get("pack")
         if not active_name:
             raise ValueError("No active pack specified in config")
-            
+        
         if active_name not in self.wallpacks:
             available = ", ".join(self.wallpacks.keys())
             raise ValueError(f"Pack '{active_name}' not found. Available: {available}")
         
         pack = self.wallpacks[active_name]
-        original_path = self.data["wallpacks"][active_name]["path"]  # Get from raw config
-        
         if not pack["path"].exists():
-            raise FileNotFoundError(
-                f"Pack directory missing: {pack['path']}\n"
-                f"Configured path: {original_path}\n"
-                f"Resolved relative to: {self.config_dir}"
-            )
-            
+            raise FileNotFoundError(f"Pack directory missing: {pack['path']}")
+        
         if not pack["schedule"].exists():
             raise FileNotFoundError(f"Missing schedule.toml in {pack['path']}")
-            
+        
         return pack
+
+    def set_active_pack(self, name: str) -> None:
+        """Set the active wallpaper pack"""
+        if name not in self.wallpacks:
+            available = ", ".join(self.wallpacks.keys())
+            raise ValueError(f"Pack '{name}' not found. Available: {available}")
+        
+        self.data["active"]["pack"] = name
+        with open(self.config_file, "wb") as f:
+            tomli_w.dump(self.data, f)
+        
+        self.active_pack = self.wallpacks[name]
+
+    def add_pack(self, name: str, path: Path) -> None:
+        """Add a new pack to configuration"""
+        if name in self.wallpacks:
+            raise ValueError(f"Pack '{name}' already exists")
+        
+        if not path.exists():
+            raise FileNotFoundError(f"Pack path does not exist: {path}")
+        
+        if not (path / "schedule.toml").exists():
+            raise FileNotFoundError(f"No schedule.toml found in {path}")
+        
+        # Add to config
+        self.data["wallpacks"][name] = {"path": str(path)}
+        with open(self.config_file, "wb") as f:
+            tomli_w.dump(self.data, f)
+        
+        # Update wallpacks
+        self.wallpacks = self._merge_packs()
+
+    def remove_pack(self, name: str) -> None:
+        """Remove a pack from configuration"""
+        if name not in self.wallpacks:
+            raise ValueError(f"Pack '{name}' not found")
+        
+        if name == self.data["active"]["pack"]:
+            raise ValueError("Cannot remove active pack")
+        
+        del self.data["wallpacks"][name]
+        with open(self.config_file, "wb") as f:
+            tomli_w.dump(self.data, f)
+        
+        # Update wallpacks
+        self.wallpacks = self._merge_packs()
+
+    def reset_config(self) -> None:
+        """Reset configuration to defaults"""
+        self.data = self._create_default_config()
+        self.wallpacks = self._merge_packs()
+        self.active_pack = self._validate_active_pack()
