@@ -415,3 +415,74 @@ class ScheduleValidator:
             logging.warning(f"Schedule covers {total_hours:.1f} hours out of 24")
 
 
+class ScheduleManager:
+    """Main class for schedule operations"""
+    
+    def __init__(self):
+        self.parser = ScheduleParser()
+        self.solar_calculator = SolarTimeCalculator()
+        self.validator = ScheduleValidator(self.solar_calculator)
+        self.logger = logging.getLogger(__name__)
+    
+    def load_schedule(self, path: Path) -> "Schedule":
+        """Load and parse schedule file"""
+        self.logger.debug(f"Loading schedule from {path}")
+        return self.parser.parse_file(path)
+    
+    def validate_schedule(self, schedule: "Schedule", pack_path: Path) -> None:
+        """Validate schedule integrity"""
+        self.logger.debug(f"Validating schedule {schedule}")
+        self.validator.validate(schedule, pack_path)
+    
+    def get_current_block(self, schedule: "Schedule", when: datetime) -> Optional["TimeBlock"]:
+        """Find active timeblock for given datetime"""
+        if schedule.meta.type != ScheduleType.TIMEBLOCKS or not schedule.timeblocks:
+            self.logger.debug("Schedule is not timeblock-based or has no timeblocks")
+            return None
+            
+        test_date = when.date()
+        
+        for block in schedule.timeblocks.values():
+            start = self.solar_calculator.resolve_datetime(block.start, test_date, schedule.location)
+            end = self.solar_calculator.resolve_datetime(block.end, test_date, schedule.location)
+            
+            self.logger.debug(f"Block: {block.name}, Start: {start}, End: {end}, When: {when}")
+            
+            # Handle midnight crossing
+            if end <= start:
+                self.logger.debug("Midnight crossing detected")
+                end += timedelta(days=1)
+                # Also check previous day for midnight crossing blocks
+                if when < end and when.time() < end.time():
+                    prev_start = start - timedelta(days=1)
+                    prev_end = end - timedelta(days=1)
+                    if prev_start <= when < prev_end:
+                        return block
+            
+            if start <= when < end:
+                return block
+                
+        return None
+
+    def get_next_block(self, schedule: "Schedule", when: datetime) -> Optional["TimeBlock"]:
+        """Find the next upcoming timeblock after the given datetime"""
+        if schedule.meta.type != ScheduleType.TIMEBLOCKS or not schedule.timeblocks:
+            self.logger.debug("Schedule is not timeblock-based or has no timeblocks")
+            return None
+            
+        test_date = when.date()
+        future_blocks = []
+        
+        for block in schedule.timeblocks.values():
+            start = self.solar_calculator.resolve_datetime(block.start, test_date, schedule.location)
+            end = self.solar_calculator.resolve_datetime(block.end, test_date, schedule.location)
+            if end <= start:
+                end += timedelta(days=1)
+            if start > when:
+                future_blocks.append((start, block))
+        
+        if future_blocks:
+            future_blocks.sort(key=lambda x: x[0])
+            self.logger.debug(f"Next block determined: {future_blocks[0][1].name}")
+            return future_blocks[0][1]
+        return None
