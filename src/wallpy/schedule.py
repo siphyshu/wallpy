@@ -317,3 +317,101 @@ class SolarTimeCalculator:
             location
         )
         return datetime.combine(base_date, solar_time) + timedelta(minutes=spec.offset)
+    
+
+class ScheduleValidator:
+    """Validator for schedule integrity"""
+    
+    def __init__(self, solar_calculator: "SolarTimeCalculator") -> None:
+        self.solar_calculator = solar_calculator
+    
+    def validate(self, schedule: "Schedule", pack_path: Path) -> None:
+        """Main validation entry point"""
+        # Validate that the expected schedule sections are present.
+        if schedule.meta.type == ScheduleType.TIMEBLOCKS:
+            if not schedule.timeblocks or len(schedule.timeblocks) == 0:
+                raise ValueError("Timeblock schedule must contain at least one timeblock.")
+            self._validate_timeblocks(schedule, pack_path)
+            self._analyze_time_coverage(schedule)
+        elif schedule.meta.type == ScheduleType.DAYS:
+            if not schedule.days or len(schedule.days) == 0:
+                raise ValueError("Day-based schedule must contain at least one day entry.")
+            self._validate_days(schedule, pack_path)
+        else:
+            raise ValueError("Unknown schedule type.")
+    
+    def _validate_timeblocks(self, schedule: "Schedule", pack_path: Path) -> None:
+        """Validate timeblock-based schedules"""
+        # Check if any time specification uses solar events.
+        has_solar = any(
+            block.start.type == TimeSpecType.SOLAR or block.end.type == TimeSpecType.SOLAR
+            for block in schedule.timeblocks.values()
+        )
+        
+        if has_solar and not schedule.location:
+            raise ValueError("Solar timeblocks require location data in schedule or global config")
+        
+        # Validate that each image file exists in the given pack directory.
+        for block in schedule.timeblocks.values():
+            for img in block.images:
+                if not (pack_path / img).exists():
+                    raise FileNotFoundError(f"Image {img} not found in pack")
+    
+    def _validate_days(self, schedule: "Schedule", pack_path: Path) -> None:
+        """Validate day-based schedules"""
+        for day, day_sched in schedule.days.items():
+            for img in day_sched.images:
+                if not (pack_path / img).exists():
+                    raise FileNotFoundError(f"Day image {img} not found in pack")
+    
+    def _analyze_time_coverage(self, schedule: "Schedule") -> None:
+        """Analyze schedule coverage and report potential issues as warnings"""
+        if not schedule.timeblocks:
+            return
+        
+        test_date: date = datetime.today().date()
+        blocks = []
+        
+        # Convert all time specifications into concrete datetimes for the test date.
+        for block in schedule.timeblocks.values():
+            start_dt = self.solar_calculator.resolve_datetime(block.start, test_date, schedule.location)
+            end_dt = self.solar_calculator.resolve_datetime(block.end, test_date, schedule.location)
+            
+            # If the end time is before or equal to the start, assume the block crosses midnight.
+            if end_dt <= start_dt:
+                end_dt += timedelta(days=1)
+                
+            blocks.append((block.name, start_dt, end_dt))
+        
+        # Sort blocks by their start time.
+        blocks.sort(key=lambda x: x[1])
+        
+        # Check for overlaps and gaps between consecutive blocks.
+        for i in range(len(blocks) - 1):
+            current_name, current_start, current_end = blocks[i]
+            next_name, next_start, next_end = blocks[i + 1]
+            
+            if current_end > next_start:
+                logging.warning(f"Timeblock overlap detected: '{current_name}' and '{next_name}'")
+            elif current_end < next_start:
+                gap = next_start - current_end
+                if gap > timedelta(minutes=1):  # Allow 1-minute tolerance
+                    logging.warning(f"Gap detected between '{current_name}' and '{next_name}' ({gap})")
+        
+        # Additionally, check the gap from the end of the last block to the start of the first block (cycling over midnight).
+        first_block_start = blocks[0][1]
+        last_block_end = blocks[-1][2]
+        circular_gap = (first_block_start + timedelta(days=1)) - last_block_end
+        if circular_gap > timedelta(minutes=1):
+            logging.warning(f"Gap detected between end of last block and start of first block ({circular_gap})")
+        
+        # Compute total scheduled coverage.
+        total_coverage = timedelta()
+        for _, start, end in blocks:
+            total_coverage += (end - start)
+        
+        total_hours = total_coverage.total_seconds() / 3600.0
+        if total_coverage < timedelta(hours=24):
+            logging.warning(f"Schedule covers {total_hours:.1f} hours out of 24")
+
+
