@@ -221,3 +221,99 @@ class ScheduleParser:
         
         logging.info("Schedule file parsed successfully.")
         return schedule
+    
+
+
+class SolarTimeCalculator:
+    """Calculator for solar event times"""
+    
+    def __init__(self):
+        self._cache = {}  # Cache for solar calculations
+    
+    def get_fallback_time(self, event: str) -> time:
+        """Get predefined time for solar events when location data is missing"""
+        return SOLAR_FALLBACKS[event.lower()]
+    
+    def resolve_time(
+        self,
+        event: str,
+        date_obj: date,
+        location: Optional[Location] = None
+    ) -> time:
+        """Calculate concrete solar time using astral"""
+        event = event.lower()
+        
+        # Normalize event name
+        valid_events = [
+            "dawn",
+            "sunrise",
+            "noon",
+            "sunset",
+            "dusk",
+            "midnight"
+        ]
+        
+        if event not in valid_events:
+            raise ValueError(f"Unknown solar event: {event}")
+
+        # Use fallbacks if no location data
+        if location is None:
+            return self.get_fallback_time(event)
+
+        # Extract location data
+        latitude = location.latitude
+        longitude = location.longitude
+        tz = location.timezone
+        name = location.name
+        region = location.region
+
+        # Check cache first
+        cache_key = (event, date_obj, latitude, longitude, tz)
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        try:
+            location_info = LocationInfo(name, region, tz, latitude, longitude)
+            
+            # Handle different ways to get solar times
+            if event == "midnight":
+                # Midnight is a special case
+                result = time(0, 0)
+            else:
+                # Use astral's sun object for other events
+                sun_object = sun.sun(location_info.observer, date=date_obj, tzinfo=tz)
+                result = sun_object[event].time()
+                
+            # Cache the result
+            self._cache[cache_key] = result
+            return result
+        except (AttributeError, KeyError):
+            return self.get_fallback_time(event)
+    
+    def resolve_datetime(
+        self, 
+        spec: TimeSpec, 
+        base_date: date, 
+        location_data: Optional[Dict[str, Any]]
+    ) -> datetime:
+        """Convert TimeSpec to concrete datetime"""
+        if spec.type == TimeSpecType.ABSOLUTE:
+            return datetime.combine(base_date, spec.base)
+        
+        # Create Location object from dict if available
+        location = None
+        if location_data:
+            location = Location(
+                latitude=location_data.get("latitude", 0.0),
+                longitude=location_data.get("longitude", 0.0),
+                timezone=location_data.get("timezone", "UTC"),
+                name=location_data.get("name", "location"),
+                region=location_data.get("region", "region")
+            )
+        
+        solar_time = self.resolve_time(
+            spec.base,
+            base_date,
+            location
+        )
+        return datetime.combine(base_date, solar_time) + timedelta(minutes=spec.offset)
