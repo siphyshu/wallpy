@@ -325,14 +325,14 @@ class ScheduleValidator:
     def __init__(self, solar_calculator: "SolarTimeCalculator") -> None:
         self.solar_calculator = solar_calculator
     
-    def validate(self, schedule: "Schedule", pack_path: Path) -> None:
+    def validate(self, schedule: "Schedule", pack_path: Path, global_location: Optional[Dict[str, Any]] = None) -> None:
         """Main validation entry point"""
         # Validate that the expected schedule sections are present.
         if schedule.meta.type == ScheduleType.TIMEBLOCKS:
             if not schedule.timeblocks or len(schedule.timeblocks) == 0:
                 raise ValueError("Timeblock schedule must contain at least one timeblock.")
-            self._validate_timeblocks(schedule, pack_path)
-            self._analyze_time_coverage(schedule)
+            self._validate_timeblocks(schedule, pack_path, global_location)
+            self._analyze_time_coverage(schedule, global_location)
         elif schedule.meta.type == ScheduleType.DAYS:
             if not schedule.days or len(schedule.days) == 0:
                 raise ValueError("Day-based schedule must contain at least one day entry.")
@@ -340,7 +340,7 @@ class ScheduleValidator:
         else:
             raise ValueError("Unknown schedule type.")
     
-    def _validate_timeblocks(self, schedule: "Schedule", pack_path: Path) -> None:
+    def _validate_timeblocks(self, schedule: "Schedule", pack_path: Path, global_location: Optional[Dict[str, Any]] = None) -> None:
         """Validate timeblock-based schedules"""
         # Check if any time specification uses solar events.
         has_solar = any(
@@ -348,8 +348,8 @@ class ScheduleValidator:
             for block in schedule.timeblocks.values()
         )
         
-        if has_solar and not schedule.location:
-            raise ValueError("Solar timeblocks require location data in schedule or global config")
+        if has_solar and not schedule.location and not global_location:
+            logging.warning("Solar timeblocks without location data will use fallback times")
         
         # Validate that each image file exists in the given pack directory.
         for block in schedule.timeblocks.values():
@@ -364,7 +364,7 @@ class ScheduleValidator:
                 if not (pack_path / img).exists():
                     raise FileNotFoundError(f"Day image {img} not found in pack")
     
-    def _analyze_time_coverage(self, schedule: "Schedule") -> None:
+    def _analyze_time_coverage(self, schedule: "Schedule", global_location: Optional[Dict[str, Any]] = None) -> None:
         """Analyze schedule coverage and report potential issues as warnings"""
         if not schedule.timeblocks:
             return
@@ -372,10 +372,13 @@ class ScheduleValidator:
         test_date: date = datetime.today().date()
         blocks = []
         
+        # Use schedule location or global location if available
+        location_data = schedule.location if schedule.location else global_location
+        
         # Convert all time specifications into concrete datetimes for the test date.
         for block in schedule.timeblocks.values():
-            start_dt = self.solar_calculator.resolve_datetime(block.start, test_date, schedule.location)
-            end_dt = self.solar_calculator.resolve_datetime(block.end, test_date, schedule.location)
+            start_dt = self.solar_calculator.resolve_datetime(block.start, test_date, location_data)
+            end_dt = self.solar_calculator.resolve_datetime(block.end, test_date, location_data)
             
             # If the end time is before or equal to the start, assume the block crosses midnight.
             if end_dt <= start_dt:
@@ -429,12 +432,12 @@ class ScheduleManager:
         self.logger.debug(f"Loading schedule from {path}")
         return self.parser.parse_file(path)
     
-    def validate_schedule(self, schedule: "Schedule", pack_path: Path) -> None:
+    def validate_schedule(self, schedule: "Schedule", pack_path: Path, global_location: Optional[Dict[str, Any]] = None) -> None:
         """Validate schedule integrity"""
         self.logger.debug(f"Validating schedule {schedule}")
-        self.validator.validate(schedule, pack_path)
+        self.validator.validate(schedule, pack_path, global_location)
     
-    def get_current_block(self, schedule: "Schedule", when: datetime) -> Optional["TimeBlock"]:
+    def get_current_block(self, schedule: "Schedule", when: datetime, global_location: Optional[Dict[str, Any]] = None) -> Optional["TimeBlock"]:
         """Find active timeblock for given datetime"""
         if schedule.meta.type != ScheduleType.TIMEBLOCKS or not schedule.timeblocks:
             self.logger.debug("Schedule is not timeblock-based or has no timeblocks")
@@ -442,9 +445,12 @@ class ScheduleManager:
             
         test_date = when.date()
         
+        # Use schedule location or global location if available
+        location_data = schedule.location if schedule.location else global_location
+        
         for block in schedule.timeblocks.values():
-            start = self.solar_calculator.resolve_datetime(block.start, test_date, schedule.location)
-            end = self.solar_calculator.resolve_datetime(block.end, test_date, schedule.location)
+            start = self.solar_calculator.resolve_datetime(block.start, test_date, location_data)
+            end = self.solar_calculator.resolve_datetime(block.end, test_date, location_data)
             
             self.logger.debug(f"Block: {block.name}, Start: {start}, End: {end}, When: {when}")
             
@@ -464,7 +470,7 @@ class ScheduleManager:
                 
         return None
 
-    def get_next_block(self, schedule: "Schedule", when: datetime) -> Optional["TimeBlock"]:
+    def get_next_block(self, schedule: "Schedule", when: datetime, global_location: Optional[Dict[str, Any]] = None) -> Optional["TimeBlock"]:
         """Find the next upcoming timeblock after the given datetime"""
         if schedule.meta.type != ScheduleType.TIMEBLOCKS or not schedule.timeblocks:
             self.logger.debug("Schedule is not timeblock-based or has no timeblocks")
@@ -473,9 +479,12 @@ class ScheduleManager:
         test_date = when.date()
         future_blocks = []
         
+        # Use schedule location or global location if available
+        location_data = schedule.location if schedule.location else global_location
+        
         for block in schedule.timeblocks.values():
-            start = self.solar_calculator.resolve_datetime(block.start, test_date, schedule.location)
-            end = self.solar_calculator.resolve_datetime(block.end, test_date, schedule.location)
+            start = self.solar_calculator.resolve_datetime(block.start, test_date, location_data)
+            end = self.solar_calculator.resolve_datetime(block.end, test_date, location_data)
             if end <= start:
                 end += timedelta(days=1)
             if start > when:

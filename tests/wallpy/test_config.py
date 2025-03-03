@@ -105,3 +105,34 @@ def test_search_paths_platform(tmp_path, monkeypatch):
     # Check that each item is a Path
     for p in paths:
         assert isinstance(p, Path)
+
+def test_get_location(temp_config_dir):
+    """Test getting global location configuration"""
+    # Create a new ConfigManager instance
+    config_manager = ConfigManager()
+    
+    # Initially, location should be None (empty dict converted to None)
+    assert config_manager.get_location() is None
+    
+    # Set a location
+    location_data = {
+        "latitude": 40.7128,
+        "longitude": -74.0060,
+        "timezone": "America/New_York",
+        "name": "New York",
+        "region": "USA"
+    }
+    config_manager.set_location(location_data)
+    
+    # Get the location and verify it matches
+    retrieved_location = config_manager.get_location()
+    assert retrieved_location is not None
+    assert retrieved_location["latitude"] == 40.7128
+    assert retrieved_location["longitude"] == -74.0060
+    assert retrieved_location["timezone"] == "America/New_York"
+    assert retrieved_location["name"] == "New York"
+    assert retrieved_location["region"] == "USA"
+    
+    # Reset the config and verify location is None again
+    config_manager.reset_config()
+    assert config_manager.get_location() is None

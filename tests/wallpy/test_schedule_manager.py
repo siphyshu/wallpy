@@ -235,3 +235,104 @@ class TestScheduleManager:
         when = datetime.combine(date.today(), time(16, 0))
         next_block = schedule_manager.get_next_block(schedule, when)
         assert next_block is None
+
+    def test_get_current_block_with_global_location(self, schedule_manager):
+        """Test that get_current_block can use global location data"""
+        # Create a schedule with solar times but no location
+        meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Solar Schedule")
+        
+        # Create a block that spans from sunrise to sunset
+        sunrise_spec = TimeSpec(type=TimeSpecType.SOLAR, base="sunrise")
+        sunset_spec = TimeSpec(type=TimeSpecType.SOLAR, base="sunset")
+        day_block = TimeBlock(
+            name="day",
+            start=sunrise_spec,
+            end=sunset_spec,
+            images=[Path("day.jpg")]
+        )
+        
+        # Create a block that spans from sunset to sunrise
+        night_block = TimeBlock(
+            name="night",
+            start=sunset_spec,
+            end=sunrise_spec,
+            images=[Path("night.jpg")]
+        )
+        
+        # Create schedule without location
+        schedule = Schedule(
+            meta=meta,
+            timeblocks={"day": day_block, "night": night_block},
+            days=None,
+            location=None
+        )
+        
+        # Create a global location
+        global_location = {
+            "latitude": 40.0,
+            "longitude": -74.0,
+            "timezone": "UTC"
+        }
+        
+        # Test with a time that should be during the day
+        when = datetime(2023, 6, 21, 12, 0)  # Noon on summer solstice
+        
+        # Without global location, it should use fallbacks
+        block = schedule_manager.get_current_block(schedule, when)
+        assert block is not None
+        
+        # With global location, it should use the provided location
+        block_with_global = schedule_manager.get_current_block(schedule, when, global_location)
+        assert block_with_global is not None
+        
+        # The blocks might be the same or different depending on the fallback times
+        # and the actual solar times for the location, but both should return a block
+
+    def test_get_next_block_with_global_location(self, schedule_manager):
+        """Test that get_next_block can use global location data"""
+        # Create a schedule with solar times but no location
+        meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Solar Schedule")
+        
+        # Create a block that spans from sunrise to sunset
+        sunrise_spec = TimeSpec(type=TimeSpecType.SOLAR, base="sunrise")
+        sunset_spec = TimeSpec(type=TimeSpecType.SOLAR, base="sunset")
+        day_block = TimeBlock(
+            name="day",
+            start=sunrise_spec,
+            end=sunset_spec,
+            images=[Path("day.jpg")]
+        )
+        
+        # Create a block that spans from sunset to sunrise
+        night_block = TimeBlock(
+            name="night",
+            start=sunset_spec,
+            end=sunrise_spec,
+            images=[Path("night.jpg")]
+        )
+        
+        # Create schedule without location
+        schedule = Schedule(
+            meta=meta,
+            timeblocks={"day": day_block, "night": night_block},
+            days=None,
+            location=None
+        )
+        
+        # Create a global location
+        global_location = {
+            "latitude": 40.0,
+            "longitude": -74.0,
+            "timezone": "UTC"
+        }
+        
+        # Test with a time that should be just before sunrise
+        when = datetime(2023, 6, 21, 4, 0)  # Early morning on summer solstice
+        
+        # Without global location, it should use fallbacks
+        next_block = schedule_manager.get_next_block(schedule, when)
+        assert next_block is not None
+        
+        # With global location, it should use the provided location
+        next_block_with_global = schedule_manager.get_next_block(schedule, when, global_location)
+        assert next_block_with_global is not None

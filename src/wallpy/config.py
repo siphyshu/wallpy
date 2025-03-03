@@ -4,7 +4,7 @@ import tomli
 import tomli_w
 import sys
 import logging
-from typing import Dict, List, Optional, TypedDict
+from typing import Dict, List, Optional, TypedDict, Any
 from dataclasses import dataclass
 from platformdirs import user_config_path
 
@@ -17,6 +17,7 @@ class ConfigData(TypedDict):
     """Type definition for config file structure"""
     active: Dict[str, str]
     wallpacks: Dict[str, Dict[str, str]]
+    location: Optional[Dict[str, Any]]
 
 @dataclass
 class SearchPaths:
@@ -108,7 +109,8 @@ class ConfigManager:
                 "default": {
                     "path": str(default_pack.relative_to(self.config_dir))
                 }
-            }
+            },
+            "location": {}
         }
         
         # Save config
@@ -282,3 +284,15 @@ class ConfigManager:
         self.data = self._create_default_config()
         self.wallpacks = self._merge_packs()
         self.active_pack = self._validate_active_pack()
+        
+    def get_location(self) -> Optional[Dict[str, Any]]:
+        """Get global location configuration if available"""
+        location = self.data.get("location", {})
+        # Return None if the location is an empty dictionary
+        return location if location else None
+        
+    def set_location(self, location_data: Dict[str, Any]) -> None:
+        """Set global location configuration"""
+        self.data["location"] = location_data
+        with open(self.config_file, "wb") as f:
+            tomli_w.dump(self.data, f)

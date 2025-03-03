@@ -53,8 +53,9 @@ class TestScheduleValidator:
         with pytest.raises(ValueError, match="Day-based schedule must contain at least one day entry"):
             validator.validate(schedule, temp_pack)
     
-    def test_timeblocks_missing_location(self, validator, temp_pack):
-        """Timeblocks using solar times without location data should raise ValueError."""
+    def test_timeblocks_solar_without_location(self, validator, temp_pack, caplog):
+        """Timeblocks using solar times without location data should log a warning."""
+        caplog.set_level(logging.WARNING)
         meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Test Schedule")
         time_spec_start = TimeSpec(type=TimeSpecType.SOLAR, base="sunrise")
         time_spec_end = TimeSpec(type=TimeSpecType.SOLAR, base="sunset")
@@ -62,8 +63,21 @@ class TestScheduleValidator:
         # No location provided.
         schedule = Schedule(meta=meta, timeblocks={"block1": block}, days=None, location=None)
         
-        with pytest.raises(ValueError, match="Solar timeblocks require location data"):
-            validator.validate(schedule, temp_pack)
+        validator.validate(schedule, temp_pack)
+        assert any("Solar timeblocks without location data will use fallback times" in record.message for record in caplog.records)
+    
+    def test_timeblocks_solar_with_global_location(self, validator, temp_pack):
+        """Timeblocks using solar times should use global location if available."""
+        meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Test Schedule")
+        time_spec_start = TimeSpec(type=TimeSpecType.SOLAR, base="sunrise")
+        time_spec_end = TimeSpec(type=TimeSpecType.SOLAR, base="sunset")
+        block = TimeBlock(name="block1", start=time_spec_start, end=time_spec_end, images=[Path("image1.jpg")])
+        # No location in schedule, but global location provided
+        schedule = Schedule(meta=meta, timeblocks={"block1": block}, days=None, location=None)
+        global_location = {"latitude": 40.0, "longitude": -74.0, "timezone": "UTC"}
+        
+        # This should not raise an error
+        validator.validate(schedule, temp_pack, global_location)
     
     def test_timeblocks_missing_image(self, validator, tmp_path):
         """A timeblock referencing a missing image should raise FileNotFoundError."""
@@ -166,3 +180,24 @@ class TestScheduleValidator:
         validator.validate(schedule, pack_dir)
         warnings = [record.message for record in caplog.records]
         assert any("gap detected" in msg.lower() and "end of last block" in msg.lower() for msg in warnings)
+        
+    def test_analyze_time_coverage_with_global_location(self, validator, tmp_path):
+        """Check that time coverage analysis works with global location."""
+        pack_dir = tmp_path / "pack"
+        pack_dir.mkdir()
+        (pack_dir / "img1.jpg").touch()
+        
+        meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Global Location Schedule")
+        # Use solar times without local location
+        ts_start = TimeSpec(type=TimeSpecType.SOLAR, base="sunrise")
+        ts_end = TimeSpec(type=TimeSpecType.SOLAR, base="sunset")
+        block = TimeBlock(name="day", start=ts_start, end=ts_end, images=[Path("img1.jpg")])
+        
+        # No location in schedule
+        schedule = Schedule(meta=meta, timeblocks={"day": block}, days=None, location=None)
+        
+        # Provide global location
+        global_location = {"latitude": 40.0, "longitude": -74.0, "timezone": "UTC"}
+        
+        # This should not raise an error
+        validator.validate(schedule, pack_dir, global_location)
