@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wallpy-sensei"
-version = "2.10.0"
+version = "2.11.0"
 description = "Dynamic wallpaper scheduler based on time of day"
 authors = ["Jaiyank Saxena <siphyshu@gmail.com>"]
 readme = "README.md"
@@ -16,18 +16,17 @@ rich = ">=13.9.4,<14.0.0"
 watchdog = ">=6.0.0,<7.0.0"
 pywin32 = { version = ">=308,<309", markers = "sys_platform == 'win32'" }
 astral = ">=3.2,<4.0"
-click = "^8.1.3"
 tomli = "^2.0.1"
+tomli-w = "^1.0.0"
 platformdirs = "^3.2.0"
 psutil = "^5.9.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-cov = "^6.0.0"
-tomli-w = "^1.0.0"
 
 [tool.poetry.scripts]
-wallpy = "wallpy.cli.main:cli"
+wallpy = "wallpy.cli:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
