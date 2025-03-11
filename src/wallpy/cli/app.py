@@ -13,6 +13,7 @@ from wallpy.schedule import ScheduleManager
 from wallpy.engine import WallpaperEngine
 
 from wallpy.cli import pack, config, service, logs
+from wallpy.cli.utils import get_app_state
 
 
 console = Console()
@@ -37,11 +38,12 @@ app.add_typer(logs.app, name="logs", help="View and manage logs", rich_help_pane
         epilog="📝 this is an alias for [turquoise4]wallpy pack list[/]"
 )
 def alias_list(
-    ctx: typer.Context
+    ctx: typer.Context,
+    search: Annotated[Path, typer.Argument(..., help="Search directory for packs", show_default=False, metavar="[PATH]")] = None
 ):
     """Lists all available wallpaper packs"""
     
-    pack.list(ctx)
+    pack.list(ctx, search)
 
 
 @app.command(
@@ -52,7 +54,8 @@ def alias_list(
 )
 def alias_activate(
     ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to activate", show_default=False)]
+    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to activate", show_default=False)],
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to activate", show_default=False)
 ):
     """Activates the specified pack (makes it the default)"""    
     
@@ -93,14 +96,11 @@ def alias_download(
 @app.callback(invoke_without_command=True)
 def main(
     help: bool = typer.Option(False, "--help", "-h", help="Show this help message"),
+    verbose: bool = typer.Option(False, "--verbose", "-V", help="Enable verbose output"),
     version: bool = typer.Option(False, "--version", "-v", help="Show version information"),
     ctx: typer.Context = typer.Context
     ):
-    """
-    [bold]wallpy-sensei 🥷🌆[/]
-
-    A dynamic wallpaper engine with time-based scheduling
-    """
+     
     if version:
         from importlib.metadata import version
         console.print(f"wallpy v{version('wallpy-sensei')}")
@@ -114,9 +114,9 @@ def main(
         console.print("Hello, world!")
 
     # Initialize the application state
-    # state = get_app_state()
-    # ctx.obj = state
-    ctx.obj = {"active": "test-active-pack"}
+    state = get_app_state(verbrose=verbose)
+    ctx.obj = state
+    ctx.obj["active"] = "test-pack"
 
 
 if __name__ == "__main__":
