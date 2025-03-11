@@ -1,10 +1,14 @@
 # src/wallpy/models.py
-from dataclasses import dataclass, field
+import sys
+from pathlib import Path
 from datetime import time
 from enum import Enum, auto
-from pathlib import Path
+from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, List, Any
 
+from wallpy.validate import ValidationResult
+
+# Schedule-related data structures
 class ScheduleType(Enum):
     """Type of schedule configuration"""
     TIMEBLOCKS = "timeblocks"  # Time-based schedule with blocks
@@ -117,3 +121,47 @@ class Schedule:
         else:
             day_count = len(self.days) if self.days else 0
             return f"{self.meta.name}: {day_count} days"
+        
+
+# Pack-related data structures
+@dataclass
+class Pack:
+    """Wallpaper pack data structure"""
+    name: str
+    path: Path
+    uid: str
+    # is_active: bool = False
+    # is_valid: bool
+    # validation_result: ValidationResult
+
+
+@dataclass
+class PackSearchPaths:
+    """OS-specific wallpacks search paths"""
+    linux: List[str] = None
+    darwin: List[str] = None
+    win32: List[str] = None
+
+    def __post_init__(self):
+        self.linux = [
+            "/usr/share/backgrounds",
+            "~/.local/share/wallpapers",
+            "/usr/share/wallpapers"
+        ]
+        self.darwin = [
+            "~/Pictures/Wallpapers",
+            "/Library/Desktop Pictures"
+        ]
+        self.win32 = [
+            "~/AppData/Local/Microsoft/Windows/Themes",
+            "~/Pictures/",
+            "~/Pictures/Wallpapers",
+            "C:/Users/Public/Pictures/",
+            "C:/Users/Public/Pictures/Wallpapers",
+            "C:/Windows/Web",
+        ]
+
+    def get_paths(self) -> List[Path]:
+        """Get paths for current platform"""
+        platform_paths = getattr(self, sys.platform, [])
+        return [Path(p).expanduser() for p in platform_paths]
