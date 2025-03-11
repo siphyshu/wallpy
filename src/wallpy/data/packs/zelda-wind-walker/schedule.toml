@@ -1,0 +1,16 @@
+[meta]
+type = "timeblocks"
+name = "Zelda Wind Walker"
+author = "Matt Vince"
+description = "A schedule for Zelda Wind Walker"
+
+[timeblocks]
+dawn = { start = "dawn", end = "sunrise", images = [ "dawn1.jpg", "dawn2.jpg", "dawn3.jpg" ], shuffle = false }
+morning = { start = "sunrise", end = "dusk", images = [ "morning1.jpg", "morning2.jpg", "morning3.jpg", "morning4.jpg" ], shuffle = false }
+dusk = { start = "dusk", end = "sunset", images = [ "dusk1.jpg", "dusk2.jpg", "dusk3.jpg" ], shuffle = false }
+night = { start = "sunset", end = "dawn", images = [ "night1.jpg", "night2.jpg", "night3.jpg", "night4.jpg", "night5.jpg", "night6.jpg" ], shuffle = false }
+
+[location]
+latitude = 28.6139
+longitude = 77.2090
+timezone = "Asia/Kolkata"
