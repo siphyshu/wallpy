@@ -54,12 +54,12 @@ def alias_list(
 )
 def alias_activate(
     ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to activate", show_default=False)],
+    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to activate", show_default=False)] = None,
     pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to activate", show_default=False)
 ):
     """Activates the specified pack (makes it the default)"""    
     
-    pack.activate(ctx, pack_name)
+    pack.activate(ctx, pack_name, pack_uid)
 
 
 @app.command(
@@ -69,11 +69,12 @@ def alias_activate(
 )
 def alias_preview(
     ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to preview")] = "active"
+    pack_name: Annotated[str, typer.Argument(help="Name of the pack to preview")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to preview", show_default=False)
 ):
     """Previews schedule and wallpapers from the specified pack"""
     
-    pack.preview(ctx, pack_name)
+    pack.preview(ctx, pack_name, pack_uid)
 
 
 @app.command(
@@ -116,7 +117,10 @@ def main(
     # Initialize the application state
     state = get_app_state(verbrose=verbose)
     ctx.obj = state
-    ctx.obj["active"] = "test-pack"
+
+    # Set the active pack's name and uid in the context object according to the config file
+    config_manager = ctx.obj.get("config_manager")
+    ctx.obj["active"] = config_manager.get_active_pack()
 
 
 if __name__ == "__main__":

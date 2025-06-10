@@ -4,79 +4,116 @@ import imghdr
 import tomli
 import logging
 from PIL import Image
-from typing import List
+from typing import List, Optional, Dict, Any
 from pathlib import Path
+from datetime import datetime, timedelta
 from platformdirs import user_config_path
 from dataclasses import dataclass, field
 from collections import defaultdict
 
+from wallpy.models import Schedule, TimeSpecType, ScheduleType, Location, ValidationResult
 
-class ValidationResult:
-    def __init__(self):
-        self.messages = []
-
-    def add(self, check: str, level: str, message: str):
-        """
-        Add a message to the result.
-        :param check: Identifer for the check (e.g., "validate_schedule").
-        :param level: The level of the message (error or warning).
-        :param message: The message to display.
-        """
+class ScheduleValidator:
+    """Validator for schedule integrity"""
     
-        self.messages.append({
-            "check": check,
-            "level": level,
-            "message": message
-        })
-
-
-    def remove(self, check: str):
-        """
-        Remove a message from the result.
-        :param check: The identifier of the message to remove.
-        """
-
-        self.messages = [msg for msg in self.messages if msg["check"] != check]
+    def __init__(self, solar_calculator):
+        self.solar_calculator = solar_calculator
+        self.logger = logging.getLogger(__name__)
     
-
-    def merge(self, other: 'ValidationResult'):
-        """
-        Merge another ValidationResult into this one.
-        :param other: The other ValidationResult to merge.
-        """
-    
-        self.messages.extend(other.messages)
-
-    
-    @property
-    def errors(self) -> dict:
-        errors = defaultdict(list)
-        for msg in self.messages:
-            if msg["level"] == "error":
-                errors[msg["check"]].append(msg["message"])
+    def validate(self, schedule: Schedule, pack_path: Path, global_location: Optional[Dict[str, Any]] = None) -> ValidationResult:
+        """Main validation entry point"""
+        result = ValidationResult()
         
-        return errors
-    
-    @property
-    def warnings(self) -> dict:
-        warnings = defaultdict(list)
-        for msg in self.messages:
-            if msg["level"] == "warning":
-                warnings[msg["check"]].append(msg["message"])
+        # Validate that the expected schedule sections are present
+        if schedule.meta.type == ScheduleType.TIMEBLOCKS:
+            if not schedule.timeblocks or len(schedule.timeblocks) == 0:
+                result.add("schedule_timeblocks", "error", "Timeblock schedule must contain at least one timeblock")
+            else:
+                self._validate_timeblocks(schedule, pack_path, global_location, result)
+                self._analyze_time_coverage(schedule, global_location, result)
+        elif schedule.meta.type == ScheduleType.DAYS:
+            if not schedule.days or len(schedule.days) == 0:
+                result.add("schedule_days", "error", "Day-based schedule must contain at least one day entry")
+            else:
+                self._validate_days(schedule, pack_path, result)
+        else:
+            result.add("schedule_type", "error", f"Unknown schedule type: {schedule.meta.type}")
         
-        return warnings
+        return result
     
-    @property
-    def passed(self) -> bool:
-        """Validtion is considered passed if there are no errors"""
-        return len(self.errors) == 0
+    def _validate_timeblocks(self, schedule: Schedule, pack_path: Path, global_location: Optional[Dict[str, Any]], result: ValidationResult) -> None:
+        """Validate timeblock-based schedules"""
+        # Check if any time specification uses solar events
+        has_solar = any(
+            block.start.type == TimeSpecType.SOLAR or block.end.type == TimeSpecType.SOLAR
+            for block in schedule.timeblocks.values()
+        )
+        
+        if has_solar and not global_location:
+            result.add("schedule_solar", "warning", "Solar timeblocks without global location data will use fallback times")
+        
+        # Validate that each image file exists in the given pack directory
+        for block in schedule.timeblocks.values():
+            for img in block.images:
+                if not (pack_path / img).exists():
+                    result.add("schedule_images", "error", f"Image {img} not found in pack")
     
-    @property
-    def failed(self) -> bool:
-        """Validation is considered failed if there are any errors"""
-        return len(self.errors) > 0
-
-
+    def _validate_days(self, schedule: Schedule, pack_path: Path, result: ValidationResult) -> None:
+        """Validate day-based schedules"""
+        for day, day_sched in schedule.days.items():
+            for img in day_sched.images:
+                if not (pack_path / img).exists():
+                    result.add("schedule_images", "error", f"Day image {img} not found in pack")
+    
+    def _analyze_time_coverage(self, schedule: Schedule, global_location: Optional[Dict[str, Any]], result: ValidationResult) -> None:
+        """Analyze schedule coverage and report potential issues as warnings"""
+        if not schedule.timeblocks:
+            return
+        
+        test_date = datetime.today().date()
+        blocks = []
+        
+        # Convert all time specifications into concrete datetimes for the test date
+        for block in schedule.timeblocks.values():
+            start_dt = self.solar_calculator.resolve_datetime(block.start, test_date, global_location)
+            end_dt = self.solar_calculator.resolve_datetime(block.end, test_date, global_location)
+            
+            # If the end time is before or equal to the start, assume the block crosses midnight
+            if end_dt <= start_dt:
+                end_dt += timedelta(days=1)
+                
+            blocks.append((block.name, start_dt, end_dt))
+        
+        # Sort blocks by their start time
+        blocks.sort(key=lambda x: x[1])
+        
+        # Check for overlaps and gaps between consecutive blocks
+        for i in range(len(blocks) - 1):
+            current_name, current_start, current_end = blocks[i]
+            next_name, next_start, next_end = blocks[i + 1]
+            
+            if current_end > next_start:
+                result.add("schedule_overlap", "warning", f"Timeblock overlap detected: '{current_name}' and '{next_name}'")
+            elif current_end < next_start:
+                gap = next_start - current_end
+                if gap > timedelta(minutes=1):  # Allow 1-minute tolerance
+                    result.add("schedule_gap", "warning", f"Gap detected between '{current_name}' and '{next_name}' ({gap})")
+        
+        # Check the gap from the end of the last block to the start of the first block (cycling over midnight)
+        first_block_start = blocks[0][1]
+        last_block_end = blocks[-1][2]
+        circular_gap = (first_block_start + timedelta(days=1)) - last_block_end
+        if circular_gap > timedelta(minutes=1):
+            result.add("schedule_gap", "warning", f"Gap detected between end of last block and start of first block ({circular_gap})")
+        
+        # Compute total scheduled coverage
+        total_coverage = timedelta()
+        for _, start, end in blocks:
+            total_coverage += (end - start)
+        
+        total_hours = total_coverage.total_seconds() / 3600.0
+        if total_coverage < timedelta(hours=24):
+            result.add("schedule_coverage", "warning", f"Schedule covers {total_hours:.1f} hours out of 24")
 
 class Validator:
     """Validates schedules, config, packs, and other components"""
@@ -85,16 +122,12 @@ class Validator:
         self.logger = logging.getLogger("wallpy.logger")
         self.logger.debug("🔧 Initializing Validator")
 
-
-    def validate_schedule(self, schedule: dict):
+    def validate_schedule(self, schedule: dict) -> ValidationResult:
         """Validates a wallpaper pack schedule and reports any issues"""
-
         result = ValidationResult()
-
         return result
 
-
-    def validate_config(self, config: dict, wallpacks: dict):
+    def validate_config(self, config: dict, wallpacks: dict) -> ValidationResult:
         """Validates the global configuration file and reports any issues"""
         
         # Checks to perform:
@@ -114,7 +147,6 @@ class Validator:
         
         result = ValidationResult()
         config_dir = user_config_path(appname="wallpy", appauthor=False, ensure_exists=True)
-        
 
         # 1. Check if the config file has the required sections
         if "settings" not in config:
@@ -123,7 +155,6 @@ class Validator:
             return result
         settings = config["settings"]
         self.logger.debug("✅ Config file has the required [settings] section")
-        
 
         # 2. Check if the settings section has the required key [active]
         if "active" not in settings:
@@ -131,7 +162,6 @@ class Validator:
             self.logger.debug("🚫 Config file is missing the required [active] key")
             return result
         self.logger.debug("✅ Config file has the required [active] key")
-        
 
         # 3. Check if the [active] key is a valid pack name
         active_pack = settings["active"]
@@ -159,9 +189,7 @@ class Validator:
         else:   
             self.logger.debug("✅ Config file has a valid active pack")
 
-        
         # 4. Check if the config file has the keys [custom_wallpacks]
-        custom_wallpacks = defaultdict(list)
         if "custom_wallpacks" in config:
             custom_paths = config["custom_wallpacks"]
             
@@ -175,10 +203,8 @@ class Validator:
                 if not path.exists():
                     result.add("config_custom_wallpacks", "warning", f"Config has an invalid custom wallpack path for {name}")
                     self.logger.debug(f"🚫 Config file has an invalid custom wallpack path for {name}")
-
             else:
                 self.logger.debug("✅ Config file has valid custom wallpack paths")
-        
 
         # 5. Check if the location key is present and has the required keys
         if "location" in config:
@@ -191,8 +217,7 @@ class Validator:
 
         return result
 
-
-    def validate_pack(self, pack: Path):
+    def validate_pack(self, pack: Path) -> ValidationResult:
         """Validates a wallpaper pack and reports any issues"""
 
         # Checks to perform:
@@ -218,7 +243,6 @@ class Validator:
             with schedule_file.open("r") as f:
                 schedule = tomli.load(f)
                 result.merge(self.validate_schedule(schedule))
-
         except Exception as e:
             result.add("schedule_invalid", "error", f"{self.file} schedule.toml is invalid: {str(e)}")
         
@@ -229,8 +253,7 @@ class Validator:
 
         return result
 
-
-    def validate_image(self, img: Path):
+    def validate_image(self, img: Path) -> ValidationResult:
         """Validates an image file"""
 
         # Checks to perform:
@@ -247,47 +270,32 @@ class Validator:
             return result
         
         # Check the size of the image
-        image = Image.open(self.file)
-        width, height = image.size
-
-        if width < 1920 or height < 1080:
-            result.add("image_size", "warning", f"{self.file} is smaller than 1920x1080, wallpaper may appear pixelated or cut off")
-
-        # Check if the image is corrupted
         try:
-            image.verify()
+            image = Image.open(self.file)
+            width, height = image.size
+            if width < 800 or height < 600:
+                result.add("image_size", "warning", f"{self.file} is smaller than 800x600")
         except Exception as e:
-            result.add("image_corrupted", "error", f"{self.file} is corrupted: {str(e)}")
-
+            result.add("image_corrupt", "error", f"{self.file} is corrupted: {str(e)}")
+        
         return result
-    
 
     def is_pack(self, item: Path) -> bool:
-        """Checks if a directory is a wallpaper pack"""
-        
-        # Conditions for a directory to be a pack:
-        #   Condition 1: Is a directory
-        #   Condition 2: schedule.toml exists
-        #   Condition 3: images directory exists 
-        #   Condition 4: images directory contains at least 1 valid image
-
-        # Check condition 1 (Is a directory)
+        """Check if a directory is a valid wallpaper pack"""
         if not item.is_dir():
             return False
         
-        # Check condition 2 (schedule.toml exists)
-        schedule_file = item / "schedule.toml"
-        if not schedule_file.exists():
+        # Check for schedule.toml
+        if not (item / "schedule.toml").exists():
             return False
         
-        # Check condition 3 (images directory exists)
+        # Check for images directory
+        if not (item / "images").is_dir():
+            return False
+        
+        # Check if there is at least one image in the images directory
         images_dir = item / "images"
-        if not images_dir.exists() or not any(images_dir.iterdir()):
-            return False
-        
-        # Check condition 4 (images directory contains at least 1 valid image)
-        valid_images = [img for img in images_dir.iterdir() if imghdr.what(img)]
-        if not valid_images:
+        if not any(images_dir.iterdir()):
             return False
         
         return True

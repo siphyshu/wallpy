@@ -4,11 +4,6 @@ name = "Ascii-Adam"
 author = "The Singularity"
 description = "God Meets Adam in The Matrix"
 
-[location]
-latitude = 28.6139
-longitude = 77.2090
-timezone = "Asia/Kolkata"
-
 [timeblocks.morning]
 start = "dawn"
 end = "dusk"

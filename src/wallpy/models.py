@@ -5,8 +5,7 @@ from datetime import time
 from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, List, Any
-
-from wallpy.validate import ValidationResult
+from collections import defaultdict
 
 # Schedule-related data structures
 class ScheduleType(Enum):
@@ -90,7 +89,6 @@ class Schedule:
     meta: ScheduleMeta
     timeblocks: Optional[Dict[str, TimeBlock]] = None
     days: Optional[Dict[str, DaySchedule]] = None
-    location: Optional[Dict[str, Any]] = None  # lat, lon, tz
     
     def is_timeblock_based(self) -> bool:
         """Check if this is a timeblock-based schedule"""
@@ -99,19 +97,6 @@ class Schedule:
     def is_day_based(self) -> bool:
         """Check if this is a day-based schedule"""
         return self.meta.type == ScheduleType.DAYS
-    
-    def get_location_object(self) -> Optional[Location]:
-        """Convert location dict to Location object if available"""
-        if not self.location:
-            return None
-            
-        return Location(
-            latitude=self.location.get("latitude", 0.0),
-            longitude=self.location.get("longitude", 0.0),
-            timezone=self.location.get("timezone", "UTC"),
-            name=self.location.get("name", "location"),
-            region=self.location.get("region", "region")
-        )
     
     def __str__(self) -> str:
         """Human-readable representation of the schedule"""
@@ -165,3 +150,65 @@ class PackSearchPaths:
         """Get paths for current platform"""
         platform_paths = getattr(self, sys.platform, [])
         return [Path(p).expanduser() for p in platform_paths]
+
+class ValidationResult:
+    def __init__(self):
+        self.messages = []
+
+    def add(self, check: str, level: str, message: str):
+        """
+        Add a message to the result.
+        :param check: Identifer for the check (e.g., "validate_schedule").
+        :param level: The level of the message (error or warning).
+        :param message: The message to display.
+        """
+    
+        self.messages.append({
+            "check": check,
+            "level": level,
+            "message": message
+        })
+
+    def remove(self, check: str):
+        """
+        Remove a message from the result.
+        :param check: The identifier of the message to remove.
+        """
+
+        self.messages = [msg for msg in self.messages if msg["check"] != check]
+    
+    def merge(self, other: 'ValidationResult'):
+        """
+        Merge another ValidationResult into this one.
+        :param other: The other ValidationResult to merge.
+        """
+    
+        self.messages.extend(other.messages)
+    
+    @property
+    def errors(self) -> dict:
+        errors = defaultdict(list)
+        for msg in self.messages:
+            if msg["level"] == "error":
+                errors[msg["check"]].append(msg["message"])
+        
+        return errors
+    
+    @property
+    def warnings(self) -> dict:
+        warnings = defaultdict(list)
+        for msg in self.messages:
+            if msg["level"] == "warning":
+                warnings[msg["check"]].append(msg["message"])
+        
+        return warnings
+    
+    @property
+    def passed(self) -> bool:
+        """Validation is considered passed if there are no errors"""
+        return len(self.errors) == 0
+    
+    @property
+    def failed(self) -> bool:
+        """Validation is considered failed if there are any errors"""
+        return len(self.errors) > 0

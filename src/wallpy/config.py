@@ -1,4 +1,9 @@
 # config.py
+
+# This is mostly finished being implemented
+# The only thing left is to use the validator
+# Which is blocked by Validator class not being fully implemented yet
+
 import sys
 import imghdr
 import shutil
@@ -14,7 +19,7 @@ from platformdirs import user_config_path
 from typing import Dict, List, Optional, TypedDict, Any, DefaultDict
 
 from wallpy.validate import Validator
-from wallpy.models import PackSearchPaths, Pack
+from wallpy.models import PackSearchPaths, Pack, Location
 
 
 def generate_uid(path: str) -> str:
@@ -27,8 +32,8 @@ class ConfigManager:
     """Manages wallpaper configuration and pack discovery"""
 
     # note to self: 
-    # if you ever question why packs are being handled in the config manager instead of a separate pack manager class, remember that: 
-    #   - the config manager is the only class that knows where the packs are stored
+    # if you ever question why config manager is handling packs as well as the config file, instead of a separate pack manager class, remember that: 
+    #   - the config manager is the only class that knows where the packs are stored, because that info is stored in the config file
     #   - if not for the config manager, the pack manager would have to know where the config is stored + make edits to the config file
     #   - it would have to inevidently use ConfigManager anyway, which just adds an extra layer of abstraction that is unnecessary
 
@@ -246,10 +251,28 @@ class ConfigManager:
 
     def find_similar_pack(self, pack_name: str, available_packs: List[str]) -> List[str]:
         """Finds similar pack names from a list of available packs"""
-
+            
         pack_name = pack_name.lower().strip()        
         matches = difflib.get_close_matches(pack_name, available_packs, n=3, cutoff=0.2)
         return matches
+    
+
+    def get_active_pack(self) -> Pack:
+        """Gets the active wallpaper pack from the config"""
+        
+        if "active" in self.config["settings"]:
+            pack_name = self.config["settings"]["active"]
+            pack_path = Path(self.config["settings"]["path"])
+            
+            # Create a Pack object with the active pack info
+            return Pack(
+                name=pack_name,
+                path=pack_path,
+                uid=generate_uid(str(pack_path))
+            )
+        else:
+            return None
+
     
 
     def set_active_pack(self, pack: Pack) -> None:
@@ -274,6 +297,7 @@ class ConfigManager:
         return self._save_config(self.config)
 
 
+
     def _save_config(self, config: dict) -> None:
         """Saves the configuration to the global config file"""
         
@@ -287,3 +311,39 @@ class ConfigManager:
         except Exception as e:
             self.logger.error(f"💀 Error saving configuration: {str(e)}")
             return False
+
+    def get_location(self) -> Optional[Location]:
+        """Gets the global location from the config"""
+        if "location" in self.config:
+            loc_data = self.config["location"]
+            return Location(
+                name=loc_data.get("name", "New Delhi"),
+                region=loc_data.get("region", "Asia"),
+                latitude=loc_data.get("latitude", 28.6139),
+                longitude=loc_data.get("longitude", 77.2090),
+                timezone=loc_data.get("timezone", "Asia/Kolkata"),
+            )
+        return None
+
+    def set_location(self, location: Location) -> None:
+        """Sets the global location in the config
+        
+        Args:
+            location (Location): The location to set
+        """
+        self.logger.debug(f"🔁 Setting global location")
+
+        # Load the current config
+        self.load_config()
+
+        # Set the location in the config
+        self.config["location"] = {
+            "latitude": location.latitude,
+            "longitude": location.longitude,
+            "timezone": location.timezone,
+            "name": location.name,
+            "region": location.region
+        }
+        
+        # Save the config
+        return self._save_config(self.config)

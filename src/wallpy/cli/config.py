@@ -29,7 +29,16 @@ def show(
 ):
     """Prints the global config in a human-readable format"""
     
-    console.print("⛔ Not Implemented Yet")
+    console.print("🚧 Work In Progress", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+
+    # Get all config fields
+    config = config_manager.config
+
+    # Print all config fields
+    for key, value in config.items():
+        console.print(f"[bold]{key}[/]: {value}")
 
 
 @app.command(
@@ -40,7 +49,17 @@ def edit(
 ):
     """Opens the global config in editor"""
     
-    console.print("⛔ Not Implemented Yet")
+    console.print("🚧 Work In Progress")
+
+    # config_manager = ctx.obj.get("config_manager")
+    
+    # location = str(config_manager.config_dir)
+    # # location = str(Path("C://Users//SIPHYSHU//Downloads//cyberpunk.mp4"))
+    # # location = "https://siphyshu.me"
+    
+    # console.print(f"Opening {location} in editor")
+    # rc = typer.launch(location,locate=True)
+    # console.print(rc)
 
 
 @app.command(
@@ -63,7 +82,3 @@ def callback(
     ctx: typer.Context
 ):
     """Manage wallpy configuration"""
-
-    # Initialize the application state
-    # state = get_app_state()
-    # ctx.obj = state

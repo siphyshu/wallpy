@@ -71,7 +71,3 @@ def callback(
     ctx: typer.Context
 ):
     """Control wallpy service"""
-
-    # Initialize the application state
-    # state = get_app_state()
-    # ctx.obj = state

@@ -60,7 +60,3 @@ def callback(
     ctx: typer.Context
 ):
     """View and manage logs"""
-
-    # Initialize the application state
-    # state = get_app_state()
-    # ctx.obj = state
