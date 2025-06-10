@@ -260,15 +260,17 @@ class ConfigManager:
     def get_active_pack(self) -> Pack:
         """Gets the active wallpaper pack from the config"""
         
-        if "active" in self.config["settings"]:
-            pack_name = self.config["settings"]["active"]
-            pack_path = Path(self.config["settings"]["path"])
+        if "active" in self.config:
+            active = self.config["active"]
+            pack_name = active.get("name")
+            pack_path = Path(active.get("path"))
+            pack_uid = active.get("uid")
             
             # Create a Pack object with the active pack info
             return Pack(
                 name=pack_name,
                 path=pack_path,
-                uid=generate_uid(str(pack_path))
+                uid=pack_uid or generate_uid(str(pack_path))
             )
         else:
             return None
@@ -279,7 +281,7 @@ class ConfigManager:
         """Sets the active wallpaper pack in the config
         
         Args:
-            pack_name (str): The name of the pack to activate
+            pack (Pack): The pack to activate
         """
         
         self.logger.debug(f"🔁 Setting active pack to {pack.name}")
@@ -287,9 +289,12 @@ class ConfigManager:
         # Load the current config
         self.load_config()
 
-        # Set the active pack in the settings section
-        self.config["settings"]["active"] = pack.name
-        self.config["settings"]["path"] = str(pack.path)
+        # Set the active pack in the active section
+        self.config["active"] = {
+            "name": pack.name,
+            "path": str(pack.path),
+            "uid": pack.uid
+        }
         
         self.logger.debug(f"Config: {self.config}")
 
