@@ -28,7 +28,7 @@ app = typer.Typer(
 app.add_typer(pack.app, name="pack", help="Manage wallpaper packs", rich_help_panel="📋 Main Commands")
 app.add_typer(config.app, name="config", help="Manage wallpy configuration", rich_help_panel="📋 Main Commands")
 app.add_typer(service.app, name="service", help="Control wallpy service", rich_help_panel="📋 Main Commands")
-app.add_typer(logs.app, name="logs", help="View and manage logs", rich_help_panel="📋 Main Commands")
+# app.add_typer(logs.app, name="logs", help="View and manage logs", rich_help_panel="📋 Main Commands")
 
 
 # aliases for commonly used subcommands
@@ -115,7 +115,7 @@ def main(
         console.print("Hello, world!")
 
     # Initialize the application state
-    state = get_app_state(verbrose=verbose)
+    state = get_app_state(verbose=verbose)
     ctx.obj = state
 
     # Set the active pack's name and uid in the context object according to the config file

@@ -7,13 +7,15 @@ import typer
 import logging
 from pathlib import Path
 from rich.console import Console
+from platformdirs import user_config_path
+import logging
 
 from wallpy.config import ConfigManager
 from wallpy.schedule import ScheduleManager
 from wallpy.engine import WallpaperEngine
 from wallpy.validate import Validator
 
-def get_app_state(verbrose: bool) -> dict:
+def get_app_state(verbose: bool) -> dict:
     """
     Get the current state of the application
     """
@@ -21,7 +23,7 @@ def get_app_state(verbrose: bool) -> dict:
     console = Console()
     
     logger = logging.getLogger("wallpy")
-    if verbrose:
+    if verbose:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO

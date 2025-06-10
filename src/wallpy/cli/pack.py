@@ -11,13 +11,16 @@ from rich.console import Console
 from typing_extensions import Annotated
 from rich.table import Table
 from rich.box import ROUNDED
+from rich.prompt import Confirm
 from datetime import datetime, timedelta
+import shutil
+from collections import defaultdict
 
-from wallpy.config import ConfigManager
+from wallpy.config import ConfigManager, generate_uid
 from wallpy.schedule import ScheduleManager
 from wallpy.engine import WallpaperEngine
 from wallpy.validate import Validator
-from wallpy.models import ScheduleType
+from wallpy.models import ScheduleType, Pack
 
 console = Console()
 app = typer.Typer(
@@ -738,16 +741,174 @@ def download(
 )
 def pack_import(
     ctx: typer.Context,
-    location: Annotated[Path, typer.Argument(..., help="Location of the pack(s) to import", show_default=False)]
+    location: Annotated[Path, typer.Argument(..., help="Location of the pack(s) to import", show_default=False)],
+    copy: bool = typer.Option(False, "--copy", "-c", help="Copy pack(s) to wallpy packs directory instead of adding to config"),
+    album: bool = typer.Option(False, "--album", help="Treat the location as an album (folder of packs) in config"),
+    album_name: str = typer.Option(None, "--name", "-n", help="Name for the album (defaults to folder name)")
 ):
     """
     Imports pack(s) from the specified location into the global config
 
     If a directory is provided, all packs in the directory are imported.
+    Use --copy to copy the pack(s) to the wallpy packs directory instead of adding to config.
+    Use --album to add the entire directory as an album in the config.
+    Use --name to specify a custom name for the album.
     """
 
-    console.print("⛔ Not Implemented Yet")
-    console.print(f"Importing pack(s) from: {location}")
+    console.print("\n✨ Implemented", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+    validator = ctx.obj.get("validator")
+
+    # Check if location exists
+    if not location.exists():
+        console.print(f"🚫 Location '{location}' does not exist")
+        return
+
+    # If location is a directory, check if it contains multiple packs
+    if location.is_dir():
+        packs = config_manager.scan_directory(location)
+        is_album = len(packs) > 1
+
+        # If it looks like an album but --album wasn't specified, ask the user
+        if is_album and not album and not copy:
+            console.print(f"🔍 Found multiple packs in '{location.name}':")
+            for pack_name, pack_list in packs.items():
+                for pack in pack_list:
+                    console.print(f"    • {pack.name} [cyan italic]{pack.uid}[/]")
+            
+            if Confirm.ask("\nWould you like to import this as an album?"):
+                album = True
+                if not album_name:
+                    album_name = location.name
+                    if Confirm.ask(f"Use '{album_name}' as the album name?"):
+                        pass
+                    else:
+                        album_name = typer.prompt("Enter album name", default=location.name)
+                        console.print("")
+                else:
+                    console.print("")
+            else:
+                # User chose not to import as album, proceed with individual pack import
+                pass
+        elif is_album and copy:
+            # If copy flag is enabled and we found multiple packs, ask about copying all
+            console.print(f"🔍 Found {sum(len(packs) for packs in packs.values())} packs in '{location.name}':")
+            for pack_name, pack_list in packs.items():
+                for pack in pack_list:
+                    console.print(f"    • {pack.name} [cyan italic]{pack.uid}[/]")
+            
+            if not Confirm.ask("\nWould you like to copy all packs?"):
+                return
+            
+            console.print("")
+
+    # Handle album import
+    if album:
+        if not location.is_dir():
+            console.print(f"🚫 '{location}' is not a directory. Albums must be directories.")
+            return
+
+        # Use provided name or folder name
+        album_name = album_name or location.name
+
+        try:
+            # Add album to config
+            if "custom_wallpacks" not in config_manager.config:
+                config_manager.config["custom_wallpacks"] = {}
+
+            # Use relative path if possible
+            try:
+                rel_path = location.relative_to(config_manager.config_dir)
+                config_manager.config["custom_wallpacks"][album_name] = str(rel_path)
+            except ValueError:
+                # If not possible to make relative, use absolute path
+                config_manager.config["custom_wallpacks"][album_name] = str(location)
+
+            # Save config
+            config_manager._save_config(config_manager.config)
+
+            console.print(f"✅ Added album '{album_name}' to config [dim]({location})[/]")
+            return
+        except Exception as e:
+            console.print(f"🚫 Error importing album '{album_name}': {str(e)}")
+            return
+
+    # Handle individual pack import
+    if location.is_dir():
+        # If it's a directory, scan for packs
+        packs = config_manager.scan_directory(location)
+    else:
+        # If it's a single file/directory, check if it's a pack
+        if validator.is_pack(location):
+            pack = Pack(
+                name=location.name,
+                path=location.resolve(),
+                uid=generate_uid(str(location.resolve()))
+            )
+            packs = defaultdict(list)
+            packs[location.name].append(pack)
+        else:
+            console.print(f"🚫 '{location}' is not a valid wallpaper pack")
+            return
+
+    if not packs:
+        console.print(f"🚫 No valid packs found in '{location}'")
+        return
+
+    # Process each pack
+    imported_count = 0
+
+    for pack_name, pack_list in packs.items():
+        for pack in pack_list:
+            try:
+                if copy:
+                    # Copy pack to wallpy packs directory
+                    dest_path = config_manager.packs_dir / pack.name
+                    
+                    # If pack already exists, add a number suffix
+                    counter = 1
+                    while dest_path.exists():
+                        dest_path = config_manager.packs_dir / f"{pack.name}_{counter}"
+                        counter += 1
+                    
+                    # Copy the pack
+                    shutil.copytree(pack.path, dest_path)
+                    
+                    # Create new pack object with new path
+                    new_pack = Pack(
+                        name=dest_path.name,
+                        path=dest_path,
+                        uid=generate_uid(str(dest_path))
+                    )
+                    
+                    console.print(f"✅ Copied pack '{pack.name}' to [dim]{dest_path}[/]")
+                    imported_count += 1
+                else:
+                    # Add pack to custom paths in config
+                    if "custom_wallpacks" not in config_manager.config:
+                        config_manager.config["custom_wallpacks"] = {}
+
+                    # Use relative path if possible
+                    try:
+                        rel_path = pack.path.relative_to(config_manager.config_dir)
+                        config_manager.config["custom_wallpacks"][pack.name] = str(rel_path)
+                    except ValueError:
+                        # If not possible to make relative, use absolute path
+                        config_manager.config["custom_wallpacks"][pack.name] = str(pack.path)
+                    
+                    # Save config
+                    config_manager._save_config(config_manager.config)
+                    
+                    console.print(f"✅ Added pack '{pack.name}' to config [dim]({pack.path})[/]")
+                    imported_count += 1
+            except Exception as e:
+                console.print(f"🚫 Error importing pack '{pack.name}': {str(e)}")
+
+    if imported_count > 0:
+        console.print(f"\n✨ Successfully imported {imported_count} pack(s)")
+    else:
+        console.print("\n🚫 No packs were imported")
 
 
 @app.command(

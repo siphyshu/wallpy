@@ -1,9 +1,5 @@
 # config.py
 
-# This is mostly finished being implemented
-# The only thing left is to use the validator
-# Which is blocked by Validator class not being fully implemented yet
-
 import sys
 import imghdr
 import shutil
@@ -148,10 +144,23 @@ class ConfigManager:
             
         self.logger.debug(f"✅ Wallpacks loaded ({len(packs)} found)")
 
-        # Cache the packs for later use
-        self.wallpacks = packs
+        # Remove duplicate packs by UID
+        # We'll keep the first occurrence of each UID and remove any duplicates
+        seen_uids = set()
+        unique_packs = defaultdict(list)
+        
+        for name, pack_list in packs.items():
+            for pack in pack_list:
+                if pack.uid not in seen_uids:
+                    seen_uids.add(pack.uid)
+                    unique_packs[name].append(pack)
+                else:
+                    self.logger.debug(f"Removing duplicate pack: {pack.name} ({pack.uid}) at {pack.path}")
 
-        return packs
+        # Cache the packs for later use
+        self.wallpacks = unique_packs
+
+        return unique_packs
 
 
     def _create_default_config(self) -> None:

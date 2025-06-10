@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wallpy-sensei"
-version = "2.19.0"
+version = "2.21.0"
 description = "Dynamic wallpaper scheduler based on time of day"
 authors = ["Jaiyank Saxena <siphyshu@gmail.com>"]
 readme = "README.md"
