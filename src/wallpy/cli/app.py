@@ -48,6 +48,21 @@ def alias_list(
 
 
 @app.command(
+        name="info", 
+        rich_help_panel="✨ Quick Access",
+        epilog="📝 this is an alias for [turquoise4]wallpy pack info[/]"
+)
+def alias_info(
+    ctx: typer.Context,
+    pack_name: Annotated[str, typer.Argument(help="Name of the pack to show info for")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to show info for", show_default=False)
+):
+    """Shows detailed information about a pack"""
+    
+    pack.info(ctx, pack_name, pack_uid)
+
+
+@app.command(
         name="activate", 
         rich_help_panel="✨ Quick Access",
         no_args_is_help=True,
@@ -73,9 +88,24 @@ def alias_preview(
     pack_name: Annotated[str, typer.Argument(help="Name of the pack to preview")] = "active",
     pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to preview", show_default=False)
 ):
-    """Previews schedule and wallpapers from the specified pack"""
+    """Previews schedule and wallpapers of a pack"""
     
     pack.preview(ctx, pack_name, pack_uid)
+
+
+@app.command(
+        name="open", 
+        rich_help_panel="✨ Quick Access",
+        epilog="📝 this is an alias for [turquoise4]wallpy pack open[/]"
+)
+def alias_open(
+    ctx: typer.Context,
+    pack_name: Annotated[str, typer.Argument(help="Name of the pack to open")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to open", show_default=False)
+):
+    """Opens the pack's folder in the system's file explorer"""
+    
+    pack.open(ctx, pack_name, pack_uid)
 
 
 @app.command(

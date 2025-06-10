@@ -34,7 +34,7 @@ app = typer.Typer(
 # Basic pack operations
 @app.command(
     epilog="✨ shorter alias available: [turquoise4]wallpy list[/]",
-    rich_help_panel="📋 Basic Operations"
+    rich_help_panel="📋 View & List"
 )
 def list(
     ctx: typer.Context,
@@ -94,104 +94,133 @@ def list(
 
 
 @app.command(
-    rich_help_panel="📋 Basic Operations"
+    rich_help_panel="📋 View & List"
 )
-def new(
-    ctx: typer.Context
-):
-    """Creates a new pack using the pack creation wizard"""
-
-    console.print("⛔ Not Implemented Yet")
-
-
-@app.command(
-    no_args_is_help=True,
-    epilog="✨ shorter alias available: [turquoise4]wallpy activate[/]",
-    rich_help_panel="📋 Basic Operations"
-)
-def activate(
+def info(
     ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to activate", show_default=False)] = None,
-    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to activate", show_default=False)
+    pack_name: Annotated[str, typer.Argument(help="Name of the pack to show info for")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to show info for", show_default=False)
 ):
-    """Activates the specified pack (makes it the default)"""
+    """
+    Shows detailed information about a pack.
+    
+    If no pack is specified, shows info for the active pack.
+    """
 
     console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
+    schedule_manager = ctx.obj.get("schedule_manager")
 
-    # Load packs in the config manager
-    results = config_manager.load_packs()
-    
-    # If UID is provided, try to activate by UID first
+    # If UID is provided, try to get pack by UID first
     if pack_uid:
         pack = config_manager.get_pack_by_uid(pack_uid)
-        if pack:
-            pack_saved = config_manager.set_active_pack(pack)
-            if pack_saved:
-                console.print(f"✅ Pack '{pack.name}' activated")
-            else:
-                console.print(f"🚫 Error activating pack '{pack.name}'")
-            return
-        else:
+        if not pack:
             console.print(f"🚫 Pack with UID '{pack_uid}' not found")
             return
-    
-    # If no UID provided, require pack_name
-    if not pack_name:
-        console.print("🚫 Please provide either a pack name or UID")
-        return
-        
-    # Check if the pack exists
-    if pack_name not in results:
-        console.print(f"🚫 Pack '{pack_name}' not found")
-
-        # Find similar pack names
-        available_packs = [pack for pack in results.keys() if pack.lower() != "default"]
-        similar_packs = config_manager.find_similar_pack(pack_name, available_packs)
-
-        if similar_packs and len(similar_packs) > 0:
-            if len(similar_packs) == 1:
-                console.print(f"🔍 Did you mean '{similar_packs[0]}'?")
-            else:
-                console.print(f"🔍 Did you mean one of these?")
-                for pack in similar_packs:
-                    console.print(f"    📦 {pack}")
-        else:
-            # Print 3 pack names randomly from the available packs
-            console.print(f"🔍 Did you mean one of these?")
-            random.shuffle(available_packs)
-            for pack in available_packs[:3]:
-                console.print(f"    📦 {pack}")
-        
-        # Suggest the user to list all packs
-        console.print("\n✨ Use 'wallpy list' to view all available packs")
-        return
-    
-    # If there are duplicate packs, ask the user to use the UID
-    if len(results[pack_name]) > 1:
-        console.print(f"🔍 Found {len(results[pack_name])} packs named '{pack_name}'")
-        for pack in results[pack_name]:
-            console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
-        
-        console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to activate the pack")
-        return
-        
-    # Get the pack object from pack_name
-    pack = results[pack_name][0]
-    
-    # Set the active pack in the config manager
-    pack_saved = config_manager.set_active_pack(pack)
-    if pack_saved:
-        console.print(f"✅ Pack '{pack.name}' activated")
     else:
-        console.print(f"🚫 Error activating pack '{pack.name}'")
+        # Check if pack_name was provided; if not, use the active pack
+        if pack_name == "active":
+            active_pack = ctx.obj.get("active")
+            if not active_pack:
+                console.print("[yellow]No active pack set[/]")
+                return
+            # Get the pack by its UID to ensure we get the correct instance
+            pack = config_manager.get_pack_by_uid(active_pack.uid)
+            if not pack:
+                console.print(f"🚫 Active pack with UID '{active_pack.uid}' not found")
+                return
+        else:
+            # Load packs in the config manager
+            results = config_manager.load_packs()
+            
+            # Check if the pack exists
+            if pack_name not in results:
+                console.print(f"🚫 Pack '{pack_name}' not found")
+
+                # Find similar pack names
+                available_packs = [pack for pack in results.keys() if pack.lower() != "default"]
+                similar_packs = config_manager.find_similar_pack(pack_name, available_packs)
+
+                if similar_packs and len(similar_packs) > 0:
+                    if len(similar_packs) == 1:
+                        console.print(f"🔍 Did you mean '{similar_packs[0]}'?")
+                    else:
+                        console.print(f"🔍 Did you mean one of these?")
+                        for pack in similar_packs:
+                            console.print(f"    📦 {pack}")
+                else:
+                    # Print 3 pack names randomly from the available packs
+                    console.print(f"🔍 Did you mean one of these?")
+                    random.shuffle(available_packs)
+                    for pack in available_packs[:3]:
+                        console.print(f"    📦 {pack}")
+                
+                # Suggest the user to list all packs
+                console.print("\n✨ Use 'wallpy list' to view all available packs")
+                return
+
+            # If there are multiple packs with the same name, ask for UID
+            if len(results[pack_name]) > 1:
+                console.print(f"🔍 Found {len(results[pack_name])} packs named '{pack_name}'")
+                for pack in results[pack_name]:
+                    console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+                
+                console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to show info")
+                return
+
+            # Get the pack object
+            pack = results[pack_name][0]
+
+    try:
+        # Load schedule
+        schedule_data = schedule_manager.load_schedule(pack.path / "schedule.toml")
+
+        # Print pack metadata
+        author_str = f"by {schedule_data.meta.author}" if schedule_data.meta.author else ""
+        console.print(f"📦 [bold]{schedule_data.meta.name}[/] [cyan italic]{pack.uid}[/] [dim italic]{author_str}[/]")
+        console.print(f"📁 [dim]{pack.path}[/]\n")
+
+        # Print schedule type
+        schedule_type = "Timeblocks" if schedule_data.meta.type == ScheduleType.TIMEBLOCKS else "Days"
+        console.print(f"📅 Schedule Type: [bold]{schedule_type}[/]")
+
+        # Count total images
+        total_images = 0
+        if schedule_data.meta.type == ScheduleType.TIMEBLOCKS:
+            for block in schedule_data.timeblocks.values():
+                total_images += len(block.images)
+        else:
+            for day in schedule_data.days.values():
+                total_images += len(day.images)
+        console.print(f"🖼️ Total Images: [bold]{total_images}[/]")
+
+        # Print schedule details
+        if schedule_data.meta.type == ScheduleType.TIMEBLOCKS:
+            console.print(f"\n⏰ Timeblocks: [bold]{len(schedule_data.timeblocks)}[/]")
+            for block_name, block in schedule_data.timeblocks.items():
+                console.print(f"  • {block_name}: {len(block.images)} images")
+                if block.shuffle:
+                    console.print("    [dim]🔄 Shuffled[/]")
+        else:
+            console.print(f"\n📅 Days: [bold]{len(schedule_data.days)}[/]")
+            for day, day_schedule in schedule_data.days.items():
+                console.print(f"  • {day.capitalize()}: {len(day_schedule.images)} images")
+                if day_schedule.shuffle:
+                    console.print("    [dim]🔄 Shuffled[/]")
+
+        # Show if this is the active pack
+        active_pack = ctx.obj.get("active")
+        if active_pack and active_pack.uid == pack.uid:
+            console.print("\n✨ [green]This is the active pack[/]")
+
+    except Exception as e:
+        console.print(f"[red]Error:[/] {str(e)}")
 
 
-# Pack management
 @app.command(
     epilog="✨ shorter alias available: [turquoise4]wallpy preview[/]",
-    rich_help_panel="🔍 Management"
+    rich_help_panel="📋 View & List"
 )
 def preview(
     ctx: typer.Context,
@@ -526,7 +555,102 @@ def preview(
 
 
 @app.command(
-    rich_help_panel="🔍 Management"
+    rich_help_panel="🔄 Manage"
+)
+def new(
+    ctx: typer.Context
+):
+    """Creates a new pack using the pack creation wizard"""
+
+    console.print("⛔ Not Implemented Yet")
+
+
+@app.command(
+    no_args_is_help=True,
+    epilog="✨ shorter alias available: [turquoise4]wallpy activate[/]",
+    rich_help_panel="🔄 Manage"
+)
+def activate(
+    ctx: typer.Context,
+    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to activate", show_default=False)] = None,
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to activate", show_default=False)
+):
+    """Activates the specified pack (makes it the default)"""
+
+    console.print("\n✨ Implemented", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+
+    # Load packs in the config manager
+    results = config_manager.load_packs()
+    
+    # If UID is provided, try to activate by UID first
+    if pack_uid:
+        pack = config_manager.get_pack_by_uid(pack_uid)
+        if pack:
+            pack_saved = config_manager.set_active_pack(pack)
+            if pack_saved:
+                console.print(f"✅ Pack '{pack.name}' activated")
+            else:
+                console.print(f"🚫 Error activating pack '{pack.name}'")
+            return
+        else:
+            console.print(f"🚫 Pack with UID '{pack_uid}' not found")
+            return
+    
+    # If no UID provided, require pack_name
+    if not pack_name:
+        console.print("🚫 Please provide either a pack name or UID")
+        return
+        
+    # Check if the pack exists
+    if pack_name not in results:
+        console.print(f"🚫 Pack '{pack_name}' not found")
+
+        # Find similar pack names
+        available_packs = [pack for pack in results.keys() if pack.lower() != "default"]
+        similar_packs = config_manager.find_similar_pack(pack_name, available_packs)
+
+        if similar_packs and len(similar_packs) > 0:
+            if len(similar_packs) == 1:
+                console.print(f"🔍 Did you mean '{similar_packs[0]}'?")
+            else:
+                console.print(f"🔍 Did you mean one of these?")
+                for pack in similar_packs:
+                    console.print(f"    📦 {pack}")
+        else:
+            # Print 3 pack names randomly from the available packs
+            console.print(f"🔍 Did you mean one of these?")
+            random.shuffle(available_packs)
+            for pack in available_packs[:3]:
+                console.print(f"    📦 {pack}")
+        
+        # Suggest the user to list all packs
+        console.print("\n✨ Use 'wallpy list' to view all available packs")
+        return
+    
+    # If there are duplicate packs, ask the user to use the UID
+    if len(results[pack_name]) > 1:
+        console.print(f"🔍 Found {len(results[pack_name])} packs named '{pack_name}'")
+        for pack in results[pack_name]:
+            console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+        
+        console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to activate the pack")
+        return
+        
+    # Get the pack object from pack_name
+    pack = results[pack_name][0]
+    
+    # Set the active pack in the config manager
+    pack_saved = config_manager.set_active_pack(pack)
+    if pack_saved:
+        console.print(f"✅ Pack '{pack.name}' activated")
+    else:
+        console.print(f"🚫 Error activating pack '{pack.name}'")
+
+
+@app.command(
+    rich_help_panel="🔄 Manage"
 )
 def validate(
     ctx: typer.Context,
@@ -640,7 +764,7 @@ def validate(
 
 
 @app.command(
-    rich_help_panel="🔍 Management"
+    rich_help_panel="🔄 Manage"
 )
 def edit(
     ctx: typer.Context,
@@ -750,7 +874,7 @@ def edit(
     ✨ shorter alias available: [turquoise4]wallpy download[/]\n\n
     🌐 browse and download packs from [cyan link=https://wallpy.siphyshu.me/gallery]wallpy.siphyshu.me/gallery[/].
     """,
-    rich_help_panel="🌐 Sharing & Distribution"
+    rich_help_panel="🌐 Import & Export"
 )
 def download(
     ctx: typer.Context,
@@ -765,7 +889,7 @@ def download(
 @app.command(
     name="import",
     no_args_is_help=True,
-    rich_help_panel="🌐 Sharing & Distribution"
+    rich_help_panel="🌐 Import & Export"
 )
 def pack_import(
     ctx: typer.Context,
@@ -939,7 +1063,7 @@ def pack_import(
 
 @app.command(
     no_args_is_help=True,
-    rich_help_panel="🌐 Sharing & Distribution"
+    rich_help_panel="🌐 Import & Export"
 )
 def remove(
     ctx: typer.Context,
@@ -1140,6 +1264,104 @@ def remove(
         config_manager._save_config(config_manager.config)
     except Exception as e:
         console.print(f"🚫 Error removing pack '{pack.name}': {str(e)}")
+
+
+@app.command(
+    rich_help_panel="🔄 Manage"
+)
+def open(
+    ctx: typer.Context,
+    pack_name: Annotated[str, typer.Argument(help="Name of the pack to open")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to open", show_default=False)
+):
+    """
+    Opens the pack's folder in the system's file explorer.
+    
+    If no pack is specified, opens the active pack's folder.
+    """
+
+    console.print("\n✨ Implemented", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+
+    # If UID is provided, try to get pack by UID first
+    if pack_uid:
+        pack = config_manager.get_pack_by_uid(pack_uid)
+        if not pack:
+            console.print(f"🚫 Pack with UID '{pack_uid}' not found")
+            return
+    else:
+        # Check if pack_name was provided; if not, use the active pack
+        if pack_name == "active":
+            active_pack = ctx.obj.get("active")
+            if not active_pack:
+                console.print("[yellow]No active pack set[/]")
+                return
+            # Get the pack by its UID to ensure we get the correct instance
+            pack = config_manager.get_pack_by_uid(active_pack.uid)
+            if not pack:
+                console.print(f"🚫 Active pack with UID '{active_pack.uid}' not found")
+                return
+        else:
+            # Load packs in the config manager
+            results = config_manager.load_packs()
+            
+            # Check if the pack exists
+            if pack_name not in results:
+                console.print(f"🚫 Pack '{pack_name}' not found")
+
+                # Find similar pack names
+                available_packs = [pack for pack in results.keys() if pack.lower() != "default"]
+                similar_packs = config_manager.find_similar_pack(pack_name, available_packs)
+
+                if similar_packs and len(similar_packs) > 0:
+                    if len(similar_packs) == 1:
+                        console.print(f"🔍 Did you mean '{similar_packs[0]}'?")
+                    else:
+                        console.print(f"🔍 Did you mean one of these?")
+                        for pack in similar_packs:
+                            console.print(f"    📦 {pack}")
+                else:
+                    # Print 3 pack names randomly from the available packs
+                    console.print(f"🔍 Did you mean one of these?")
+                    random.shuffle(available_packs)
+                    for pack in available_packs[:3]:
+                        console.print(f"    📦 {pack}")
+                
+                # Suggest the user to list all packs
+                console.print("\n✨ Use 'wallpy list' to view all available packs")
+                return
+
+            # If there are multiple packs with the same name, ask for UID
+            if len(results[pack_name]) > 1:
+                console.print(f"🔍 Found {len(results[pack_name])} packs named '{pack_name}'")
+                for pack in results[pack_name]:
+                    console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+                
+                console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to open the pack")
+                return
+
+            # Get the pack object
+            pack = results[pack_name][0]
+
+    try:
+        # Open the pack folder in the system's file explorer
+        import subprocess
+        import os
+        import platform
+
+        # Get the default file explorer based on the platform
+        if platform.system() == "Windows":
+            os.startfile(str(pack.path))
+        elif platform.system() == "Darwin":  # macOS
+            subprocess.run(["open", str(pack.path)])
+        else:  # Linux and others
+            subprocess.run(["xdg-open", str(pack.path)])
+
+        console.print(f"✅ Opening folder for [yellow]{pack.name}[/]")
+        console.print(f"📂 [dim]{pack.path}[/]")
+    except Exception as e:
+        console.print(f"🚫 Error opening folder: {str(e)}")
 
 
 @app.callback()
