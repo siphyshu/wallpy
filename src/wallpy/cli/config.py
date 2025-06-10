@@ -49,17 +49,34 @@ def edit(
 ):
     """Opens the global config in editor"""
     
-    console.print("🚧 Work In Progress")
+    console.print("\n✨ Implemented", end="\n\n")
 
-    # config_manager = ctx.obj.get("config_manager")
+    config_manager = ctx.obj.get("config_manager")
     
-    # location = str(config_manager.config_dir)
-    # # location = str(Path("C://Users//SIPHYSHU//Downloads//cyberpunk.mp4"))
-    # # location = "https://siphyshu.me"
-    
-    # console.print(f"Opening {location} in editor")
-    # rc = typer.launch(location,locate=True)
-    # console.print(rc)
+    # Get the config file path
+    config_file = config_manager.config_file_path
+    if not config_file.exists():
+        console.print(f"🚫 Config file not found at {config_file}")
+        return
+
+    # Open the config file in the default editor
+    try:
+        import subprocess
+        import os
+        import platform
+
+        # Get the default editor based on the platform
+        if platform.system() == "Windows":
+            os.startfile(str(config_file))
+        elif platform.system() == "Darwin":  # macOS
+            subprocess.run(["open", str(config_file)])
+        else:  # Linux and others
+            subprocess.run(["xdg-open", str(config_file)])
+
+        console.print(f"✅ Opening global config file")
+        console.print(f"📂 [dim]{config_file}[/]")
+    except Exception as e:
+        console.print(f"🚫 Error opening config file: {str(e)}")
 
 
 @app.command(
