@@ -37,11 +37,31 @@ class SolarTimeCalculator:
     
     def __init__(self):
         self._cache = {}  # Cache for solar calculations
+        self._error_cache = set()  # Cache for known errors to avoid repeated warnings
         self.logger = logging.getLogger(__name__)
     
     def get_fallback_time(self, event: str) -> time:
         """Get predefined time for solar events when location data is missing"""
         return SOLAR_FALLBACKS[event.lower()]
+    
+    def _convert_location(self, location_data: Union[Location, Dict[str, Any], None]) -> Optional[Location]:
+        """Convert location data to Location object if needed"""
+        if location_data is None:
+            return None
+        
+        if isinstance(location_data, Location):
+            return location_data
+            
+        if isinstance(location_data, dict):
+            return Location(
+                latitude=location_data.get("latitude", 0.0),
+                longitude=location_data.get("longitude", 0.0),
+                timezone=location_data.get("timezone", "UTC"),
+                name=location_data.get("name", "location"),
+                region=location_data.get("region", "region")
+            )
+        
+        return None
     
     def resolve_time(
         self,
@@ -62,6 +82,9 @@ class SolarTimeCalculator:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
+        # Check if we've already logged an error for this timezone
+        error_key = f"timezone:{location.timezone}"
+        
         try:
             from astral import LocationInfo, sun
             location_info = LocationInfo(location.name, location.region, location.timezone, location.latitude, location.longitude)
@@ -77,23 +100,34 @@ class SolarTimeCalculator:
             self._cache[cache_key] = result
             return result
         except Exception as e:
-            self.logger.warning(f"Failed to calculate solar time for {event}: {e}")
+            # Only log warning once per unique timezone error
+            if error_key not in self._error_cache:
+                self._error_cache.add(error_key)
+                if "time zone" in str(e).lower() or "timezone" in str(e).lower():
+                    self.logger.warning(f"Invalid timezone '{location.timezone}': {e}")
+                    self.logger.warning("💡 Use 'wallpy config location auto' to automatically detect your location and timezone")
+                else:
+                    self.logger.warning(f"Failed to calculate solar time for {event}: {e}")
+                self.logger.warning("Using fallback solar times instead\n")
             return self.get_fallback_time(event)
     
     def resolve_datetime(
         self, 
         spec: TimeSpec, 
         base_date: date, 
-        location: Optional[Location]
+        location: Union[Location, Dict[str, Any], None]
     ) -> datetime:
         """Convert TimeSpec to concrete datetime"""
         if spec.type == TimeSpecType.ABSOLUTE:
             return datetime.combine(base_date, spec.base)
         
+        # Convert location data to Location object if needed
+        location_obj = self._convert_location(location)
+        
         solar_time = self.resolve_time(
             spec.base,
             base_date,
-            location
+            location_obj
         )
         return datetime.combine(base_date, solar_time) + timedelta(minutes=spec.offset)
 
@@ -260,7 +294,7 @@ class ScheduleManager:
             offset=offset
         )
 
-    def get_block(self, schedule: Schedule, global_location: Optional[Dict[str, Any]] = None, get_next: bool = False) -> Optional[TimeBlock]:
+    def get_block(self, schedule: Schedule, global_location: Union[Location, Dict[str, Any], None] = None, get_next: bool = False) -> Optional[TimeBlock]:
         """Get the current or next timeblock based on the current time"""
         when = datetime.now()
         test_date = when.date()
@@ -344,7 +378,7 @@ class ScheduleManager:
             
         return min(max(0, current_index), num_images - 1)
 
-    def _get_block_times(self, block: TimeBlock, test_date: date, global_location: Optional[Location] = None) -> tuple[datetime, datetime, float]:
+    def _get_block_times(self, block: TimeBlock, test_date: date, global_location: Union[Location, Dict[str, Any], None] = None) -> tuple[datetime, datetime, float]:
         """Calculate block times and image duration. Returns (start, end, image_duration)"""
         start = self.solar_calculator.resolve_datetime(block.start, test_date, global_location)
         end = self.solar_calculator.resolve_datetime(block.end, test_date, global_location)
@@ -357,7 +391,7 @@ class ScheduleManager:
         
         return start, end, image_duration
 
-    def get_wallpaper(self, schedule: Schedule, global_location: Optional[Location] = None, include_time: bool = False, get_next: bool = False) -> Union[Optional[Path], tuple[Optional[Path], Optional[datetime], Optional[datetime]]]:
+    def get_wallpaper(self, schedule: Schedule, global_location: Union[Location, Dict[str, Any], None] = None, include_time: bool = False, get_next: bool = False) -> Union[Optional[Path], tuple[Optional[Path], Optional[datetime], Optional[datetime]]]:
         """Get the current or next wallpaper based on the schedule type and current time"""
         when = datetime.now()
         test_date = when.date()

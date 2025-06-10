@@ -500,6 +500,7 @@ def preview(
 def validate(
     ctx: typer.Context,
     pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to validate")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to validate", show_default=False)
 ):
     """
     Validates the active or specified pack (checks schedule, meta, etc.)
@@ -507,10 +508,104 @@ def validate(
     If no pack is specified, the active pack is validated.
     """
 
-    # Check if pack_name was provided; if not, use the active pack
-    if pack_name == "active":
-        pack_name = ctx.obj.get("active")
-    console.print("⛔ Not Implemented Yet")
+    console.print("\n✨ Implemented", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+    validator = ctx.obj.get("validator")
+
+    # If UID is provided, try to get pack by UID first
+    if pack_uid:
+        pack = config_manager.get_pack_by_uid(pack_uid)
+        if not pack:
+            console.print(f"🚫 Pack with UID '{pack_uid}' not found")
+            return
+    else:
+        # Check if pack_name was provided; if not, use the active pack
+        if pack_name == "active":
+            active_pack = ctx.obj.get("active")
+            if not active_pack:
+                console.print("[yellow]No active pack set[/]")
+                return
+            # Get the pack by its UID to ensure we get the correct instance
+            pack = config_manager.get_pack_by_uid(active_pack.uid)
+            if not pack:
+                console.print(f"🚫 Active pack with UID '{active_pack.uid}' not found")
+                return
+        else:
+            # Load packs in the config manager
+            results = config_manager.load_packs()
+            
+            # Check if the pack exists
+            if pack_name not in results:
+                console.print(f"🚫 Pack '{pack_name}' not found")
+
+                # Find similar pack names
+                available_packs = [pack for pack in results.keys() if pack.lower() != "default"]
+                similar_packs = config_manager.find_similar_pack(pack_name, available_packs)
+
+                if similar_packs and len(similar_packs) > 0:
+                    if len(similar_packs) == 1:
+                        console.print(f"🔍 Did you mean '{similar_packs[0]}'?")
+                    else:
+                        console.print(f"🔍 Did you mean one of these?")
+                        for pack in similar_packs:
+                            console.print(f"    📦 {pack}")
+                else:
+                    # Print 3 pack names randomly from the available packs
+                    console.print(f"🔍 Did you mean one of these?")
+                    random.shuffle(available_packs)
+                    for pack in available_packs[:3]:
+                        console.print(f"    📦 {pack}")
+                
+                # Suggest the user to list all packs
+                console.print("\n✨ Use 'wallpy list' to view all available packs")
+                return
+
+            # If there are multiple packs with the same name, ask for UID
+            if len(results[pack_name]) > 1:
+                console.print(f"🔍 Found {len(results[pack_name])} packs named '{pack_name}'")
+                for pack in results[pack_name]:
+                    console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+                
+                console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to validate the pack")
+                return
+
+            # Get the pack object
+            pack = results[pack_name][0]
+
+    # Validate the pack
+    result = validator.validate_pack(pack)
+    
+    # Print validation results
+    console.print(f"🔍 Running validation tests for pack '{pack.name}'...")
+    
+    # Print test categories with status
+    console.print("\n📋 Validation Tests:")
+    for test_id, test_info in validator.test_results.items():
+        status_icon = "✅" if test_info["status"] == "passed" else "❌" if test_info["status"] == "failed" else "⏳"
+        console.print(f"  {status_icon} {test_info['message']}")
+    
+    if result.passed:
+        console.print(f"\n✅ Pack '{pack.name}' is valid")
+        
+        # Show warnings if any
+        if result.warnings:
+            console.print("\n⚠️ [yellow]Warnings:[/]")
+            for check, messages in result.warnings.items():
+                for message in messages:
+                    console.print(f"  • {message}")
+    else:
+        console.print(f"\n🚫 [red]Errors:[/]")
+        for check, messages in result.errors.items():
+            for message in messages:
+                console.print(f"  • {message}")
+        
+        # Show warnings if any
+        if result.warnings:
+            console.print("\n⚠️ [yellow]Warnings:[/]")
+            for check, messages in result.warnings.items():
+                for message in messages:
+                    console.print(f"  • {message}")
 
 
 @app.command(

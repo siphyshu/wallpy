@@ -18,7 +18,7 @@ from importlib.resources import files
 from platformdirs import user_config_path
 from typing import Dict, List, Optional, TypedDict, Any, DefaultDict
 
-from wallpy.validate import Validator
+from wallpy.validate import Validator, ValidationResult
 from wallpy.models import PackSearchPaths, Pack, Location
 
 
@@ -85,36 +85,18 @@ class ConfigManager:
             with open(self.config_file_path, "rb") as f:
                 config = tomli.load(f)
                 
-                # We have to load the packs to validate the active pack and custom_wallpacks defined in the global config
-                # But we can't just pass in the self.wallpacks or load_packs() normally, because it depends on the config itself,
-                # when looking for custom_wallpacks. So instead we load the packs but skip the custom_wallpacks to avoid a circular dependency
-                # validation = self.validator.validate_config(config, self.load_packs(skip_custom=True))
-                
-                # # If validation fails, log the errors and exit
-                # if validation.failed:
-                #     self.logger.error("💀 Configuration validation failed")
-                # #     for key, result in validation.errors.items():
-                # #         self.logger.error(f"    ❗ {key.upper()}: {result}")
-                #     sys.exit(1)
-                
-                # else:
-                #     # Log any warnings
-                # #     for key, result in validation.warnings.items():
-                # #         self.logger.warning(f"    ⚠️ {key.upper()}: {result}")
-                #     self.logger.debug("✅ Configuration loaded")
-                
-                # self.logger.debug("✅ Configuration loaded")  
-                
                 # Cache the config for later use
                 self.config = config
-
                 return config
 
         except Exception as e:
             self.logger.error(f"💀 Error loading configuration: {str(e)}")
             sys.exit(1)
-        
-    
+
+    def validate_config(self) -> ValidationResult:
+        """Validates the current configuration and returns validation results"""
+        return self.validator.validate_config(self.config, self.wallpacks)
+
     def load_packs(self, skip_custom: bool = False) -> DefaultDict[str, List[Pack]]:
         """Loads all available wallpaper packs
         
@@ -308,11 +290,42 @@ class ConfigManager:
         
         self.logger.debug("🔁 Saving configuration")
 
+        # Validate the config before saving
+        validation = self.validator.validate_config(config, self.wallpacks)
+        if validation.failed:
+            self.logger.error("💀 Configuration validation failed")
+            for key, result in validation.errors.items():
+                self.logger.error(f"    ❗ {key.upper()}: {result}")
+            return False
+
+        # Log any warnings
+        for key, result in validation.warnings.items():
+            self.logger.warning(f"    ⚠️ {key.upper()}: {result}")
+
         try:
+            # Ensure the config directory exists
+            self.config_file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Save the config file
             with open(self.config_file_path, "wb") as f:
-                tomli_w.dump(self.config, f)
+                tomli_w.dump(config, f)
+            
+            # Verify the file was written correctly
+            if not self.config_file_path.exists():
+                self.logger.error("💀 Failed to write config file")
+                return False
+                
+            # Verify the file can be read back
+            try:
+                with open(self.config_file_path, "rb") as f:
+                    tomli.load(f)
+            except Exception as e:
+                self.logger.error(f"💀 Config file verification failed: {str(e)}")
+                return False
+                
             self.logger.debug("✅ Configuration saved")
             return True
+            
         except Exception as e:
             self.logger.error(f"💀 Error saving configuration: {str(e)}")
             return False

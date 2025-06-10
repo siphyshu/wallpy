@@ -64,9 +64,9 @@ def show(
             for name, path in custom_packs.items():
                 console.print(f"  📦 [yellow]{name}[/] [dim]({path})[/]")
         else:
-            console.print("  ℹ️ No custom wallpacks configured\n")
+            console.print("  ⚠️ No custom wallpacks configured")
     else:
-        console.print("  ℹ️ No custom wallpacks configured\n")
+        console.print("  ⚠️ No custom wallpacks configured")
 
     # Location section
     console.print("\n[bold cyan]Location[/]\n", style="bold cyan")
@@ -81,6 +81,25 @@ def show(
             console.print("  ⚠️ No location configured\n")
     else:
         console.print("  ⚠️ No location configured\n")
+
+    # Validate and show any issues
+    validation = config_manager.validate_config()
+    if validation.failed or validation.warnings:
+        console.print("\n[bold yellow]Configuration Issues:[/]")
+        if validation.failed:
+            for key, result in validation.errors.items():
+                if isinstance(result, list):
+                    for item in result:
+                        console.print(f"  ❗ [red]{key.upper()}:[/] {item}")
+                else:
+                    console.print(f"  ❗ [red]{key.upper()}:[/] {result}")
+        if validation.warnings:
+            for key, result in validation.warnings.items():
+                if isinstance(result, list):
+                    for item in result:
+                        console.print(f"  ⚠️ [yellow]{key.upper()}:[/] {item}")
+                else:
+                    console.print(f"  ⚠️ [yellow]{key.upper()}:[/] {result}")
 
 
 @app.command(
@@ -486,7 +505,7 @@ def _run_location_wizard(ctx: typer.Context):
 
         # Let user select a location
         choice = Prompt.ask(
-            "🔍 Select a location from search results (#) to set or \[q]uit"
+            "🔍 Select a location from search results (#) to set or (q)uit"
         )
 
         if choice.lower() == "q" or choice.lower() == "quit" or choice.lower() == "exit" or choice.lower() == "":
