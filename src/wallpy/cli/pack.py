@@ -15,6 +15,7 @@ from rich.prompt import Confirm
 from datetime import datetime, timedelta
 import shutil
 from collections import defaultdict
+from typing import Optional
 
 from wallpy.config import ConfigManager, generate_uid
 from wallpy.schedule import ScheduleManager
@@ -37,32 +38,59 @@ app = typer.Typer(
 )
 def list(
     ctx: typer.Context,
-    search: Annotated[Path, typer.Argument(..., help="Search directory for packs", show_default=False, metavar="[PATH]")] = None
+    search: Annotated[Path, typer.Argument(help="Search for packs in the specified directory", show_default=False, metavar="[PATH]")] = None,
+    albums: bool = typer.Option(False, "--albums", "-a", help="Show only albums")
 ):
-    """Lists all available wallpaper packs"""
+    """Lists all available packs"""
 
     console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
 
+    if albums:
+        # Show only albums (directories in custom_wallpacks)
+        if "custom_wallpacks" not in config_manager.config:
+            console.print("🚫 No albums found")
+            return
+
+        total_albums = len(config_manager.config['custom_wallpacks'])
+        console.print(f"✨ Found [bold]{total_albums} albums[/]")
+        found_albums = False
+        for album_name, album_path in config_manager.config["custom_wallpacks"].items():
+            path = Path(album_path)
+            if path.is_dir():
+                # Count packs in this album
+                album_packs = config_manager.scan_directory(path)
+                if album_packs:
+                    found_albums = True
+                    pack_count = sum(len(packs) for packs in album_packs.values())
+                    console.print(f"    📚 {album_name} [dim]({path})[/] - {pack_count} pack(s)")
+        
+        if not found_albums:
+            console.print("🚫 No albums found")
+        return
+
     if search:
         # Search for packs in the specified directory
-        console.print(f"🔍 Searching for packs in [dim]{Path(search).resolve()}[/]")
-        results = config_manager.scan_directory(search)
+        console.print(f"🔍 Searching for packs in '{search}'\n")
+        results = config_manager.scan_directory(Path(search))
+        if not results:
+            console.print("🚫 No packs found")
+            return
     else:
-        # Load all packs normally (from packs dir, common dirs, and custom configured)
+        # Load all packs (from packs dir, common dirs, and custom configured)
         results = config_manager.load_packs()
-    
-    total_packs = sum(len(packs) for packs in results.values())
 
-    # Print all packs
+    total_packs = sum(len(packs) for packs in results.values())
+    
+    # Show all packs
     if results:
         console.print(f"✨ Found [bold]{total_packs} packs[/]")
         for name, packs in results.items():
             for pack in packs:
-                    console.print(f"    📦 {name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+                console.print(f"    📦 {name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
     else:
-        console.print(f"⭕ Found [bold]0[/] packs")
+        console.print("🚫 No packs found")
 
 
 @app.command(
@@ -786,8 +814,6 @@ def pack_import(
                     else:
                         album_name = typer.prompt("Enter album name", default=location.name)
                         console.print("")
-                else:
-                    console.print("")
             else:
                 # User chose not to import as album, proceed with individual pack import
                 pass
@@ -917,12 +943,203 @@ def pack_import(
 )
 def remove(
     ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to remove", show_default=False)]
+    name: Annotated[str, typer.Argument(..., help="Name of the pack or album to remove", show_default=False)],
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to remove", show_default=False),
+    force: bool = typer.Option(False, "--force", "-f", help="Force removal without confirmation")
 ):
-    """Removes a pack from the global config"""
+    """
+    Removes a pack or album from the global config.
     
-    console.print("⛔ Not Implemented Yet")
-    console.print(f"Removing pack: {pack_name}")
+    If the pack is in the wallpy packs directory, it will be deleted.
+    If the pack is referenced from another location, it will only be removed from the config.
+    """
+
+    console.print("\n✨ Implemented", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+
+    # Check if it's an album first (directory in custom_wallpacks)
+    if "custom_wallpacks" in config_manager.config and name in config_manager.config["custom_wallpacks"]:
+        album_path = Path(config_manager.config["custom_wallpacks"][name])
+        if album_path.is_dir():
+            # Confirm album removal
+            if not force:
+                if not Confirm.ask(f"Are you sure you want to remove album '{name}'?"):
+                    return
+                else:
+                    console.print("")
+
+            try:
+                # Remove album from config
+                del config_manager.config["custom_wallpacks"][name]
+                config_manager._save_config(config_manager.config)
+                console.print(f"✅ Removed album '{name}' from config")
+                return
+            except Exception as e:
+                console.print(f"🚫 Error removing album '{name}': {str(e)}")
+                return
+
+    # Load all packs
+    packs = config_manager.load_packs()
+
+    # If UID is provided, try to remove by UID first
+    if pack_uid:
+        pack = config_manager.get_pack_by_uid(pack_uid)
+        if not pack:
+            console.print(f"🚫 Pack with UID '{pack_uid}' not found")
+            return
+        
+        # Check if it's the active pack
+        active_pack = ctx.obj.get("active")
+        if active_pack and active_pack.uid == pack_uid:
+            console.print(f"🚫 Cannot remove active pack '{pack.name}'")
+            return
+
+        # Check if the pack is in the wallpy packs directory
+        is_in_packs_dir = pack.path.is_relative_to(config_manager.packs_dir)
+        
+        # Check if pack is directly in custom_wallpacks
+        is_direct_pack = False
+        if "custom_wallpacks" in config_manager.config:
+            custom_wallpacks = dict(config_manager.config["custom_wallpacks"])
+            for pack_name, path in custom_wallpacks.items():
+                if Path(path).resolve() == pack.path:
+                    is_direct_pack = True
+                    break
+
+        # If pack is not directly in custom_wallpacks and not in packs_dir, it's part of an album
+        if not is_direct_pack and not is_in_packs_dir:
+            console.print(f"🚫 Cannot remove pack '{pack.name}' as it is part of an album")
+            console.print("✨ To remove this pack, remove the album it belongs to")
+            return
+        
+        # Confirm removal
+        if not force:
+            if is_in_packs_dir:
+                if not Confirm.ask(f"Are you sure you want to remove and delete pack '{pack.name}'?"):
+                    return
+            else:
+                if not Confirm.ask(f"Are you sure you want to remove pack '{pack.name}' from config?"):
+                    return
+                else:
+                    console.print("")
+
+        try:
+            # Remove from config if it's a direct pack
+            if is_direct_pack:
+                custom_wallpacks = dict(config_manager.config["custom_wallpacks"])
+                for pack_name, path in custom_wallpacks.items():
+                    if Path(path).resolve() == pack.path:
+                        del config_manager.config["custom_wallpacks"][pack_name]
+                        break
+
+            # If in packs directory, delete the pack
+            if is_in_packs_dir:
+                shutil.rmtree(pack.path)
+                console.print(f"\n✅ Removed and deleted pack '{pack.name}'")
+            else:
+                console.print(f"✅ Removed pack '{pack.name}' from config")
+
+            # Save config
+            config_manager._save_config(config_manager.config)
+            return
+        except Exception as e:
+            console.print(f"🚫 Error removing pack '{pack.name}': {str(e)}")
+            return
+
+    # If no UID provided, check if it's a pack or album name
+    if name not in packs:
+        console.print(f"🚫 Pack or album '{name}' not found")
+
+        # Find similar names
+        available_names = list(packs.keys())
+        similar_names = config_manager.find_similar_pack(name, available_names)
+
+        if similar_names and len(similar_names) > 0:
+            if len(similar_names) == 1:
+                console.print(f"🔍 Did you mean '{similar_names[0]}'?")
+            else:
+                console.print(f"🔍 Did you mean one of these?")
+                for pack_name in similar_names:
+                    console.print(f"    📦 {pack_name}")
+        else:
+            # Print 3 names randomly from the available packs
+            console.print(f"🔍 Did you mean one of these?")
+            random.shuffle(available_names)
+            for pack_name in available_names[:3]:
+                console.print(f"    📦 {pack_name}")
+        
+        # Suggest the user to list all packs
+        console.print("\n✨ Use 'wallpy list' to view all available packs")
+        return
+
+    # If there are multiple packs with the same name, ask for UID
+    if len(packs[name]) > 1:
+        console.print(f"🔍 Found {len(packs[name])} packs named '{name}'")
+        for pack in packs[name]:
+            console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+        
+        console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to remove the pack")
+        return
+
+    # Get the pack object
+    pack = packs[name][0]
+
+    # Check if it's the active pack
+    active_pack = ctx.obj.get("active")
+    if active_pack and active_pack.uid == pack.uid:
+        console.print(f"🚫 Cannot remove active pack '{pack.name}'")
+        return
+
+    # Check if the pack is in the wallpy packs directory
+    is_in_packs_dir = pack.path.is_relative_to(config_manager.packs_dir)
+    
+    # Check if pack is directly in custom_wallpacks
+    is_direct_pack = False
+    if "custom_wallpacks" in config_manager.config:
+        custom_wallpacks = dict(config_manager.config["custom_wallpacks"])
+        for pack_name, path in custom_wallpacks.items():
+            if Path(path).resolve() == pack.path:
+                is_direct_pack = True
+                break
+
+    # If pack is not directly in custom_wallpacks and not in packs_dir, it's part of an album
+    if not is_direct_pack and not is_in_packs_dir:
+        console.print(f"🚫 Cannot remove pack '{pack.name}' as it is part of an album")
+        console.print("✨ To remove this pack, remove the album it belongs to")
+        return
+    
+    # Confirm removal
+    if not force:
+        if is_in_packs_dir:
+            if not Confirm.ask(f"Are you sure you want to remove and delete pack '{pack.name}'?"):
+                return
+        else:
+            if not Confirm.ask(f"Are you sure you want to remove pack '{pack.name}' from config?"):
+                return
+            else:
+                console.print("")
+
+    try:
+        # Remove from config if it's a direct pack
+        if is_direct_pack:
+            custom_wallpacks = dict(config_manager.config["custom_wallpacks"])
+            for pack_name, path in custom_wallpacks.items():
+                if Path(path).resolve() == pack.path:
+                    del config_manager.config["custom_wallpacks"][pack_name]
+                    break
+
+        # If in packs directory, delete the pack
+        if is_in_packs_dir:
+            shutil.rmtree(pack.path)
+            console.print(f"\n✅ Removed and deleted pack '{pack.name}'")
+        else:
+            console.print(f"✅ Removed pack '{pack.name}' from config")
+
+        # Save config
+        config_manager._save_config(config_manager.config)
+    except Exception as e:
+        console.print(f"🚫 Error removing pack '{pack.name}': {str(e)}")
 
 
 @app.callback()

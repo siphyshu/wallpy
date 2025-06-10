@@ -39,11 +39,12 @@ app.add_typer(service.app, name="service", help="Control wallpy service", rich_h
 )
 def alias_list(
     ctx: typer.Context,
-    search: Annotated[Path, typer.Argument(..., help="Search directory for packs", show_default=False, metavar="[PATH]")] = None
+    search: Annotated[Path, typer.Argument(..., help="Search directory for packs", show_default=False, metavar="[PATH]")] = None,
+    albums: bool = typer.Option(False, "--albums", "-a", help="Show only albums")
 ):
     """Lists all available wallpaper packs"""
     
-    pack.list(ctx, search)
+    pack.list(ctx, search, albums)
 
 
 @app.command(
