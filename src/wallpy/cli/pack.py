@@ -511,7 +511,6 @@ def validate(
     if pack_name == "active":
         pack_name = ctx.obj.get("active")
     console.print("⛔ Not Implemented Yet")
-    console.print(f"Validating pack: {pack_name}")
 
 
 @app.command(
@@ -520,6 +519,7 @@ def validate(
 def edit(
     ctx: typer.Context,
     pack_name: Annotated[str, typer.Argument(..., help="Name of the pack to edit")] = "active",
+    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to edit", show_default=False)
 ):
     """
     Opens the active or specified pack's schedule in an editor
@@ -527,11 +527,94 @@ def edit(
     If no pack is specified, the active pack's schedule is opened.
     """
 
-    # Check if pack_name was provided; if not, use the active pack
-    if pack_name == "active":
-        pack_name = ctx.obj.get("active")
-    console.print("⛔ Not Implemented Yet")
-    console.print(f"Editing pack: {pack_name}")
+    console.print("\n✨ Implemented", end="\n\n")
+
+    config_manager = ctx.obj.get("config_manager")
+
+    # If UID is provided, try to get pack by UID first
+    if pack_uid:
+        pack = config_manager.get_pack_by_uid(pack_uid)
+        if not pack:
+            console.print(f"🚫 Pack with UID '{pack_uid}' not found")
+            return
+    else:
+        # If pack_name is "active", get the active pack
+        if pack_name == "active":
+            active_pack = ctx.obj.get("active")
+            if not active_pack:
+                console.print("[yellow]No active pack set[/]")
+                return
+            # Get the pack by its UID to ensure we get the correct instance
+            pack = config_manager.get_pack_by_uid(active_pack.uid)
+            if not pack:
+                console.print(f"🚫 Active pack with UID '{active_pack.uid}' not found")
+                return
+        else:
+            # Load packs in the config manager
+            results = config_manager.load_packs()
+            
+            # Check if the pack exists
+            if pack_name not in results:
+                console.print(f"🚫 Pack '{pack_name}' not found")
+
+                # Find similar pack names
+                available_packs = [pack for pack in results.keys() if pack.lower() != "default"]
+                similar_packs = config_manager.find_similar_pack(pack_name, available_packs)
+
+                if similar_packs and len(similar_packs) > 0:
+                    if len(similar_packs) == 1:
+                        console.print(f"🔍 Did you mean '{similar_packs[0]}'?")
+                    else:
+                        console.print(f"🔍 Did you mean one of these?")
+                        for pack in similar_packs:
+                            console.print(f"    📦 {pack}")
+                else:
+                    # Print 3 pack names randomly from the available packs
+                    console.print(f"🔍 Did you mean one of these?")
+                    random.shuffle(available_packs)
+                    for pack in available_packs[:3]:
+                        console.print(f"    📦 {pack}")
+                
+                # Suggest the user to list all packs
+                console.print("\n✨ Use 'wallpy list' to view all available packs")
+                return
+
+            # If there are multiple packs with the same name, ask for UID
+            if len(results[pack_name]) > 1:
+                console.print(f"🔍 Found {len(results[pack_name])} packs named '{pack_name}'")
+                for pack in results[pack_name]:
+                    console.print(f"    📦 {pack.name} [cyan italic]{pack.uid}[/] [dim]({pack.path})[/]")
+                
+                console.print(f"\n✨ Supply the pack's UID using '--uid PACK_UID' to edit the pack")
+                return
+
+            # Get the pack object
+            pack = results[pack_name][0]
+
+    # Get the schedule file path
+    schedule_file = pack.path / "schedule.toml"
+    if not schedule_file.exists():
+        console.print(f"🚫 Schedule file not found at {schedule_file}")
+        return
+
+    # Open the schedule file in the default editor
+    try:
+        import subprocess
+        import os
+        import platform
+
+        # Get the default editor based on the platform
+        if platform.system() == "Windows":
+            os.startfile(str(schedule_file))
+        elif platform.system() == "Darwin":  # macOS
+            subprocess.run(["open", str(schedule_file)])
+        else:  # Linux and others
+            subprocess.run(["xdg-open", str(schedule_file)])
+
+        console.print(f"✅ Opening schedule file for [yellow]{pack.name}[/]")
+        console.print(f"📂 [dim]{schedule_file}[/]")
+    except Exception as e:
+        console.print(f"🚫 Error opening schedule file: {str(e)}")
 
 
 # Pack sharing and distribution
