@@ -1,0 +1,32 @@
+[meta]
+type = "timeblocks"
+name = "Solar Events Schedule"
+author = "Test User"
+description = "Schedule using solar events with offsets"
+
+[location]
+latitude = 28.6139
+longitude = 77.2090
+timezone = "Asia/Kolkata"
+name = "New Delhi"
+region = "India"
+
+[timeblocks.early_morning]
+start = "sunrise-30m"
+end = "sunrise+60m"
+images = ["morning.jpg"]
+
+[timeblocks.daytime]
+start = "sunrise+60m"
+end = "sunset-60m"
+images = ["afternoon.jpg"]
+
+[timeblocks.sunset]
+start = "sunset-60m"
+end = "sunset+30m"
+images = ["evening.jpg"]
+
+[timeblocks.night]
+start = "sunset+30m"
+end = "sunrise-30m"
+images = ["night.jpg"] 

@@ -1,0 +1,20 @@
+[meta]
+type = "timeblocks"
+name = "Invalid Schedule with Gaps"
+author = "Test User"
+description = "This schedule has time gaps and should fail validation"
+
+[location]
+latitude = 28.6139
+longitude = 77.2090
+timezone = "Asia/Kolkata"
+
+[timeblocks.morning]
+start = "06:00"
+end = "11:00"
+images = ["morning.jpg"]
+
+[timeblocks.afternoon]
+start = "12:00"
+end = "17:00"
+images = ["afternoon.jpg"] 

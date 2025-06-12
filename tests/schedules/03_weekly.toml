@@ -1,0 +1,14 @@
+[meta]
+type = "days"
+name = "Weekly Schedule"
+author = "Test User"
+description = "Different wallpapers for different days"
+
+[days]
+monday = { images = ["monday.jpg"] }
+tuesday = { images = ["tuesday.jpg"] }
+wednesday = { images = ["tuesday.jpg"] }
+thursday = { images = ["tuesday.jpg"] }
+friday = { images = ["tuesday.jpg"] }
+saturday = { images = ["weekend.jpg"], shuffle = true }
+sunday = { images = ["weekend.jpg"], shuffle = true } 

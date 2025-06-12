@@ -1,0 +1,15 @@
+[meta]
+type = "timeblocks"
+name = "Ascii-Adam"
+author = "The Singularity"
+description = "God Meets Adam in The Matrix"
+
+[timeblocks.morning]
+start = "dawn"
+end = "dusk"
+images = ["ascii_adam_white.jpg"]
+
+[timeblocks.night]
+start = "dusk"
+end = "dawn"
+images = ["ascii_adam_black.jpg"]

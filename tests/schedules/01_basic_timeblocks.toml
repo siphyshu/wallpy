@@ -1,0 +1,33 @@
+[meta]
+type = "timeblocks"
+name = "Basic 24h Schedule"
+author = "Test User"
+description = "Simple schedule with four time blocks"
+
+[location]
+latitude = 28.6139
+longitude = 77.2090
+timezone = "Asia/Kolkata"
+name = "New Delhi"
+region = "India"
+
+[timeblocks.morning]
+start = "06:00"
+end = "12:00"
+images = ["morning.jpg"]
+shuffle = true
+
+[timeblocks.afternoon]
+start = "12:00"
+end = "18:00"
+images = ["afternoon.jpg"]
+
+[timeblocks.evening]
+start = "18:00"
+end = "00:00"
+images = ["evening.jpg"]
+
+[timeblocks.night]
+start = "00:00"
+end = "06:00"
+images = ["night.jpg"] 
