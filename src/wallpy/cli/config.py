@@ -232,7 +232,7 @@ def auto(
                 longitude=data.get('longitude'),
                 timezone=data.get('timezone'),
                 name=data.get('city', 'Unknown'),
-                region=data.get('country_name')
+                region=data.get('country_name', 'Unknown Region')
             )
 
             console.print("✅ Auto-detected location from IP\n")

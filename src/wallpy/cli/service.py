@@ -127,6 +127,31 @@ def install(ctx: typer.Context):
     if task_created:
         console.print("\n✅ Successfully installed wallpy service")
         
+        # Auto-detect location if not configured
+        config_manager = ctx.obj.get("config_manager")
+        if not config_manager.get_location():
+            try:
+                import requests
+                from wallpy.models import Location
+                
+                # Get location from IP silently
+                response = requests.get('http://ipapi.co/json/')
+                if response.status_code == 200:
+                    data = response.json()
+                    # Create Location object
+                    loc = Location(
+                        latitude=data.get('latitude'),
+                        longitude=data.get('longitude'),
+                        timezone=data.get('timezone'),
+                        name=data.get('city', 'Unknown'),
+                        region=data.get('country_name', 'Unknown Region')
+                    )
+                    
+                    # Set the location silently
+                    config_manager.set_location(loc)
+            except:
+                pass  # Silently ignore any errors in location detection
+        
         # Trigger an immediate wallpaper change
         # console.print("\n🔄 Changing wallpaper...")
         try:

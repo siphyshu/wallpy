@@ -7,3 +7,4 @@ __pycache__/
 playground.py
 playground.ipynb
 tree.txt
+dist/
