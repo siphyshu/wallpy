@@ -95,8 +95,6 @@ def uninstall_service(task_name: str):
 def install(ctx: typer.Context):
     """Install the Wallpy background service"""
     
-    console.print("\n✨ Implemented", end="\n\n")
-
     # Get the path to the Python executable
     python_exe = sys.executable
     pythonw_exe = str(Path(python_exe).parent / "pythonw.exe")
@@ -203,8 +201,6 @@ def install(ctx: typer.Context):
 )
 def uninstall(ctx: typer.Context):
     """Uninstall the Wallpy background service"""
-    
-    console.print("\n✨ Implemented", end="\n\n")
 
     # Create the scheduled task
     task_name = "WallpyService"
@@ -241,8 +237,6 @@ def uninstall(ctx: typer.Context):
 )
 def status():
     """Check the status of the Wallpy background service"""
-    
-    console.print("\n✨ Implemented", end="\n\n")
     
     task_name = "WallpyService"
     

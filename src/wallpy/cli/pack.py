@@ -45,8 +45,6 @@ def list(
 ):
     """Lists all available packs"""
 
-    console.print("\n✨ Implemented", end="\n\n")
-
     config_manager = ctx.obj.get("config_manager")
 
     if albums:
@@ -108,8 +106,6 @@ def info(
     
     If no pack is specified, shows info for the active pack.
     """
-
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
     schedule_manager = ctx.obj.get("schedule_manager")
@@ -234,8 +230,6 @@ def preview(
     
     If no pack is specified, the active pack is previewed.
     """
-
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
     schedule_manager = ctx.obj.get("schedule_manager")
@@ -564,7 +558,7 @@ def new(
 ):
     """Creates a new pack using the pack creation wizard"""
 
-    console.print("⛔ Not Implemented Yet")
+    console.print("\n⛔ Not Implemented Yet", end="\n\n")
 
 
 @app.command(
@@ -578,8 +572,6 @@ def activate(
     pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to activate", show_default=False)
 ):
     """Activates the specified pack (makes it the default)"""
-
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
     schedule_manager = ctx.obj.get("schedule_manager")
@@ -723,8 +715,6 @@ def validate(
     If no pack is specified, the active pack is validated.
     """
 
-    console.print("\n✨ Implemented", end="\n\n")
-
     config_manager = ctx.obj.get("config_manager")
     validator = ctx.obj.get("validator")
 
@@ -837,8 +827,6 @@ def edit(
     If no pack is specified, the active pack's schedule is opened.
     """
 
-    console.print("\n✨ Implemented", end="\n\n")
-
     config_manager = ctx.obj.get("config_manager")
 
     # If UID is provided, try to get pack by UID first
@@ -942,8 +930,7 @@ def download(
 ):
     """Downloads a pack from the pack gallery using a pack's UID"""
 
-    console.print("⛔ Not Implemented Yet")
-    console.print(f"Downloading pack: {uid}")
+    console.print("\n⛔ Not Implemented Yet", end="\n\n")
 
 
 @app.command(

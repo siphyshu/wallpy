@@ -36,8 +36,6 @@ def show(
     ctx: typer.Context
 ):
     """Prints the global config in a human-readable format"""
-    
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
 
@@ -109,8 +107,6 @@ def edit(
     ctx: typer.Context
 ):
     """Opens the global config in editor"""
-    
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
     
@@ -158,8 +154,6 @@ def set(
     region: str = typer.Option("Custom Region", "--region", "-r", help="Region name"),
 ):
     """Manually set location coordinates and timezone"""
-    
-    console.print("\n✨ Implemented", end="\n\n")
     
     try:
         from wallpy.models import Location
@@ -212,7 +206,6 @@ def auto(
 ):
     """Auto-detect location using IP geolocation [dim](recommended)[/]"""
     
-    console.print("\n✨ Implemented", end="\n\n")
     try:
         import requests
         from wallpy.models import Location
@@ -277,7 +270,6 @@ def auto(
 )
 def search(ctx: typer.Context):
     """Search for a location interactively"""
-    console.print("\n✨ Implemented", end="\n\n")
     _run_location_wizard(ctx)
 
 
@@ -288,8 +280,6 @@ def info(
     ctx: typer.Context
 ):
     """Show the current global location settings"""
-    
-    console.print("\n✨ Implemented", end="\n\n")
 
     console.print("🔍 Showing current location settings...\n")
 
