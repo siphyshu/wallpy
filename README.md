@@ -1,35 +1,73 @@
-# 🥷 Wallpy Sensei
+# Wallpy
 
-> **Note**: Version 2 is in active development on the [`v2-dev`](/tree/v2-dev) branch.
-
-A dynamic wallpaper tool that allows you to change wallpapers based on the time of the day. The idea for this little weekend project came after I came across [this](https://www.mattvince.com/product/zelda-wind-waker-wallpaper-4-pack/) wallpaper pack. You can use it to change your wallpapers 24/7 and even add your own custom wallmaps. Try it!
-
+A dynamic wallpaper engine that changes your wallpaper based on the time of day and your location.
 
 <p float="left">
   <img src="https://user-images.githubusercontent.com/52672162/190454797-375ca1fa-8864-4aa5-b7d7-b2d689b862df.gif" width="300" />⠀
-
   <img src="https://user-images.githubusercontent.com/52672162/190465231-2199d54c-72fc-4f69-900a-88d64307f5d1.gif" width="300" />
 </p>
 <p float="left">
   <img src="https://user-images.githubusercontent.com/52672162/190468715-e7f1a6e8-95b8-4845-8082-9fc7168638b0.gif" width="300" />⠀
-
   <img src="https://user-images.githubusercontent.com/52672162/190470111-9d209b42-d571-422c-a901-5288056e3c31.gif" width="300" /> 
 </p>
 
+## Installation
 
-## Installation and Setup
+Wallpy requires Python 3.9 or higher. You can install it using pip:
 
-Common steps for all operating systems,
-1. Clone the repository `git clone https://github.com/siphyshu/wallpy-sensei.git`
-2. Move into the directory `cd ./wallpy-sensei`
-3. Run the setup.py script `python3 ./setup.py "[wallpack_name]"` (wallpack_name from ./wallpaper-packs dir)
+```bash
+pip install wallpy
+```
 
-### Windows
-1. Open "Task Scheduler" by searching in the start menu
-2. Click on "Create Task" from the Actions menu on the right
-3. Give it a suitable name such as "Wallpy Sensei Task" and Configure for [Windows 10]
-4. Add two triggers: [On Startup], [On a schedule, repeat every 5 minutes indefinitely]
-5. Add an action: [Start a program], Point it to the `./wallpy-sensei.py` script
-6. Naviagate to Conditions tab and uncheck "Start the task only if the computer is on AC power"
+## Quick Start
 
-https://user-images.githubusercontent.com/52672162/190489223-657b1fd5-25c9-4c1c-95c7-2d12cb6997c2.mp4
+1. List available wallpaper packs:
+```bash
+wallpy list
+```
+
+2. Install a wallpaper pack:
+```bash
+wallpy activate [pack_name]
+```
+
+3. Install the Wallpy service (runs automatically at startup and updates wallpaper based on time):
+```bash
+wallpy install
+```
+
+## Features
+
+- 🌅 Dynamic wallpapers that change based on time of day
+- 📍 Location-aware solar events (sunrise, sunset, etc.)
+- 🎨 Support for custom wallpaper packs
+- 🔄 Automatic wallpaper updates
+- 🪟 Windows support (macOS and Linux coming soon)
+
+## Configuration
+
+Wallpy can be configured using the following commands:
+
+```bash
+# View current configuration
+wallpy config show
+
+# Set your location (for solar events)
+wallpy config location auto
+
+# List all available packs
+wallpy pack list
+
+# Install a new pack
+wallpy pack activate [pack_name]
+
+# Create a new pack (under development)
+wallpy pack new [pack_name]
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+Made with ❤️ by [siphyshu](https://siphyshu.me/)
