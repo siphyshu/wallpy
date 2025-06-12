@@ -21,6 +21,7 @@ tomli-w = "^1.0.0"
 platformdirs = "^3.2.0"
 psutil = "^5.9.4"
 APScheduler = "^3.10.4"
+Pillow = "^10.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

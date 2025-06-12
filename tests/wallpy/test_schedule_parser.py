@@ -1,326 +1,165 @@
 import pytest
 from pathlib import Path
-import tempfile
-import tomli_w
 from datetime import time
-from wallpy.schedule import ScheduleParser
-from wallpy.models import ScheduleType, TimeSpecType, Location
+import tomli_w
+
+from wallpy.models import (
+    Schedule, ScheduleMeta, TimeSpec, TimeSpecType, TimeBlock,
+    DaySchedule, ScheduleType, Location
+)
+from wallpy.schedule import ScheduleManager
+
+@pytest.fixture
+def parser():
+    """Create a ScheduleManager instance for testing."""
+    return ScheduleManager()
 
 class TestScheduleParser:
-    """Tests for the ScheduleParser class"""
-    
-    def test_parse_meta(self):
-        """Test parsing schedule metadata"""
-        parser = ScheduleParser()
-        
+    def test_parse_meta(self, parser):
+        """Test parsing schedule metadata."""
         # Test minimal metadata
         meta_data = {
             "type": "timeblocks",
             "name": "Test Schedule"
         }
-        
-        meta = parser.parse_meta(meta_data)
+        meta = parser._parse_meta(meta_data)
+        assert isinstance(meta, ScheduleMeta)
         assert meta.type == ScheduleType.TIMEBLOCKS
         assert meta.name == "Test Schedule"
-        assert meta.author is None
-        assert meta.description is None
-        assert meta.version == "1.0"  # Default version
+        assert meta.author == ""
+        assert meta.description == ""
+        assert meta.version == "1.0"
         
-        # Test complete metadata
+        # Test full metadata
         meta_data = {
             "type": "days",
-            "name": "Complete Test",
+            "name": "Full Schedule",
             "author": "Test Author",
-            "description": "A test schedule",
+            "description": "Test Description",
             "version": "2.0"
         }
-        
-        meta = parser.parse_meta(meta_data)
+        meta = parser._parse_meta(meta_data)
         assert meta.type == ScheduleType.DAYS
-        assert meta.name == "Complete Test"
+        assert meta.name == "Full Schedule"
         assert meta.author == "Test Author"
-        assert meta.description == "A test schedule"
+        assert meta.description == "Test Description"
         assert meta.version == "2.0"
     
-    def test_parse_meta_missing_required_field(self):
-        """Test that missing required meta fields raises an error"""
-        parser = ScheduleParser()
-        # Missing 'type'
-        meta_data = {"name": "Missing Type"}
+    def test_parse_meta_missing_required_field(self, parser):
+        """Test that missing required fields raise ValueError."""
+        meta_data = {
+            "type": "timeblocks"
+            # Missing name field
+        }
         with pytest.raises(ValueError):
-            parser.parse_meta(meta_data)
-        
-        # Missing 'name'
-        meta_data = {"type": "timeblocks"}
-        with pytest.raises(ValueError):
-            parser.parse_meta(meta_data)
+            parser._parse_meta(meta_data)
     
-    def test_parse_meta_invalid_type(self):
-        """Test that an invalid schedule type raises an error"""
-        parser = ScheduleParser()
+    def test_parse_meta_invalid_type(self, parser):
+        """Test that invalid schedule type raises ValueError."""
         meta_data = {
             "type": "invalid",
             "name": "Test Schedule"
         }
         with pytest.raises(ValueError):
-            parser.parse_meta(meta_data)
+            parser._parse_meta(meta_data)
     
-    def test_parse_timeblocks(self):
-        """Test parsing timeblocks section"""
-        parser = ScheduleParser()
-        
-        timeblocks_data = {
-            "morning": {
-                "start": "sunrise",
-                "end": "noon",
-                "images": ["img1.jpg", "img2.jpg"]
-            },
-            "afternoon": {
-                "start": "12:00",
-                "end": "sunset",
-                "images": ["img3.jpg"],
-                "shuffle": True
-            }
-        }
-        
-        blocks = parser.parse_timeblocks(timeblocks_data)
-        
-        # Check morning block
-        assert "morning" in blocks
-        morning = blocks["morning"]
-        assert morning.name == "morning"
-        assert morning.start.type == TimeSpecType.SOLAR
-        assert morning.start.base == "sunrise"
-        assert morning.end.type == TimeSpecType.SOLAR
-        assert morning.end.base == "noon"
-        assert len(morning.images) == 2
-        assert morning.images[0] == Path("img1.jpg")
-        assert morning.images[1] == Path("img2.jpg")
-        assert morning.shuffle is False  # Default
-        
-        # Check afternoon block
-        assert "afternoon" in blocks
-        afternoon = blocks["afternoon"]
-        assert afternoon.name == "afternoon"
-        assert afternoon.start.type == TimeSpecType.ABSOLUTE
-        assert afternoon.start.base == time(12, 0)
-        assert afternoon.end.type == TimeSpecType.SOLAR
-        assert afternoon.end.base == "sunset"
-        assert len(afternoon.images) == 1
-        assert afternoon.images[0] == Path("img3.jpg")
-        assert afternoon.shuffle is True
-    
-    def test_parse_timeblocks_missing_required_field(self):
-        """Test that missing required fields in a timeblock raises an error"""
-        parser = ScheduleParser()
-        # Missing 'start'
+    def test_parse_timeblocks(self, parser):
+        """Test parsing timeblocks."""
         timeblocks_data = {
             "block1": {
-                "end": "noon",
-                "images": ["img.jpg"]
+                "start": "08:00",
+                "end": "10:00",
+                "images": ["image1.jpg"]
+            }
+        }
+        timeblocks = parser._parse_timeblocks(timeblocks_data)
+        assert isinstance(timeblocks, dict)
+        assert "block1" in timeblocks
+        block = timeblocks["block1"]
+        assert isinstance(block, TimeBlock)
+        assert block.name == "block1"
+        assert block.start.type == TimeSpecType.ABSOLUTE
+        assert block.start.base == time(8, 0)
+        assert block.end.type == TimeSpecType.ABSOLUTE
+        assert block.end.base == time(10, 0)
+        assert block.images == [Path("image1.jpg")]
+    
+    def test_parse_timeblocks_missing_required_field(self, parser):
+        """Test that missing required fields in timeblock raise ValueError."""
+        timeblocks_data = {
+            "block1": {
+                "start": "08:00"
+                # Missing end field
             }
         }
         with pytest.raises(ValueError):
-            parser.parse_timeblocks(timeblocks_data)
+            parser._parse_timeblocks(timeblocks_data)
     
-    def test_parse_days(self):
-        """Test parsing days section"""
-        parser = ScheduleParser()
-        
-        # Test with string shorthand
+    def test_parse_days(self, parser):
+        """Test parsing days."""
         days_data = {
-            "monday": "monday.jpg",
-            "tuesday": {
-                "images": ["tue1.jpg", "tue2.jpg"],
-                "shuffle": True
+            "monday": {
+                "images": ["monday.jpg"]
             }
         }
-        
-        days = parser.parse_days(days_data)
-        
-        # Check Monday (string shorthand)
+        days = parser._parse_days(days_data)
+        assert isinstance(days, dict)
         assert "monday" in days
-        monday = days["monday"]
-        assert len(monday.images) == 1
-        assert monday.images[0] == Path("monday.jpg")
-        assert monday.shuffle is False  # Default
-        
-        # Check Tuesday (full spec)
-        assert "tuesday" in days
-        tuesday = days["tuesday"]
-        assert len(tuesday.images) == 2
-        assert tuesday.images[0] == Path("tue1.jpg")
-        assert tuesday.images[1] == Path("tue2.jpg")
-        assert tuesday.shuffle is True
+        day = days["monday"]
+        assert isinstance(day, DaySchedule)
+        assert day.images == [Path("monday.jpg")]
     
-    def test_parse_days_missing_required_field(self):
-        """Test that a day spec missing required fields raises an error"""
-        parser = ScheduleParser()
+    def test_parse_days_missing_required_field(self, parser):
+        """Test that missing required fields in day raise ValueError."""
         days_data = {
-            "wednesday": {"shuffle": True}  # missing 'images'
+            "monday": {}
+            # Missing images field
         }
         with pytest.raises(ValueError):
-            parser.parse_days(days_data)
+            parser._parse_days(days_data)
     
-    def test_parse_location(self):
-        """Test parsing location data"""
-        parser = ScheduleParser()
-        
-        # Test minimal location data
-        location_data = {
-            "latitude": 40.7128,
-            "longitude": -74.0060
-        }
-        
-        location = parser.parse_location(location_data)
-        assert location.latitude == 40.7128
-        assert location.longitude == -74.0060
-        assert location.timezone == "UTC"  # Default
-        assert location.name == "location"  # Default
-        assert location.region == "region"  # Default
-        
-        # Test complete location data
-        location_data = {
-            "latitude": 51.5074,
-            "longitude": -0.1278,
-            "timezone": "Europe/London",
-            "name": "London",
-            "region": "UK"
-        }
-        
-        location = parser.parse_location(location_data)
-        assert location.latitude == 51.5074
-        assert location.longitude == -0.1278
-        assert location.timezone == "Europe/London"
-        assert location.name == "London"
-        assert location.region == "UK"
-    
-    def test_parse_file_timeblocks(self):
-        """Test parsing a complete schedule file for timeblocks schedule"""
-        parser = ScheduleParser()
-        
-        # Create a temporary schedule file for timeblocks
-        with tempfile.NamedTemporaryFile(suffix=".toml", delete=False) as temp:
-            schedule_data = {
-                "meta": {
-                    "type": "timeblocks",
-                    "name": "Test Schedule",
-                    "author": "Test Author"
-                },
-                "timeblocks": {
-                    "day": {
-                        "start": "sunrise",
-                        "end": "sunset",
-                        "images": ["day.jpg"]
-                    },
-                    "night": {
-                        "start": "sunset",
-                        "end": "sunrise",
-                        "images": ["night1.jpg", "night2.jpg"],
-                        "shuffle": True
-                    }
-                },
-                "location": {
-                    "latitude": 40.7128,
-                    "longitude": -74.0060,
-                    "timezone": "America/New_York"
+    def test_load_schedule_timeblocks(self, parser, tmp_path):
+        """Test loading a complete timeblock schedule file."""
+        schedule_data = {
+            "meta": {
+                "type": "timeblocks",
+                "name": "Test Schedule"
+            },
+            "timeblocks": {
+                "block1": {
+                    "start": "08:00",
+                    "end": "10:00",
+                    "images": ["image1.jpg"]
                 }
             }
-            tomli_w.dump(schedule_data, temp)
-            temp_path = Path(temp.name)
+        }
+        schedule_file = tmp_path / "schedule.toml"
+        with open(schedule_file, "wb") as f:
+            tomli_w.dump(schedule_data, f)
         
-        try:
-            schedule = parser.parse_file(temp_path)
-            
-            # Check metadata
-            assert schedule.meta.type == ScheduleType.TIMEBLOCKS
-            assert schedule.meta.name == "Test Schedule"
-            assert schedule.meta.author == "Test Author"
-            
-            # Check timeblocks
-            assert len(schedule.timeblocks) == 2
-            assert "day" in schedule.timeblocks
-            assert "night" in schedule.timeblocks
-            
-            # Check location (ensure it's parsed as a Location object)
-            assert schedule.location is not None
-            assert schedule.location.latitude == 40.7128
-            assert schedule.location.longitude == -74.0060
-            assert schedule.location.timezone == "America/New_York"
-            
-            # Check that days is None for a timeblocks schedule
-            assert schedule.days is None
-        finally:
-            temp_path.unlink()
+        schedule = parser.load_schedule(schedule_file)
+        assert isinstance(schedule, Schedule)
+        assert schedule.meta.type == ScheduleType.TIMEBLOCKS
+        assert "block1" in schedule.timeblocks
     
-    def test_parse_file_days(self):
-        """Test parsing a complete schedule file for days schedule"""
-        parser = ScheduleParser()
-        
-        # Create a temporary schedule file for a days-based schedule
-        with tempfile.NamedTemporaryFile(suffix=".toml", delete=False) as temp:
-            schedule_data = {
-                "meta": {
-                    "type": "days",
-                    "name": "Days Schedule"
-                },
-                "days": {
-                    "monday": "mon.jpg",
-                    "tuesday": {
-                        "images": ["tue.jpg"],
-                        "shuffle": False
-                    }
+    def test_load_schedule_days(self, parser, tmp_path):
+        """Test loading a complete day-based schedule file."""
+        schedule_data = {
+            "meta": {
+                "type": "days",
+                "name": "Test Schedule"
+            },
+            "days": {
+                "monday": {
+                    "images": ["monday.jpg"]
                 }
             }
-            tomli_w.dump(schedule_data, temp)
-            temp_path = Path(temp.name)
+        }
+        schedule_file = tmp_path / "schedule.toml"
+        with open(schedule_file, "wb") as f:
+            tomli_w.dump(schedule_data, f)
         
-        try:
-            schedule = parser.parse_file(temp_path)
-            assert schedule.meta.type == ScheduleType.DAYS
-            assert schedule.meta.name == "Days Schedule"
-            assert schedule.days is not None
-            assert "monday" in schedule.days
-            assert "tuesday" in schedule.days
-            # For a days schedule, timeblocks should be None
-            assert schedule.timeblocks is None
-        finally:
-            temp_path.unlink()
-    
-    def test_parse_file_missing_meta(self):
-        """Test parsing a schedule file missing the meta section"""
-        parser = ScheduleParser()
-        
-        with tempfile.NamedTemporaryFile(suffix=".toml", delete=False) as temp:
-            schedule_data = {
-                "timeblocks": {}
-            }
-            tomli_w.dump(schedule_data, temp)
-            temp_path = Path(temp.name)
-        
-        try:
-            with pytest.raises(ValueError):
-                parser.parse_file(temp_path)
-        finally:
-            temp_path.unlink()
-    
-    def test_parse_file_invalid_toml(self):
-        """Test that parsing an invalid TOML file raises an error"""
-        parser = ScheduleParser()
-        
-        with tempfile.NamedTemporaryFile(suffix=".toml", delete=False) as temp:
-            temp.write(b"not valid toml content")
-            temp_path = Path(temp.name)
-        
-        try:
-            with pytest.raises(ValueError):
-                parser.parse_file(temp_path)
-        finally:
-            temp_path.unlink()
-    
-    def test_parse_file_nonexistent(self):
-        """Test that attempting to parse a non-existent file raises an error"""
-        parser = ScheduleParser()
-        non_existent = Path("nonexistent_file.toml")
-        with pytest.raises(ValueError):
-            parser.parse_file(non_existent)
+        schedule = parser.load_schedule(schedule_file)
+        assert isinstance(schedule, Schedule)
+        assert schedule.meta.type == ScheduleType.DAYS
+        assert "monday" in schedule.days

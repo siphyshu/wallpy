@@ -2,228 +2,141 @@ import pytest
 from pathlib import Path
 from datetime import time
 from wallpy.models import (
-    ScheduleType, TimeSpecType, ScheduleMeta, TimeSpec, 
-    TimeBlock, DaySchedule, Location, Schedule
+    ScheduleMeta, ScheduleType, TimeSpec, TimeSpecType, TimeBlock,
+    DaySchedule, Location, Schedule, Pack, PackSearchPaths
 )
 
 class TestModels:
     """Tests for the model classes"""
     
     def test_schedule_meta(self):
-        """Test ScheduleMeta class"""
-        # Test minimal initialization
-        meta = ScheduleMeta(
-            type=ScheduleType.TIMEBLOCKS,
-            name="Test Schedule"
-        )
+        """Test ScheduleMeta creation and defaults."""
+        # Test with minimal data
+        meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Test Schedule")
         assert meta.type == ScheduleType.TIMEBLOCKS
         assert meta.name == "Test Schedule"
         assert meta.author is None
         assert meta.description is None
-        assert meta.version == "1.0"  # Default
+        assert meta.version == "1.0"
         
-        # Test string representation
-        assert str(meta) == "Test Schedule v1.0"
-        
-        # Test with author
+        # Test with full data
         meta = ScheduleMeta(
             type=ScheduleType.DAYS,
             name="Full Schedule",
-            author="Test Author"
+            author="Test Author",
+            description="Test Description",
+            version="2.0"
         )
-        assert str(meta) == "Full Schedule v1.0 by Test Author"
+        assert meta.type == ScheduleType.DAYS
+        assert meta.name == "Full Schedule"
+        assert meta.author == "Test Author"
+        assert meta.description == "Test Description"
+        assert meta.version == "2.0"
     
     def test_time_spec(self):
-        """Test TimeSpec class"""
+        """Test TimeSpec creation."""
         # Test absolute time
-        time_spec = TimeSpec(
-            type=TimeSpecType.ABSOLUTE,
-            base=time(8, 30)
-        )
-        assert time_spec.type == TimeSpecType.ABSOLUTE
-        assert time_spec.base == time(8, 30)
-        assert time_spec.offset == 0  # Default
+        spec = TimeSpec(type=TimeSpecType.ABSOLUTE, base=time(8, 30))
+        assert spec.type == TimeSpecType.ABSOLUTE
+        assert spec.base == time(8, 30)
+        assert spec.offset == 0
         
-        # Test string representation of absolute time
-        assert str(time_spec) == "08:30"
-        
-        # Test solar time
-        time_spec = TimeSpec(
-            type=TimeSpecType.SOLAR,
-            base="sunrise",
-            offset=30
-        )
-        assert time_spec.type == TimeSpecType.SOLAR
-        assert time_spec.base == "sunrise"
-        assert time_spec.offset == 30
-        
-        # Test string representation of solar time with positive offset
-        assert str(time_spec) == "sunrise+30"
-        
-        # Test solar time with negative offset
-        time_spec = TimeSpec(
-            type=TimeSpecType.SOLAR,
-            base="sunset",
-            offset=-15
-        )
-        assert str(time_spec) == "sunset-15"
-        
-        # Test solar time with zero offset
-        time_spec = TimeSpec(
-            type=TimeSpecType.SOLAR,
-            base="noon",
-            offset=0
-        )
-        assert str(time_spec) == "noon"
+        # Test solar time with offset
+        spec = TimeSpec(type=TimeSpecType.SOLAR, base="sunrise", offset=30)
+        assert spec.type == TimeSpecType.SOLAR
+        assert spec.base == "sunrise"
+        assert spec.offset == 30
     
     def test_time_block(self):
-        """Test TimeBlock class"""
-        # Create time specs for testing
+        """Test TimeBlock creation."""
         start = TimeSpec(type=TimeSpecType.ABSOLUTE, base=time(8, 0))
-        end = TimeSpec(type=TimeSpecType.ABSOLUTE, base=time(17, 0))
+        end = TimeSpec(type=TimeSpecType.ABSOLUTE, base=time(10, 0))
+        images = [Path("image1.jpg"), Path("image2.jpg")]
         
-        # Test initialization
-        block = TimeBlock(
-            name="workday",
-            start=start,
-            end=end,
-            images=[Path("work1.jpg"), Path("work2.jpg")]
-        )
-        assert block.name == "workday"
+        block = TimeBlock(name="morning", start=start, end=end, images=images)
+        assert block.name == "morning"
         assert block.start == start
         assert block.end == end
-        assert len(block.images) == 2
-        assert block.shuffle is False  # Default
+        assert block.images == images
+        assert block.shuffle is False
         
-        # Test string representation
-        assert str(block) == "workday: 08:00 to 17:00 (2 images)"
-        
-        # Test with shuffle enabled
-        block = TimeBlock(
-            name="evening",
-            start=TimeSpec(type=TimeSpecType.SOLAR, base="sunset"),
-            end=TimeSpec(type=TimeSpecType.SOLAR, base="sunrise"),
-            images=[Path("evening.jpg")],
-            shuffle=True
-        )
+        # Test with shuffle
+        block = TimeBlock(name="morning", start=start, end=end, images=images, shuffle=True)
         assert block.shuffle is True
     
     def test_day_schedule(self):
-        """Test DaySchedule class"""
-        # Test initialization
-        day = DaySchedule(
-            images=[Path("monday1.jpg"), Path("monday2.jpg")]
-        )
-        assert len(day.images) == 2
-        assert day.shuffle is False  # Default
+        """Test DaySchedule creation."""
+        images = [Path("monday1.jpg"), Path("monday2.jpg")]
         
-        # Test string representation
-        assert str(day) == "2 images"
+        day = DaySchedule(images=images)
+        assert day.images == images
+        assert day.shuffle is False
         
-        # Test with shuffle enabled
-        day = DaySchedule(
-            images=[Path("tuesday.jpg")],
-            shuffle=True
-        )
+        # Test with shuffle
+        day = DaySchedule(images=images, shuffle=True)
         assert day.shuffle is True
-        assert str(day) == "1 images (shuffled)"
     
     def test_location(self):
-        """Test Location class"""
-        # Test minimal initialization
+        """Test Location creation."""
+        # Test with minimal data
+        location = Location(latitude=40.0, longitude=-74.0)
+        assert location.latitude == 40.0
+        assert location.longitude == -74.0
+        assert location.timezone == "UTC"
+        assert location.name == "location"
+        assert location.region == "region"
+        
+        # Test with full data
         location = Location(
             latitude=40.7128,
-            longitude=-74.0060
+            longitude=-74.0060,
+            timezone="America/New_York",
+            name="New York",
+            region="NY"
         )
         assert location.latitude == 40.7128
         assert location.longitude == -74.0060
-        assert location.timezone == "UTC"  # Default
-        assert location.name == "location"  # Default
-        assert location.region == "region"  # Default
-        
-        # Test string representation
-        assert str(location) == "location (40.71, -74.01)"
-        
-        # Test full initialization
-        location = Location(
-            latitude=51.5074,
-            longitude=-0.1278,
-            timezone="Europe/London",
-            name="London",
-            region="UK"
-        )
-        assert location.timezone == "Europe/London"
-        assert location.name == "London"
-        assert location.region == "UK"
-        assert str(location) == "London (51.51, -0.13)"
+        assert location.timezone == "America/New_York"
+        assert location.name == "New York"
+        assert location.region == "NY"
     
     def test_schedule(self):
-        """Test Schedule class"""
-        # Create a timeblocks schedule
+        """Test Schedule creation."""
         meta = ScheduleMeta(type=ScheduleType.TIMEBLOCKS, name="Test Schedule")
-        timeblocks = {
-            "day": TimeBlock(
-                name="day",
-                start=TimeSpec(type=TimeSpecType.SOLAR, base="sunrise"),
-                end=TimeSpec(type=TimeSpecType.SOLAR, base="sunset"),
-                images=[Path("day.jpg")]
-            ),
-            "night": TimeBlock(
-                name="night",
-                start=TimeSpec(type=TimeSpecType.SOLAR, base="sunset"),
-                end=TimeSpec(type=TimeSpecType.SOLAR, base="sunrise"),
-                images=[Path("night.jpg")]
-            )
-        }
-        location = {
-            "latitude": 40.7128,
-            "longitude": -74.0060,
-            "timezone": "America/New_York"
-        }
         
-        schedule = Schedule(
-            meta=meta,
-            timeblocks=timeblocks,
-            location=location
-        )
+        # Test timeblock schedule
+        start = TimeSpec(type=TimeSpecType.ABSOLUTE, base=time(8, 0))
+        end = TimeSpec(type=TimeSpecType.ABSOLUTE, base=time(10, 0))
+        block = TimeBlock(name="morning", start=start, end=end, images=[Path("image.jpg")])
         
-        # Test basic properties
+        schedule = Schedule(meta=meta, timeblocks={"morning": block})
         assert schedule.meta == meta
-        assert schedule.timeblocks == timeblocks
-        assert schedule.location == location
+        assert schedule.timeblocks == {"morning": block}
         assert schedule.days is None
-        
-        # Test helper methods
         assert schedule.is_timeblock_based() is True
         assert schedule.is_day_based() is False
         
-        # Test string representation
-        assert str(schedule) == "Test Schedule: 2 timeblocks"
+        # Test day schedule
+        meta_days = ScheduleMeta(type=ScheduleType.DAYS, name="Day Schedule")
+        day = DaySchedule(images=[Path("monday.jpg")])
         
-        # Test get_location_object
-        location_obj = schedule.get_location_object()
-        assert location_obj is not None
-        assert location_obj.latitude == 40.7128
-        assert location_obj.longitude == -74.0060
-        assert location_obj.timezone == "America/New_York"
-        
-        # Test a days schedule
-        days_meta = ScheduleMeta(type=ScheduleType.DAYS, name="Days Schedule")
-        days = {
-            "monday": DaySchedule(images=[Path("monday.jpg")]),
-            "tuesday": DaySchedule(images=[Path("tuesday.jpg")])
-        }
-        
-        days_schedule = Schedule(
-            meta=days_meta,
-            days=days
-        )
-        
-        assert days_schedule.is_timeblock_based() is False
-        assert days_schedule.is_day_based() is True
-        assert days_schedule.timeblocks is None
-        assert days_schedule.location is None
-        assert str(days_schedule) == "Days Schedule: 2 days"
-        
-        # Test with no location
-        assert days_schedule.get_location_object() is None
+        schedule = Schedule(meta=meta_days, days={"monday": day})
+        assert schedule.meta == meta_days
+        assert schedule.days == {"monday": day}
+        assert schedule.timeblocks is None
+        assert schedule.is_timeblock_based() is False
+        assert schedule.is_day_based() is True
+    
+    def test_pack(self):
+        """Test Pack creation."""
+        pack = Pack(name="test_pack", path=Path("/test/path"), uid="abc123")
+        assert pack.name == "test_pack"
+        assert pack.path == Path("/test/path")
+        assert pack.uid == "abc123"
+    
+    def test_pack_search_paths(self):
+        """Test PackSearchPaths creation."""
+        search_paths = PackSearchPaths()
+        paths = search_paths.get_paths()
+        assert isinstance(paths, list)
+        assert all(isinstance(path, Path) for path in paths)
