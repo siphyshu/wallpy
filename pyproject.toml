@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wallpy-sensei"
-version = "2.23.0"
+version = "2.24.0"
 description = "Dynamic wallpaper scheduler based on time of day"
 authors = ["Jaiyank Saxena <siphyshu@gmail.com>"]
 readme = "README.md"
@@ -20,6 +20,7 @@ tomli = "^2.0.1"
 tomli-w = "^1.0.0"
 platformdirs = "^3.2.0"
 psutil = "^5.9.4"
+APScheduler = "^3.10.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

@@ -27,11 +27,10 @@ app = typer.Typer(
 # Main command groups
 app.add_typer(pack.app, name="pack", help="Manage wallpaper packs", rich_help_panel="📋 Main Commands")
 app.add_typer(config.app, name="config", help="Manage wallpy configuration", rich_help_panel="📋 Main Commands")
-app.add_typer(service.app, name="service", help="Control wallpy service", rich_help_panel="📋 Main Commands")
+app.add_typer(service.app, name="", help="Manage wallpy service", rich_help_panel="📋 Main Commands", hidden=True)
 # app.add_typer(logs.app, name="logs", help="View and manage logs", rich_help_panel="📋 Main Commands")
 
-
-# aliases for commonly used subcommands
+# Quick Access commands
 @app.command(
         name="list", 
         rich_help_panel="✨ Quick Access",
@@ -50,7 +49,8 @@ def alias_list(
 @app.command(
         name="info", 
         rich_help_panel="✨ Quick Access",
-        epilog="📝 this is an alias for [turquoise4]wallpy pack info[/]"
+        epilog="""📝 this is an alias for [turquoise4]wallpy pack info[/]\n\n
+        ✨ use [turquoise4]wallpy pack preview[/] to preview the pack's schedule"""
 )
 def alias_info(
     ctx: typer.Context,
@@ -77,35 +77,34 @@ def alias_activate(
     
     pack.activate(ctx, pack_name, pack_uid)
 
-
-@app.command(
-        name="preview", 
-        rich_help_panel="✨ Quick Access",
-        epilog="📝 this is an alias for [turquoise4]wallpy pack preview[/]"
-)
-def alias_preview(
-    ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(help="Name of the pack to preview")] = "active",
-    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to preview", show_default=False)
-):
-    """Previews schedule and wallpapers of a pack"""
+# @app.command(
+#         name="preview", 
+#         rich_help_panel="✨ Quick Access",
+#         epilog="📝 this is an alias for [turquoise4]wallpy pack preview[/]"
+# )
+# def alias_preview(
+#     ctx: typer.Context,
+#     pack_name: Annotated[str, typer.Argument(help="Name of the pack to preview")] = "active",
+#     pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to preview", show_default=False)
+# ):
+#     """Previews schedule and wallpapers of a pack"""
     
-    pack.preview(ctx, pack_name, pack_uid)
+#     pack.preview(ctx, pack_name, pack_uid)
 
 
-@app.command(
-        name="open", 
-        rich_help_panel="✨ Quick Access",
-        epilog="📝 this is an alias for [turquoise4]wallpy pack open[/]"
-)
-def alias_open(
-    ctx: typer.Context,
-    pack_name: Annotated[str, typer.Argument(help="Name of the pack to open")] = "active",
-    pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to open", show_default=False)
-):
-    """Opens the pack's folder in the system's file explorer"""
+# @app.command(
+#         name="open", 
+#         rich_help_panel="✨ Quick Access",
+#         epilog="📝 this is an alias for [turquoise4]wallpy pack open[/]"
+# )
+# def alias_open(
+#     ctx: typer.Context,
+#     pack_name: Annotated[str, typer.Argument(help="Name of the pack to open")] = "active",
+#     pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to open", show_default=False)
+# ):
+#     """Opens the pack's folder in the system's file explorer"""
     
-    pack.open(ctx, pack_name, pack_uid)
+#     pack.open(ctx, pack_name, pack_uid)
 
 
 @app.command(

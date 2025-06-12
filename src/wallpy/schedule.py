@@ -405,6 +405,17 @@ class ScheduleManager:
                     # Get current block times and image duration
                     start, end, image_duration = self._get_block_times(current_block, test_date, global_location)
                     
+                    # Handle blocks that span midnight (end date != start date) where the current time
+                    # is after midnight but before the block's "start" on the same date. In that case,
+                    # the block actually began the previous day, so recalculate the start/end times for
+                    # the previous date.
+                    if when < start and end.date() != start.date():
+                        prev_start, prev_end, prev_image_duration = self._get_block_times(
+                            current_block, test_date - timedelta(days=1), global_location
+                        )
+                        if prev_start <= when < prev_end:
+                            start, end, image_duration = prev_start, prev_end, prev_image_duration
+                    
                     # Calculate time remaining in current block
                     time_remaining = (end - when).total_seconds()
                     
@@ -449,6 +460,14 @@ class ScheduleManager:
             # Get current wallpaper
             if current_block and current_block.images:
                 start, end, image_duration = self._get_block_times(current_block, test_date, global_location)
+                
+                # Adjust for blocks that cross midnight, similar to the logic above
+                if when < start and end.date() != start.date():
+                    prev_start, prev_end, prev_image_duration = self._get_block_times(
+                        current_block, test_date - timedelta(days=1), global_location
+                    )
+                    if prev_start <= when < prev_end:
+                        start, end, image_duration = prev_start, prev_end, prev_image_duration
                 
                 if when < start:
                     return (None, None, None) if include_time else None

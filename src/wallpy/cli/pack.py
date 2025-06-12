@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 import shutil
 from collections import defaultdict
 from typing import Optional
+import sys
+import subprocess
 
 from wallpy.config import ConfigManager, generate_uid
 from wallpy.schedule import ScheduleManager
@@ -580,6 +582,8 @@ def activate(
     console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
+    schedule_manager = ctx.obj.get("schedule_manager")
+    engine = ctx.obj.get("engine")
 
     # Load packs in the config manager
     results = config_manager.load_packs()
@@ -591,6 +595,34 @@ def activate(
             pack_saved = config_manager.set_active_pack(pack)
             if pack_saved:
                 console.print(f"✅ Pack '{pack.name}' activated")
+                # Trigger immediate wallpaper change
+                # console.print("\n🔄 Changing wallpaper...")
+                try:
+                    # Get the current wallpaper path
+                    schedule_file = pack.path / "schedule.toml"
+                    if not schedule_file.exists():
+                        console.print(f"⚠️ Schedule file not found at {schedule_file}")
+                        return
+                        
+                    schedule = schedule_manager.load_schedule(schedule_file)
+                    wallpaper_path = schedule_manager.get_wallpaper(schedule, config_manager.get_location())
+                    
+                    if not wallpaper_path:
+                        console.print("⚠️ No suitable wallpaper found in schedule")
+                        return
+                        
+                    # Resolve the path relative to pack directory if needed
+                    if not wallpaper_path.is_absolute():
+                        wallpaper_path = (pack.path / "images" / wallpaper_path).resolve()
+                        
+                    # Change the wallpaper
+                    success = engine.set_wallpaper(wallpaper_path)
+                    # if success:
+                    #     console.print("✅ Wallpaper changed successfully")
+                    # else:
+                    #     console.print("⚠️ Failed to change wallpaper")
+                except Exception as e:
+                    console.print(f"⚠️ Error changing wallpaper: {e}")
             else:
                 console.print(f"🚫 Error activating pack '{pack.name}'")
             return
@@ -645,6 +677,34 @@ def activate(
     pack_saved = config_manager.set_active_pack(pack)
     if pack_saved:
         console.print(f"✅ Pack '{pack.name}' activated")
+        # Trigger immediate wallpaper change
+        # console.print("\n🔄 Changing wallpaper...")
+        try:
+            # Get the current wallpaper path
+            schedule_file = pack.path / "schedule.toml"
+            if not schedule_file.exists():
+                console.print(f"⚠️ Schedule file not found at {schedule_file}")
+                return
+                
+            schedule = schedule_manager.load_schedule(schedule_file)
+            wallpaper_path = schedule_manager.get_wallpaper(schedule, config_manager.get_location())
+            
+            if not wallpaper_path:
+                console.print("⚠️ No suitable wallpaper found in schedule")
+                return
+                
+            # Resolve the path relative to pack directory if needed
+            if not wallpaper_path.is_absolute():
+                wallpaper_path = (pack.path / "images" / wallpaper_path).resolve()
+                
+            # Change the wallpaper
+            success = engine.set_wallpaper(wallpaper_path)
+            # if success:
+            #     console.print("✅ Wallpaper changed successfully")
+            # else:
+            #     console.print("⚠️ Failed to change wallpaper")
+        except Exception as e:
+            console.print(f"⚠️ Error changing wallpaper: {e}")
     else:
         console.print(f"🚫 Error activating pack '{pack.name}'")
 
