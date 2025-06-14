@@ -22,6 +22,7 @@ app = typer.Typer(
     no_args_is_help=True,
     rich_markup_mode="rich",
     epilog="made with ❤️ by [cyan link=https://siphyshu.me/]siphyshu[/]",
+    add_completion=False,
 )
 
 # Main command groups
@@ -117,11 +118,12 @@ def alias_activate(
 )
 def alias_download(
     ctx: typer.Context,
-    uid: Annotated[str, typer.Argument(..., help="UID of the pack to download", show_default=False)]
+    url: Annotated[str, typer.Argument(..., help="URL of the pack to download", show_default=False)],
+    location: Annotated[Path, typer.Option(..., "--location", "-l", help="Location to save the pack", show_default=False)] = None
 ):
-    """Downloads a pack from the pack gallery using a pack's UID"""
+    """Downloads a pack from the pack gallery using a pack's URL"""
     
-    pack.download(ctx, uid)
+    pack.download(ctx, url, location)
 
 
 @app.callback(invoke_without_command=True)

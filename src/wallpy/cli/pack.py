@@ -12,6 +12,7 @@ from typing_extensions import Annotated
 from rich.table import Table
 from rich.box import ROUNDED
 from rich.prompt import Confirm
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
 from datetime import datetime, timedelta
 import shutil
 from collections import defaultdict
@@ -926,11 +927,127 @@ def edit(
 )
 def download(
     ctx: typer.Context,
-    uid: Annotated[str, typer.Argument(..., help="UID of the pack to download", show_default=False)]
+    url: Annotated[str, typer.Argument(..., help="URL of the pack to download", show_default=False)],
+    location: Annotated[Path, typer.Option(..., "--location", "-l", help="Location to save the pack", show_default=False)] = None
 ):
-    """Downloads a pack from the pack gallery using a pack's UID"""
+    """Downloads a pack from the pack gallery using a pack's URL"""
 
-    console.print("\n⛔ Not Implemented Yet", end="\n\n")
+    config_manager = ctx.obj.get("config_manager")
+    validator = ctx.obj.get("validator")
+    schedule_manager = ctx.obj.get("schedule_manager")
+
+    # Validate URL
+    # if not url.startswith("https://wallpy.siphyshu.me/"):
+    #     console.print("🚫 Invalid URL. Only wallpy.siphyshu.me URLs are supported")
+    #     return
+
+    try:
+        import requests
+        import tempfile
+        import zipfile
+        from urllib.parse import urlparse, unquote
+
+        # Create a temporary directory for downloading and extracting
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir_path = Path(temp_dir)
+            
+            # Download the ZIP file
+            console.print(f"\n📥 Downloading pack from {url}...")
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+
+            # Get total file size
+            total_size = int(response.headers.get('content-length', 0))
+            
+            # Get filename from Content-Disposition header
+            content_disposition = response.headers.get('content-disposition')
+            if content_disposition:
+                import re
+                filename_match = re.search(r'filename="(.+?)"', content_disposition)
+                if filename_match:
+                    filename = filename_match.group(1)
+                else:
+                    filename = "pack.zip"
+            else:
+                filename = "pack.zip"
+
+            # Save the ZIP file with progress bar
+            zip_path = temp_dir_path / filename
+            with open(zip_path, "wb") as f:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TaskProgressColumn(),
+                    TimeRemainingColumn(),
+                    console=console
+                ) as progress:
+                    task = progress.add_task(f"{filename}...", total=total_size)
+                    
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            progress.update(task, advance=len(chunk))
+
+            # Extract the ZIP file
+            console.print("\n📦 Extracting pack...")
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(temp_dir_path)
+
+            # Find the pack directory (should be the only directory in temp_dir)
+            pack_dirs = [d for d in temp_dir_path.iterdir() if d.is_dir()]
+            if not pack_dirs:
+                console.print("\n🚫 No pack directory found in ZIP file")
+                return
+
+            pack_dir = pack_dirs[0]
+
+            # Run validation and show errors
+            result = validator.validate_pack(Pack(name=pack_dir.name, path=pack_dir, uid=generate_uid(str(pack_dir))))
+            if not result.passed:
+                console.print("\n🚫 The pack is invalid, the following errors were found:")
+                for check, messages in result.errors.items():
+                    for message in messages:
+                        console.print(f"  • {message}")
+                console.print("⚠️ The pack may not work as expected, fix the errors before using it\n")
+
+
+            # Determine pack name
+            if not result.passed and ("schedule_missing" in result.errors.keys() or "schedule_invalid" in result.errors.keys()):
+                pack_name = pack_dir.name
+            else:
+                # Use pack name from schedule.toml
+                try:
+                    schedule_file = pack_dir / "schedule.toml"
+                    schedule = schedule_manager.load_schedule(schedule_file)
+                    pack_name = schedule.meta.name
+                except:
+                    pack_name = pack_dir.name
+
+            # Determine destination path
+            if location:
+                dest_path = location.expanduser().resolve() / pack_name
+            else:
+                dest_path = config_manager.packs_dir / pack_name
+
+            # If destination exists, add a number suffix
+            if dest_path.exists():
+                counter = 1
+                original_dest = dest_path
+                while dest_path.exists():
+                    dest_path = original_dest.parent / f"{original_dest.name} ({counter})"
+                    counter += 1
+
+            # Copy the pack to destination
+            console.print(f"📋 Copying pack...")
+            shutil.copytree(pack_dir, dest_path)
+
+            console.print(f"\n✅ Successfully downloaded and installed pack to [dim]{dest_path}[/]")
+
+    except requests.exceptions.RequestException as e:
+        console.print(f"\n🚫 Error downloading pack: {str(e)}")
+    except zipfile.BadZipFile:
+        console.print("\n🚫 There was an error, please try again.")
 
 
 @app.command(
@@ -953,8 +1070,6 @@ def pack_import(
     Use --album to add the entire directory as an album in the config.
     Use --name to specify a custom name for the album.
     """
-
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
     validator = ctx.obj.get("validator")
@@ -1124,8 +1239,6 @@ def remove(
     If the pack is in the wallpy packs directory, it will be deleted.
     If the pack is referenced from another location, it will only be removed from the config.
     """
-
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
 
@@ -1314,9 +1427,10 @@ def remove(
 
 
 @app.command(
+    name="open",
     rich_help_panel="🔄 Manage"
 )
-def open(
+def pack_open(
     ctx: typer.Context,
     pack_name: Annotated[str, typer.Argument(help="Name of the pack to open")] = "active",
     pack_uid: str = typer.Option(None, "--uid", "-u", help="UID of the pack to open", show_default=False)
@@ -1326,8 +1440,6 @@ def open(
     
     If no pack is specified, opens the active pack's folder.
     """
-
-    console.print("\n✨ Implemented", end="\n\n")
 
     config_manager = ctx.obj.get("config_manager")
 
