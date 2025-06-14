@@ -41,6 +41,7 @@ wallpy install
 - 🌅 Dynamic wallpapers that change based on time of day
 - 📍 Location-aware solar events (sunrise, sunset, etc.)
 - 🎨 Support for custom wallpaper packs
+- 🌐 Download packs directly from the [gallery](https://wallpy.siphyshu.me/gallery)
 - 🔄 Automatic wallpaper updates
 - 🪟 Windows support (macOS and Linux coming soon)
 
@@ -60,6 +61,9 @@ wallpy pack list
 
 # Install a new pack
 wallpy pack activate [pack_name]
+
+# Download a pack from the gallery
+wallpy pack download [url]
 
 # Create a new pack (under development)
 wallpy pack new [pack_name]

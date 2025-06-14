@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wallpy"
-version = "2.24.0"
+version = "2.25.0"
 description = "Dynamic wallpaper engine to change wallpaper based on time of day and location"
 authors = ["Jaiyank Saxena <siphyshu@gmail.com>"]
 readme = "README.md"
