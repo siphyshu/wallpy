@@ -672,9 +672,25 @@ class Validator:
         else:
             self.file = Path(pack).resolve()
         
-        # Check if the directory is a pack
-        if not self.is_pack(self.file):
-            result.add("is_pack", "error", f"{self.file} is not a wallpaper pack")
+        # # Check if the directory is a pack
+        # if not self.is_pack(self.file):
+        #     result.add("is_pack", "error", f"{self.file} is not a wallpaper pack")
+        #     return result
+        # Check if the pack is a directory
+        
+        if not self.file.is_dir():
+            result.add("is_dir", "error", f"{self.file} is not a directory")
+            return result
+        
+        # Check if the pack has a images directory
+        images_dir = self.file / "images"
+        if not images_dir.exists() or not images_dir.is_dir():
+            result.add("images_missing", "error", f"{self.file} is missing images directory")
+            return result
+        
+        # Check if the images directory has at least one image
+        if not any(images_dir.iterdir()):
+            result.add("images_empty", "error", f"{self.file} has no images")
             return result
         
         # Check if the schedule.toml is valid
