@@ -1,0 +1,28 @@
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_13_53)">
+<line y1="99" x2="1000" y2="99" stroke="white" stroke-width="2"/>
+<line x1="99" y1="1000" x2="99" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="199" y1="1000" x2="199" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="299" y1="1000" x2="299" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="399" y1="1000" x2="399" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="499" y1="1000" x2="499" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="599" y1="1000" x2="599" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="699" y1="1000" x2="699" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="799" y1="1000" x2="799" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="899" y1="1000" x2="899" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line x1="999" y1="1000" x2="999" y2="4.37113e-08" stroke="white" stroke-width="2"/>
+<line y1="199" x2="1000" y2="199" stroke="white" stroke-width="2"/>
+<line y1="299" x2="1000" y2="299" stroke="white" stroke-width="2"/>
+<line y1="399" x2="1000" y2="399" stroke="white" stroke-width="2"/>
+<line y1="499" x2="1000" y2="499" stroke="white" stroke-width="2"/>
+<line y1="599" x2="1000" y2="599" stroke="white" stroke-width="2"/>
+<line y1="699" x2="1000" y2="699" stroke="white" stroke-width="2"/>
+<line y1="799" x2="1000" y2="799" stroke="white" stroke-width="2"/>
+<line y1="899" x2="1000" y2="899" stroke="white" stroke-width="2"/>
+</g>
+<defs>
+<clipPath id="clip0_13_53">
+<rect width="1000" height="1000" fill="white"/>
+</clipPath>
+</defs>
+</svg>

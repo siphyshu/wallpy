@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #111111;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-instrument-serif);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), var(--font-serif);
+}
+
+@keyframes daycycle {
+  0%  { background-image: url('/wallpapers/day.jpg'); }
+  25%  { background-image: url('/wallpapers/sunset.jpg'); }
+  50%  { background-image: url('/wallpapers/night.jpg'); }
+  75%  { background-image: url('/wallpapers/sunrise.jpg'); }
+  100% { background-image: url('/wallpapers/day.jpg'); } 
+}
+
+.animate-daycycle {
+  animation: daycycle 24s infinite;
+}
+
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #9f9f9f;
+    border-radius: 10px;
+  }
+
+  .scrollbar::-webkit-scrollbar-track {
+    background: #2c2c2c;
+  }
+
+  /* Custom slider styles */
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider::-webkit-slider-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 8px;
+  }
+
+  .slider::-moz-range-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 8px;
+    border: none;
+  }
+}
