@@ -95,7 +95,8 @@ version N+1; version N stays live until N+1 is approved.
 | cover_file_id | uuid → version_files | which image represents the pack |
 | artist_id | uuid null → artists | |
 | uploader_is_artist | bool | |
-| license | text null | e.g. "personal use", "CC-BY-4.0" |
+| license | enum, default `personal-use` | see Decisions |
+| license_notes | text null | |
 | created_by, created_at, submitted_at | | |
 
 ### `blobs`
@@ -206,10 +207,10 @@ Album rotation in the CLI is stateless (the service runs every few seconds):
 | Greasy Diner | **needs a schedule**; stays `draft` until it has one |
 | 0 favourites, 0 downloads | empty tables |
 
-## Open questions
+## Decisions (2026-10-16)
 
-1. **Public hashed keys vs. private + signed URLs** (above). Recommend public.
-2. **Album interval**: free-form `"30m"`, or a fixed menu (15m / 30m / 1h / 1d)?
-3. **Favourites lists**: private (today's behaviour) or shown on profiles?
-4. **Licence field**: free text, or a short fixed list?
-5. **Greasy Diner**: write a schedule now from its filenames, or leave it as a draft?
+1. **Images**: public bucket with SHA-256 keys + CDN.
+2. **Album interval**: `"<n>m|h|d"`, 5m to 7d; the UI offers presets (15m, 30m, 1h, 6h, 1d).
+3. **Favourites**: private to the owner; only counts are public.
+4. **Licence**: enum `personal-use` (default) | `cc-by-4.0` | `cc-by-nc-4.0` | `cc0` | `other`, plus optional `license_notes`.
+5. **Greasy Diner**: schedule written from its filenames (`spec/examples/greasy-diner.schedule.toml`); artist unknown, so it ships with no credit until confirmed.

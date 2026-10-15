@@ -1,0 +1,25 @@
+# Written 2026-10-16 from the image filenames; the original schedule was lost
+# with the S3 bucket. Artist unknown: confirm before publishing.
+[meta]
+type = "timeblocks"
+name = "Greasy Diner"
+
+[timeblocks.dawn]
+start = "dawn"
+end = "sunrise+60m"
+images = ["dawn.jpg"]
+
+[timeblocks.day]
+start = "sunrise+60m"
+end = "sunset-30m"
+images = ["morning.jpg"]
+
+[timeblocks.dusk]
+start = "sunset-30m"
+end = "dusk+60m"
+images = ["dusk.jpg"]
+
+[timeblocks.night]
+start = "dusk+60m"
+end = "dawn"
+images = ["night1.jpg", "night2.jpg"]
