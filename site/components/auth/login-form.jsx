@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { safeRedirectPath } from '@/lib/safe-redirect';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ export function LoginForm({ className, ...props }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/gallery';
+  const redirect = safeRedirectPath(searchParams.get('redirect'), '/gallery');
   const message = searchParams.get('message');
   const supabase = createClient();
 

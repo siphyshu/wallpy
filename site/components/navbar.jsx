@@ -35,6 +35,17 @@ const NavBar = () => {
         checkMobile();
         window.addEventListener('resize', checkMobile);
 
+        const loadProfile = async (userId) => {
+            const { data: profileData } = await supabase
+                .from('users')
+                .select('id, username, name, avatar_url')
+                .eq('id', userId)
+                .single();
+            if (mounted) {
+                setProfile(profileData);
+            }
+        };
+
         // Get initial session
         const getInitialSession = async () => {
             try {
@@ -43,15 +54,7 @@ const NavBar = () => {
                 
                 setUser(session?.user || null);
                 if (session?.user) {
-                    // Fetch full profile from users table
-                    const { data: profileData } = await supabase
-                        .from('users')
-                        .select('id, username, name, avatar_url')
-                        .eq('id', session.user.id)
-                        .single();
-                    if (mounted) {
-                        setProfile(profileData);
-                    }
+                    await loadProfile(session.user.id);
                 } else {
                     setProfile(null);
                 }
@@ -66,25 +69,26 @@ const NavBar = () => {
 
         getInitialSession();
 
-        // Listen for auth changes
+        // Listen for auth changes. The callback must stay synchronous: supabase-js
+        // runs it while holding its auth lock, and any Supabase call awaited in
+        // here waits on that same lock -- a deadlock that froze every other auth
+        // call on the page (e.g. updateUser on the password reset form).
+        // Defer the profile query until after the lock is released.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
+            (event, session) => {
                 if (!mounted) return;
                 
                 setUser(session?.user || null);
                 if (session?.user) {
-                    const { data: profileData } = await supabase
-                        .from('users')
-                        .select('id, username, name, avatar_url')
-                        .eq('id', session.user.id)
-                        .single();
-                    if (mounted) {
-                        setProfile(profileData);
-                    }
+                    setTimeout(() => {
+                        loadProfile(session.user.id).finally(() => {
+                            if (mounted) setLoading(false);
+                        });
+                    }, 0);
                 } else {
                     setProfile(null);
+                    setLoading(false);
                 }
-                setLoading(false);
             }
         );
 

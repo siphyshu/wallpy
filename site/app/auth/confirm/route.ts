@@ -1,18 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  // Only same-site paths: "//evil.com" and "https://evil.com" would make this
-  // an open redirect after a successful login.
-  const requested = searchParams.get("next") ?? "/";
-  const next = requested.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")
-    ? requested
-    : "/";
+  const next = safeRedirectPath(searchParams.get("next"));
 
   if (token_hash && type) {
     const supabase = await createClient();
