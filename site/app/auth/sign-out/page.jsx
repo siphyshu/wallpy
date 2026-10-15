@@ -6,16 +6,10 @@ import { useRouter } from 'next/navigation';
 
 export default function SignOut() {
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
-    const signOut = async () => {
-      await supabase.auth.signOut();
-      router.push('/');
-    };
-
-    signOut();
-  }, []);
+    createClient().auth.signOut().then(() => router.push('/'));
+  }, [router]);
 
   return null;
 }

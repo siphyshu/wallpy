@@ -167,7 +167,7 @@ export function LoginForm({ className, ...props }) {
               </Button>
             </div>
             <div className="mt-6 text-center text-sm text-white/70">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/auth/sign-up"
                 className="text-white hover:underline transition-colors"

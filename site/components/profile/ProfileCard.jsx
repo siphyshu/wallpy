@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- avatar/cover previews are blob: URLs, which next/image can't load */
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';

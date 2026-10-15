@@ -116,7 +116,7 @@ const NavBar = () => {
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('resize', checkMobile);
         };
-    }, [supabase.auth]);
+    }, [supabase]);
 
     const handleSignOut = async () => {
         try {

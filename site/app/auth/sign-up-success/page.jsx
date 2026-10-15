@@ -11,7 +11,7 @@ export default function SignUpSuccessPage() {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-serif">Check Your Email</CardTitle>
               <CardDescription>
-                We've sent you a confirmation link to verify your email address.
+                We&apos;ve sent you a confirmation link to verify your email address.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">

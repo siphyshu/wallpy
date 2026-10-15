@@ -2,12 +2,8 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '*.s3.*.amazonaws.com',
-        port: '',
-        pathname: '/**',
-      },
+      // wallpy-public R2 bucket (see lib/storage.js)
+      { protocol: 'https', hostname: 'wallpy-cdn.siphyshu.me', pathname: '/**' },
     ],
   },
 };
