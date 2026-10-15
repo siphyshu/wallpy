@@ -1,6 +1,7 @@
 import { LoginForm } from '@/components/auth/login-form';
 import Image from 'next/image';
 import Footer from '@/components/footer';
+import { Suspense } from 'react';
 
 export default function LoginPage() {
   return (
@@ -9,7 +10,10 @@ export default function LoginPage() {
         {/* Left: Login Form */}
         <div className="flex items-center justify-center p-4">
           <div className="w-full max-w-md">
-            <LoginForm />
+            {/* LoginForm reads ?redirect via useSearchParams, which needs a Suspense boundary to prerender */}
+            <Suspense>
+              <LoginForm />
+            </Suspense>
           </div>
         </div>
         {/* Right: Visual Collage */}

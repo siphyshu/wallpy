@@ -20,10 +20,11 @@ export default async function ProfilePage({ params }) {
       </div>
     );
   }
-  const uploadedPacks = await getPacksByUsername(username);
-  const favouritedPacks = await getFavouritedPacksByUsername(username);
   const currentUser = await getCurrentUser();
   const isCurrentUser = currentUser && currentUser.id === user.id;
+  const uploadedPacks = await getPacksByUsername(username);
+  // Favourites are private, so only the owner can see their own.
+  const favouritedPacks = isCurrentUser ? await getFavouritedPacksByUsername(username) : [];
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
@@ -35,7 +36,7 @@ export default async function ProfilePage({ params }) {
             </div>
             <div className="w-full lg:w-2/3 flex flex-col gap-8">
               <PacksSection type="uploaded" packs={uploadedPacks} />
-              <PacksSection type="favourited" packs={favouritedPacks} />
+              {isCurrentUser && <PacksSection type="favourited" packs={favouritedPacks} />}
             </div>
           </div>
         </div>

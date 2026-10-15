@@ -46,7 +46,7 @@ const NavBar = () => {
                     // Fetch full profile from users table
                     const { data: profileData } = await supabase
                         .from('users')
-                        .select('id, username, name, avatar_url, email')
+                        .select('id, username, name, avatar_url')
                         .eq('id', session.user.id)
                         .single();
                     if (mounted) {
@@ -75,7 +75,7 @@ const NavBar = () => {
                 if (session?.user) {
                     const { data: profileData } = await supabase
                         .from('users')
-                        .select('id, username, name, avatar_url, email')
+                        .select('id, username, name, avatar_url')
                         .eq('id', session.user.id)
                         .single();
                     if (mounted) {

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { PUBLIC_USER_COLUMNS } from '@/lib/data/user-columns';
 import { generatePresignedUrl } from '@/app/profile/[username]/actions';
 import Image from 'next/image';
 import { 
@@ -208,7 +209,7 @@ export default function ProfileCard({ user, isCurrentUser }) {
         .from('users')
         .update(updateData)
         .eq('id', user.id)
-        .select();
+        .select(PUBLIC_USER_COLUMNS);
         
       if (updateError) {
         console.error('Database update error:', updateError);

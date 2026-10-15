@@ -7,7 +7,12 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/";
+  // Only same-site paths: "//evil.com" and "https://evil.com" would make this
+  // an open redirect after a successful login.
+  const requested = searchParams.get("next") ?? "/";
+  const next = requested.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")
+    ? requested
+    : "/";
 
   if (token_hash && type) {
     const supabase = await createClient();
