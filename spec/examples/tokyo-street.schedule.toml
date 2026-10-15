@@ -1,0 +1,28 @@
+[meta]
+type = "timeblocks"
+name = "Tokyo Street"
+author = "ArseniXC"
+
+[timeblocks.dawn]
+start = "dawn"
+end = "sunrise+60m"
+images = ["dawn.jpg"]
+shuffle = false
+
+[timeblocks.day]
+start = "sunrise+60m"
+end = "sunset-30m"
+images = ["day.jpg"]
+shuffle = false
+
+[timeblocks.dusk]
+start = "sunset-30m"
+end = "dusk+120m"
+images = ["dusk.jpg"]
+shuffle = false
+
+[timeblocks.night]
+start = "dusk+120m"
+end = "dawn"
+images = ["night.jpg"]
+shuffle = false

@@ -1,0 +1,34 @@
+[meta]
+type = "timeblocks"
+name = "Ocean Hours"
+author = "siphyshu"
+
+[timeblocks.dawn]
+start = "dawn"
+end = "sunrise+90m"
+images = [ "golden_hour.png" ]
+shuffle = false
+
+[timeblocks.morning]
+start = "sunrise+90m"
+end = "noon-30m"
+images = [ "morning.png" ]
+shuffle = false
+
+[timeblocks.afternoon]
+start = "noon-30m"
+end = "sunset-30m"
+images = [ "noon.png", "morning.png" ]
+shuffle = false
+
+[timeblocks.evening]
+start = "sunset-30m"
+end = "sunset+60m"
+images = [ "sunset.png" ]
+shuffle = false
+
+[timeblocks.night]
+start = "sunset+60m"
+end = "dawn"
+images = [ "night.png" ]
+shuffle = false
