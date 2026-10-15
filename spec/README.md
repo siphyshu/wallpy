@@ -94,14 +94,18 @@ the same inputs always give the same image.
    - `rotate = "spread"`: the slot's duration is split into `n` equal parts
      (`n` = number of images); part `k` shows image `k`. Matches spec 1.
    - `rotate = "every X"`: the image changes every `X`, counted from a fixed
-     anchor (2000-01-01 00:00 local time), so rotation continues across slot and
-     day boundaries: cycle `c = floor((T − anchor) / X)`, image `c mod n`. An
-     album with `every 1d` therefore changes once a day.
+     anchor (2000-01-01 00:00 local wall time), so rotation continues across
+     slot and day boundaries: cycle `c = floor((T − anchor) / X)`, image
+     `c mod n`. An album with `every 1d` therefore changes every midnight.
    - With `shuffle = true`, images are taken in a shuffled order instead of the
      written one (below).
 
-Durations are real elapsed time. On days with a DST change, `spread` divides
-the slot's real length, and `every` intervals stay fixed in real time.
+**All arithmetic uses local wall-clock time**, as the clock on the wall shows
+it: convert the current time and each solar event to local wall time, then
+compare and subtract those. So a daily album always changes at 00:00, even
+across DST changes, and on a DST day `spread` divides the slot as the clock
+reads it (a slot from 01:00 to 05:00 on spring-forward day is split into 1h
+parts, even though only 3 real hours pass).
 
 ### Shuffle order (portable)
 
