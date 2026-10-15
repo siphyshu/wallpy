@@ -171,7 +171,7 @@ def main():
     pack_sql = []
     for slug, p in PACKS.items():
         meta = v1[p["v1_slug"]]
-        schedule = tomllib.loads((ROOT / f"spec/examples/{slug}.schedule.toml").read_text())
+        schedule = tomllib.loads((ROOT / f"spec/v1-examples/{slug}.schedule.toml").read_text())
         files = schedule_images(schedule)
         folder = args.recovered / p["images"]
         unused = sorted({f.name for f in folder.iterdir()} - set(files))

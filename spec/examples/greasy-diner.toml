@@ -1,0 +1,32 @@
+# Converted from spec/v1-examples/greasy-diner.schedule.toml by reference/wallpy_ref.py (convert_v1).
+spec = 2
+name = "Greasy Diner"
+
+[[slot]]
+label = "dawn"
+at = "dawn"
+images = [
+    "dawn.jpg",
+]
+
+[[slot]]
+label = "day"
+at = "sunrise+60m"
+images = [
+    "morning.jpg",
+]
+
+[[slot]]
+label = "dusk"
+at = "sunset-30m"
+images = [
+    "dusk.jpg",
+]
+
+[[slot]]
+label = "night"
+at = "dusk+60m"
+images = [
+    "night1.jpg",
+    "night2.jpg",
+]

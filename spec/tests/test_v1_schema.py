@@ -12,9 +12,9 @@ import pytest
 from jsonschema import Draft202012Validator
 
 SPEC = Path(__file__).resolve().parents[1]
-SCHEMA = json.loads((SPEC / "schedule.schema.json").read_text())
+SCHEMA = json.loads((SPEC / "schedule.v1.schema.json").read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
-EXAMPLES = sorted((SPEC / "examples").glob("*.toml"))
+EXAMPLES = sorted((SPEC / "v1-examples").glob("*.toml"))
 
 
 def load(path):

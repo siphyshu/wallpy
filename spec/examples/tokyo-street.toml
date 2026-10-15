@@ -1,0 +1,32 @@
+# Converted from spec/v1-examples/tokyo-street.schedule.toml by reference/wallpy_ref.py (convert_v1).
+spec = 2
+name = "Tokyo Street"
+author = "ArseniXC"
+
+[[slot]]
+label = "dawn"
+at = "dawn"
+images = [
+    "dawn.jpg",
+]
+
+[[slot]]
+label = "day"
+at = "sunrise+60m"
+images = [
+    "day.jpg",
+]
+
+[[slot]]
+label = "dusk"
+at = "sunset-30m"
+images = [
+    "dusk.jpg",
+]
+
+[[slot]]
+label = "night"
+at = "dusk+120m"
+images = [
+    "night.jpg",
+]

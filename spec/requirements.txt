@@ -1,0 +1,5 @@
+# pip install -r spec/requirements.txt && pytest spec/tests
+astral>=3.2,<4
+jsonschema>=4.23
+pytest>=8
+tomli-w>=1.0

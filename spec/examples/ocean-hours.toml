@@ -1,0 +1,40 @@
+# Converted from spec/v1-examples/ocean-hours.schedule.toml by reference/wallpy_ref.py (convert_v1).
+spec = 2
+name = "Ocean Hours"
+author = "siphyshu"
+
+[[slot]]
+label = "dawn"
+at = "dawn"
+images = [
+    "golden_hour.png",
+]
+
+[[slot]]
+label = "morning"
+at = "sunrise+90m"
+images = [
+    "morning.png",
+]
+
+[[slot]]
+label = "afternoon"
+at = "noon-30m"
+images = [
+    "noon.png",
+    "morning.png",
+]
+
+[[slot]]
+label = "evening"
+at = "sunset-30m"
+images = [
+    "sunset.png",
+]
+
+[[slot]]
+label = "night"
+at = "sunset+60m"
+images = [
+    "night.png",
+]

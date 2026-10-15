@@ -1,115 +1,105 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wallpy.siphyshu.me/spec/schedule.schema.json",
-  "title": "Wallpy pack schedule",
-  "description": "The contents of a pack's schedule.toml, as JSON. Shared by the site (upload form + server) and the CLI validator. Everything this schema accepts, the CLI parser accepts; it only allows the canonical spellings the site generates.",
+  "title": "Wallpy pack schedule (spec 2)",
+  "description": "A pack's schedule.toml as JSON. One shape for every pack: an ordered list of slots, each starting at a time and lasting until the next slot starts. Semantics: spec/README.md. Rules JSON Schema can't express are listed there and enforced by the validators.",
   "type": "object",
-  "required": ["meta"],
+  "required": [
+    "spec",
+    "name",
+    "slot"
+  ],
   "additionalProperties": false,
   "properties": {
-    "meta": { "$ref": "#/$defs/meta" },
-    "timeblocks": {
-      "type": "object",
-      "minProperties": 1,
-      "maxProperties": 24,
-      "propertyNames": { "pattern": "^[a-z0-9_]{1,32}$" },
-      "additionalProperties": { "$ref": "#/$defs/timeblock" }
+    "spec": {
+      "const": 2
     },
-    "days": {
-      "type": "object",
-      "required": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
-      "additionalProperties": false,
-      "properties": {
-        "monday": { "$ref": "#/$defs/day" },
-        "tuesday": { "$ref": "#/$defs/day" },
-        "wednesday": { "$ref": "#/$defs/day" },
-        "thursday": { "$ref": "#/$defs/day" },
-        "friday": { "$ref": "#/$defs/day" },
-        "saturday": { "$ref": "#/$defs/day" },
-        "sunday": { "$ref": "#/$defs/day" }
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "slot": {
+      "description": "The slots, in time order within each day. In TOML, one [[slot]] table per entry: an array, because order carries meaning and arrays keep it everywhere (JSON objects, e.g. Postgres jsonb, do not).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 48,
+      "items": {
+        "$ref": "#/$defs/slot"
       }
-    },
-    "album": { "$ref": "#/$defs/album" }
-  },
-  "oneOf": [
-    {
-      "properties": { "meta": { "properties": { "type": { "const": "timeblocks" } } } },
-      "required": ["timeblocks"],
-      "not": { "anyOf": [{ "required": ["days"] }, { "required": ["album"] }] }
-    },
-    {
-      "properties": { "meta": { "properties": { "type": { "const": "days" } } } },
-      "required": ["days"],
-      "not": { "anyOf": [{ "required": ["timeblocks"] }, { "required": ["album"] }] }
-    },
-    {
-      "properties": { "meta": { "properties": { "type": { "const": "album" } } } },
-      "required": ["album"],
-      "not": { "anyOf": [{ "required": ["timeblocks"] }, { "required": ["days"] }] }
     }
-  ],
+  },
   "$defs": {
-    "meta": {
+    "slot": {
       "type": "object",
-      "required": ["type", "name"],
+      "required": [
+        "images"
+      ],
       "additionalProperties": false,
       "properties": {
-        "type": { "enum": ["timeblocks", "days", "album"] },
-        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
-        "author": { "type": "string", "maxLength": 80 },
-        "description": { "type": "string", "maxLength": 1000 },
-        "version": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+){0,2}$" }
+        "label": {
+          "description": "Optional human name shown in previews (\"dawn\", \"night\").",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 _-]{0,31}$"
+        },
+        "at": {
+          "description": "When the slot starts. Default \"00:00\".",
+          "$ref": "#/$defs/time"
+        },
+        "days": {
+          "description": "Days the slot applies to. Default: every day.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mon",
+              "tue",
+              "wed",
+              "thu",
+              "fri",
+              "sat",
+              "sun"
+            ]
+          }
+        },
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/image"
+          }
+        },
+        "rotate": {
+          "description": "How several images share the slot. \"spread\" (default): the slot's duration is split evenly, in order. \"every <n><m|h|d>\": the image changes on a fixed interval (5m to 7d, checked by validators).",
+          "type": "string",
+          "pattern": "^(spread|every [1-9][0-9]{0,4}[mhd])$"
+        },
+        "shuffle": {
+          "description": "Randomise the order (deterministically, see spec/README.md). Default false.",
+          "type": "boolean"
+        }
       }
     },
     "time": {
-      "description": "24h clock time (\"08:30\") or a solar event with an optional offset in minutes (\"sunrise+30m\"). The CLI only understands minute offsets, so \"+1h\" is not allowed.",
+      "description": "24h clock time (\"08:30\") or a solar event with an optional offset (\"sunrise+90m\", \"sunset-1h\", \"dusk+1h30m\").",
       "type": "string",
-      "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9]|(midnight|dawn|sunrise|noon|sunset|dusk)([+-][0-9]{1,4}m)?)$"
+      "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9]|(midnight|dawn|sunrise|noon|sunset|dusk)([+-]([1-9][0-9]?h([1-5]?[0-9]m)?|[1-9][0-9]{0,3}m))?)$"
     },
     "image": {
-      "description": "A filename inside the pack's images/ folder. No directories, so a schedule can never point outside its pack.",
+      "description": "A filename inside the pack's images/ folder: no directories, so a schedule can never point outside its pack.",
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}\\.(jpg|jpeg|png|webp)$"
-    },
-    "images": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 100,
-      "items": { "$ref": "#/$defs/image" }
-    },
-    "timeblock": {
-      "type": "object",
-      "required": ["start", "end", "images"],
-      "additionalProperties": false,
-      "properties": {
-        "start": { "$ref": "#/$defs/time" },
-        "end": { "$ref": "#/$defs/time" },
-        "images": { "$ref": "#/$defs/images" },
-        "shuffle": { "type": "boolean" }
-      }
-    },
-    "day": {
-      "type": "object",
-      "required": ["images"],
-      "additionalProperties": false,
-      "properties": {
-        "images": { "$ref": "#/$defs/images" },
-        "shuffle": { "type": "boolean" }
-      }
-    },
-    "album": {
-      "type": "object",
-      "required": ["images", "interval"],
-      "additionalProperties": false,
-      "properties": {
-        "images": { "$ref": "#/$defs/images" },
-        "shuffle": { "type": "boolean" },
-        "interval": {
-          "description": "How long each image stays up, in minutes, hours or days (\"30m\", \"2h\", \"1d\"). Must be between 5m (how often the CLI service wakes up) and 7d; JSON Schema can't range-check strings, so validators enforce the range in code (see spec/README.md).",
-          "type": "string",
-          "pattern": "^[1-9][0-9]{0,4}[mhd]$"
-        }
-      }
     }
   }
 }
