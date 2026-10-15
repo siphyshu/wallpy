@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { blobUrl, fileUrl } from '@/lib/storage';
 import { DEFAULT_AVATAR } from '@/lib/data/profile-shape';
-import type { Credit, PackCard, PackDetail, PackFile, PackKind, Schedule, VersionStatus } from '@/lib/types';
+import type { AiUse, Credit, PackCard, PackDetail, PackFile, PackKind, Schedule, VersionStatus } from '@/lib/types';
 
 // Read side of the pack data model (docs/schema-design.md). Row level security
 // decides what each viewer may see; these helpers only shape the results.
 
 const OWNER = 'owner:profiles!packs_owner_id_fkey(username, display_name, avatar_key)';
 const VERSION_SUMMARY = `
-  id, number, status, title, kind, tags, uploader_is_artist,
+  id, number, status, title, kind, tags, uploader_is_artist, ai_use,
   artist:artists(name, url, avatar_key),
   thumb:blobs!pack_versions_thumb_sha256_fkey(sha256, blurhash)`;
 const PACK_COLUMNS = 'id, slug, current_version_id, is_listed, removed_at, download_count, favourite_count, created_at';
@@ -25,9 +25,10 @@ type VersionSummaryRow = {
   number: number;
   status: VersionStatus;
   title: string;
-  kind: PackKind;
+  kind: PackKind | null;
   tags: string[];
   uploader_is_artist: boolean;
+  ai_use: AiUse | null;
   artist: ArtistRow;
   thumb: { sha256: string; blurhash: string | null } | null;
 };
@@ -81,7 +82,8 @@ function toCard(pack: PackRow, version: VersionSummaryRow | null | undefined): P
     favourites: pack.favourite_count,
     createdAt: pack.created_at,
     category: version?.kind ?? null,
-    kindLabel: version ? KIND_LABELS[version.kind] : 'Pack',
+    kindLabel: version?.kind ? KIND_LABELS[version.kind] : 'Pack',
+    aiUse: version?.ai_use ?? null,
     status: version?.status ?? null,
     isPublic: Boolean(pack.current_version_id && pack.is_listed && !pack.removed_at),
   };
@@ -92,8 +94,10 @@ function escapeLike(s: string): string {
 }
 
 /** Gallery: public packs only, filtered and paginated in the database. */
-export async function listPublicPacks({ search, tag, kind, sort = 'newest', limit = 9, offset = 0 }: {
+export async function listPublicPacks({ search, tag, kind, hideAi = false, sort = 'newest', limit = 9, offset = 0 }: {
   search?: string;
+  /** only packs made without AI */
+  hideAi?: boolean;
   tag?: string;
   kind?: PackKind;
   sort?: PackSort;
@@ -113,6 +117,7 @@ export async function listPublicPacks({ search, tag, kind, sort = 'newest', limi
   if (search) query = query.ilike('version.title', `%${escapeLike(search.slice(0, 80))}%`);
   if (tag) query = query.contains('version.tags', [tag]);
   if (kind) query = query.eq('version.kind', kind);
+  if (hideAi) query = query.eq('version.ai_use', 'none');
 
   query = query.order(SORT_COLUMNS[sort], { ascending: false }).order('created_at', { ascending: false });
 
@@ -226,11 +231,12 @@ export async function getPackBySlug(slug: string): Promise<PackDetail | null> {
       title: version.title,
       description: version.description,
       tags: version.tags,
-      kind: version.kind,
+      kind: version.kind ?? 'timeblocks',
       // jsonb in the database; its shape is enforced on write by the
       // schedule_shape_ok() check constraint and spec/schedule.schema.json.
       schedule: version.schedule as Schedule,
       license: version.license,
+      aiUse: version.ai_use,
       licenseNotes: version.license_notes,
       createdAt: version.created_at,
     },

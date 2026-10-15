@@ -232,13 +232,14 @@ export type Database = {
       }
       pack_versions: {
         Row: {
+          ai_use: Database["public"]["Enums"]["ai_use"] | null
           artist_id: string | null
           cover_file_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
           id: string
-          kind: Database["public"]["Enums"]["pack_kind"]
+          kind: Database["public"]["Enums"]["pack_kind"] | null
           license: Database["public"]["Enums"]["pack_license"]
           license_notes: string | null
           number: number
@@ -255,13 +256,14 @@ export type Database = {
           uploader_is_artist: boolean
         }
         Insert: {
+          ai_use?: Database["public"]["Enums"]["ai_use"] | null
           artist_id?: string | null
           cover_file_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
-          kind: Database["public"]["Enums"]["pack_kind"]
+          kind?: Database["public"]["Enums"]["pack_kind"] | null
           license?: Database["public"]["Enums"]["pack_license"]
           license_notes?: string | null
           number: number
@@ -278,13 +280,14 @@ export type Database = {
           uploader_is_artist?: boolean
         }
         Update: {
+          ai_use?: Database["public"]["Enums"]["ai_use"] | null
           artist_id?: string | null
           cover_file_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
-          kind?: Database["public"]["Enums"]["pack_kind"]
+          kind?: Database["public"]["Enums"]["pack_kind"] | null
           license?: Database["public"]["Enums"]["pack_license"]
           license_notes?: string | null
           number?: number
@@ -513,14 +516,18 @@ export type Database = {
       }
       owns_pack: { Args: { p: string }; Returns: boolean }
       schedule_images: { Args: { s: Json }; Returns: string[] }
-      schedule_shape_ok: {
-        Args: { k: Database["public"]["Enums"]["pack_kind"]; s: Json }
-        Returns: boolean
+      schedule_kind: {
+        Args: { s: Json }
+        Returns: Database["public"]["Enums"]["pack_kind"]
       }
+      schedule_ok: { Args: { s: Json }; Returns: boolean }
+      spec_rotate_ok: { Args: { r: string }; Returns: boolean }
+      spec_time_ok: { Args: { t: string }; Returns: boolean }
       valid_links: { Args: { l: Json }; Returns: boolean }
       valid_tags: { Args: { t: string[] }; Returns: boolean }
     }
     Enums: {
+      ai_use: "none" | "assisted" | "generated"
       download_client: "cli" | "web"
       moderation_action:
         | "submit"
@@ -669,6 +676,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_use: ["none", "assisted", "generated"],
       download_client: ["cli", "web"],
       moderation_action: ["submit", "approve", "reject", "takedown", "restore"],
       pack_kind: ["timeblocks", "days", "album"],

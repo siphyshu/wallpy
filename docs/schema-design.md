@@ -90,8 +90,9 @@ version N+1; version N stays live until N+1 is approved.
 | status | enum `draft \| pending \| approved \| rejected \| superseded` | changed only via `moderate()` |
 | title, description | text | here (not on `packs`) so title edits are reviewed too |
 | tags | text[] | lowercase, ≤ 10 |
-| kind | enum `timeblocks \| days \| album` | the CLI's own names; UI labels them Daypack / Weekpack / Album |
-| schedule | jsonb | validated against `spec/schedule.schema.json`; **the zip's `schedule.toml` is generated from this**, never stored separately |
+| kind | enum `timeblocks \| days \| album` | **generated** from the schedule (`schedule_kind()`), so it can't disagree with it; UI labels Daypack / Weekpack / Album |
+| ai_use | enum `none \| assisted \| generated`, null | how AI was used; required to submit; shown as a label beside the details, never in the credit line |
+| schedule | jsonb | spec 2, validated against `spec/schedule.schema.json` (structure checked by `schedule_ok()`); **the zip's `schedule.toml` is generated from this**, never stored separately |
 | cover_file_id | uuid → version_files | which image represents the pack |
 | artist_id | uuid null → artists | |
 | uploader_is_artist | bool | |

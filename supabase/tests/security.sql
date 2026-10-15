@@ -105,30 +105,38 @@ select pg_temp.expect_error('cannot set download_count',
 select pg_temp.expect_error('cannot set current_version_id directly',
   $q$update public.packs set current_version_id = gen_random_uuid() where slug = 'sunset'$q$);
 select pg_temp.expect_error('cannot insert a version as approved',
-  $q$insert into public.pack_versions (pack_id, title, kind, schedule, status)
-     select id, 'x', 'album', '{"meta":{"type":"album","name":"x"},"album":{"images":["a.jpg"],"interval":"30m"}}', 'approved'
+  $q$insert into public.pack_versions (pack_id, title, schedule, status)
+     select id, 'x', '{"spec":2,"name":"x","slot":[{"images":["a.jpg"],"rotate":"every 30m"}]}', 'approved'
      from public.packs where slug = 'sunset'$q$);
-select pg_temp.expect_error('schedule kind must match its type',
+select pg_temp.expect_error('spec 1 schedules are rejected',
+  $q$insert into public.pack_versions (pack_id, title, schedule)
+     select id, 'x', '{"meta":{"type":"album","name":"x"},"album":{"images":["a.jpg"],"interval":"30m"}}'
+     from public.packs where slug = 'sunset'$q$, '{23514}');
+select pg_temp.expect_error('kind is derived, not chosen',
   $q$insert into public.pack_versions (pack_id, title, kind, schedule)
-     select id, 'x', 'days', '{"meta":{"type":"album","name":"x"},"album":{"images":["a.jpg"],"interval":"30m"}}'
+     select id, 'x', 'days', '{"spec":2,"name":"x","slot":[{"images":["a.jpg"]}]}'
+     from public.packs where slug = 'sunset'$q$, '{42501,428C9}');
+select pg_temp.expect_error('bad slot time rejected',
+  $q$insert into public.pack_versions (pack_id, title, schedule)
+     select id, 'x', '{"spec":2,"name":"x","slot":[{"at":"sunrise+1h99m","images":["a.jpg"]}]}'
      from public.packs where slug = 'sunset'$q$, '{23514}');
 select pg_temp.expect_error('album interval below 5m rejected',
-  $q$insert into public.pack_versions (pack_id, title, kind, schedule)
-     select id, 'x', 'album', '{"meta":{"type":"album","name":"x"},"album":{"images":["a.jpg"],"interval":"1m"}}'
+  $q$insert into public.pack_versions (pack_id, title, schedule)
+     select id, 'x', '{"spec":2,"name":"x","slot":[{"images":["a.jpg"],"rotate":"every 1m"}]}'
      from public.packs where slug = 'sunset'$q$, '{23514}');
 select pg_temp.expect_error('schedule cannot reference paths outside the pack',
-  $q$insert into public.pack_versions (pack_id, title, kind, schedule)
-     select id, 'x', 'album', '{"meta":{"type":"album","name":"x"},"album":{"images":["../../etc.jpg"],"interval":"30m"}}'
+  $q$insert into public.pack_versions (pack_id, title, schedule)
+     select id, 'x', '{"spec":2,"name":"x","slot":[{"images":["../../etc.jpg"],"rotate":"every 30m"}]}'
      from public.packs where slug = 'sunset'$q$, '{23514}');
 
-insert into public.pack_versions (pack_id, title, kind, schedule)
-  select id, 'Sunset', 'album', '{"meta":{"type":"album","name":"Sunset"},"album":{"images":["a.jpg","b.jpg"],"interval":"30m"}}'
+insert into public.pack_versions (pack_id, title, schedule)
+  select id, 'Sunset', '{"spec":2,"name":"Sunset","slot":[{"images":["a.jpg","b.jpg"],"rotate":"every 30m"}]}'
   from public.packs where slug = 'sunset';
 select pg_temp.expect('version numbers are assigned',
   (select number from public.pack_versions v join public.packs p on p.id = v.pack_id where p.slug = 'sunset') = 1);
 select pg_temp.expect_error('only one open draft per pack',
-  $q$insert into public.pack_versions (pack_id, title, kind, schedule)
-     select id, 'again', 'album', '{"meta":{"type":"album","name":"x"},"album":{"images":["a.jpg"],"interval":"30m"}}'
+  $q$insert into public.pack_versions (pack_id, title, schedule)
+     select id, 'again', '{"spec":2,"name":"x","slot":[{"images":["a.jpg"],"rotate":"every 30m"}]}'
      from public.packs where slug = 'sunset'$q$, '{23505}');
 select pg_temp.expect_error('cannot attach a blob someone else uploaded',
   $q$insert into public.version_files (version_id, path, sha256)
@@ -153,6 +161,11 @@ select pg_temp.expect_error('other users cannot submit my draft',
 select pg_temp.expect('cannot read blobs of unpublished packs', not exists (select 1 from public.blobs where sha256 = repeat('a', 64)));
 
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect_error('submit needs an AI-use answer',
+  $q$select public.moderate((select v.id from public.pack_versions v join public.packs p on p.id = v.pack_id where p.slug = 'sunset'), 'submit')$q$,
+  '{23514}');
+update public.pack_versions set ai_use = 'assisted' where title = 'Sunset';
+select pg_temp.expect('kind is derived from the schedule', (select kind from public.pack_versions where title = 'Sunset') = 'album');
 select pg_temp.expect('owner submits',
   public.moderate((select v.id from public.pack_versions v join public.packs p on p.id = v.pack_id where p.slug = 'sunset'), 'submit') = 'pending');
 select pg_temp.expect_error('submitted version is frozen',
@@ -187,8 +200,8 @@ select pg_temp.expect('owner can read review notes',
   (select notes from public.moderation_events where action = 'approve') = 'looks good');
 
 -- v2 replaces v1 only once approved
-insert into public.pack_versions (pack_id, title, kind, schedule)
-  select id, 'Sunset II', 'album', '{"meta":{"type":"album","name":"Sunset II"},"album":{"images":["a.jpg"],"interval":"1h"}}'
+insert into public.pack_versions (pack_id, title, ai_use, schedule)
+  select id, 'Sunset II', 'none', '{"spec":2,"name":"Sunset II","slot":[{"images":["a.jpg"],"rotate":"every 1h"}]}'
   from public.packs where slug = 'sunset';
 insert into public.version_files (version_id, path, sha256) select id, 'a.jpg', repeat('a', 64) from public.pack_versions where title = 'Sunset II';
 select public.moderate((select id from public.pack_versions where title = 'Sunset II'), 'submit');
@@ -199,7 +212,8 @@ select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
 select public.moderate((select id from public.pack_versions where title = 'Sunset II'), 'approve');
 select pg_temp.as_admin();
 select pg_temp.expect('approving v2 supersedes v1',
-  (select string_agg(title || '=' || status, ',' order by number) from public.pack_versions) = 'Sunset=superseded,Sunset II=approved');
+  (select string_agg(title || '=' || status, ',' order by number) from public.pack_versions
+   where pack_id = (select id from public.packs where slug = 'sunset')) = 'Sunset=superseded,Sunset II=approved');
 
 -- ---- takedown -------------------------------------------------------------------
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
@@ -240,12 +254,12 @@ select pg_temp.expect('favourite count is public', (select favourite_count from 
 
 -- ---- artists ---------------------------------------------------------------------
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
-insert into public.artists (name, url) values ('ArseniXC', 'https://example.test/arsenixc');
+insert into public.artists (name, url) values ('Test Artist T', 'https://example.test/artist');
 select pg_temp.expect('artist records who added it',
-  (select created_by from public.artists where name = 'ArseniXC') = '00000000-0000-0000-0000-00000000000b');
-update public.artists set name = 'Vandalised' where name = 'ArseniXC';
+  (select created_by from public.artists where name = 'Test Artist T') = '00000000-0000-0000-0000-00000000000b');
+update public.artists set name = 'Vandalised' where name = 'Test Artist T';
 select pg_temp.as_admin();
-select pg_temp.expect('only moderators edit artists', exists (select 1 from public.artists where name = 'ArseniXC'));
+select pg_temp.expect('only moderators edit artists', exists (select 1 from public.artists where name = 'Test Artist T'));
 
 select pg_temp.as_admin();
 rollback;

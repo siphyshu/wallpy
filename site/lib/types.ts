@@ -7,6 +7,7 @@ export type PackKind = Enums['pack_kind'];
 export type VersionStatus = Enums['version_status'];
 export type PackLicense = Enums['pack_license'];
 export type UserRole = Enums['user_role'];
+export type AiUse = Enums['ai_use'];
 
 export type ProfileLink = { name: string; url: string };
 
@@ -51,6 +52,8 @@ export type PackCard = {
   createdAt: string;
   category: PackKind | null;
   kindLabel: string;
+  /** null: not disclosed (older uploads) */
+  aiUse: AiUse | null;
   status: VersionStatus | null;
   isPublic: boolean;
 };
@@ -66,8 +69,29 @@ export type PackFile = {
   url: string;
 };
 
-/** v1 schedule (spec/schedule.schema.json). Validated on write, so typed loosely here. */
-export type Schedule = { meta: { type: PackKind; name: string; [key: string]: unknown }; [key: string]: unknown };
+export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+/** One [[slot]] of a spec 2 schedule (spec/schedule.schema.json). */
+export type Slot = {
+  label?: string;
+  /** "08:30" or a solar event like "sunrise+1h30m"; default "00:00" */
+  at?: string;
+  /** default: every day */
+  days?: Weekday[];
+  images: string[];
+  /** "spread" (default) or "every <n><m|h|d>" */
+  rotate?: string;
+  shuffle?: boolean;
+};
+
+/** A spec 2 schedule. Validated on write (DB check + server validator). */
+export type Schedule = {
+  spec: 2;
+  name: string;
+  author?: string;
+  description?: string;
+  slot: Slot[];
+};
 
 export type PackDetail = PackCard & {
   ownerId: string;
@@ -85,6 +109,7 @@ export type PackDetail = PackCard & {
     schedule: Schedule;
     license: PackLicense;
     licenseNotes: string | null;
+    aiUse: AiUse | null;
     createdAt: string;
   };
   credit: Credit;
@@ -107,6 +132,7 @@ export type Manifest = {
   kind: PackKind;
   credit: { name: string; url: string | null };
   license: PackLicense;
+  aiUse: AiUse | null;
   schedule: Schedule;
   files: { path: string; sha256: string; size: number; url: string }[];
 };

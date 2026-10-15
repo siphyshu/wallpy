@@ -6,6 +6,7 @@ import PackImageGallery from '@/components/packs/PackImageGallery';
 import DownloadZipButton from '@/components/packs/DownloadZipButton';
 import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
+import AiUseLabel from '@/components/packs/AiUseLabel';
 import { getPackBySlug } from '@/lib/data/packs';
 import { createClient } from '@/lib/supabase/server';
 import type { PackLicense, VersionStatus } from '@/lib/types';
@@ -118,9 +119,12 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
               <FavouriteButton packId={pack.id} initialFavourited={favourited} initialCount={pack.favourites} signedIn={Boolean(user)} />
               <span>{pack.files.length} images</span>
             </div>
-            <p className="text-xs text-white/50 mb-8">
-              {LICENSES[version.license]}{version.licenseNotes ? ` · ${version.licenseNotes}` : ''} · v{version.number}
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mb-8">
+              <AiUseLabel aiUse={version.aiUse} />
+              <p className="text-xs text-white/50">
+                {LICENSES[version.license]}{version.licenseNotes ? ` · ${version.licenseNotes}` : ''} · v{version.number}
+              </p>
+            </div>
 
             {pack.isPublic && (
               <div className="flex flex-col gap-2">

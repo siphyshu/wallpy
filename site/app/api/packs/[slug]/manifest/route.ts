@@ -38,6 +38,7 @@ export async function GET(request: Request, { params }: RouteContext<'/api/packs
       kind: pack.version.kind,
       credit: { name: pack.credit.name, url: pack.credit.internal ? `${origin}${pack.credit.url}` : pack.credit.url },
       license: pack.version.license,
+      aiUse: pack.version.aiUse,
       schedule: pack.version.schedule,
       files: pack.files.map((f) => ({ path: f.path, sha256: f.sha256, size: f.size, url: absolute(f.url) })),
   };

@@ -10,6 +10,7 @@ import Footer from '@/components/footer';
 export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: string }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(initialTag);
+  const [hideAi, setHideAi] = useState(false);
   const [sortBy, setSortBy] = useState<PackSort>('newest');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -31,6 +32,7 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
   // Changing what's shown starts again from page 1.
   const changeSearch = (query: string) => { setSearchQuery(query); setPage(1); };
   const changeCategory = (category: string) => { setSelectedCategory(category); setPage(1); };
+  const toggleHideAi = () => { setHideAi((v) => !v); setPage(1); };
 
   // // Scroll to grid on page change
   // useEffect(() => {
@@ -128,11 +130,15 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
           </div>
 
           {/* Category Filters */}
-          <div className="mb-12">
+          <div className="mb-12 flex flex-col items-center gap-4">
             <GalleryFilters 
               selectedCategory={selectedCategory}
               onCategoryChange={changeCategory}
             />
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-white/70 select-none">
+              <input type="checkbox" checked={hideAi} onChange={toggleHideAi} className="accent-white" />
+              Hide AI-assisted and AI-generated packs
+            </label>
           </div>
           
           {/* Gallery Grid */}
@@ -141,6 +147,7 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
               searchQuery={searchQuery}
               category={selectedCategory}
               sortBy={sortBy}
+              hideAi={hideAi}
               page={page}
               itemsPerPage={itemsPerPage}
               onPageChange={setPage}

@@ -16,9 +16,10 @@ export async function GET(request: Request) {
   const sort = oneOf(SORTS, params.get('sort')) ?? 'newest';
   const tag = params.get('tag')?.toLowerCase().replace(/\s+/g, '-') || undefined;
   const search = params.get('search')?.trim() || undefined;
+  const hideAi = params.get('ai') === 'hide';
 
   try {
-    const { packs, total } = await listPublicPacks({ search, tag, kind, sort, limit, offset });
+    const { packs, total } = await listPublicPacks({ search, tag, kind, hideAi, sort, limit, offset });
     return NextResponse.json({ packs, total, limit, offset });
   } catch {
     return NextResponse.json({ error: 'Failed to load packs' }, { status: 500 });

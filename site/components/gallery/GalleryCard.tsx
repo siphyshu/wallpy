@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Blurhash } from "react-blurhash";
 import type { PackCard } from "@/lib/types";
+import AiUseLabel from "@/components/packs/AiUseLabel";
 
 export default function GalleryCard({ wallpaper }: { wallpaper: PackCard }) {
   return (
@@ -29,6 +30,7 @@ export default function GalleryCard({ wallpaper }: { wallpaper: PackCard }) {
               unoptimized={wallpaper.preview?.startsWith('http')}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
+            <AiUseLabel aiUse={wallpaper.aiUse} className="absolute top-2 right-2 z-30 backdrop-blur-sm" />
           </div>
         </Link>
         
