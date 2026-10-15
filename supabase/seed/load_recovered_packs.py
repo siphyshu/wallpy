@@ -133,7 +133,7 @@ def upload(r2, key: str, blob: Blob):
     r2.put_object(
         Bucket=BUCKET, Key=key, Body=blob.data, ContentType=blob.mime,
         CacheControl="public, max-age=31536000, immutable",
-        ContentMD5=base64.b64encode(hashlib.md5(blob.data).digest()).decode(),
+        # R2 allows one checksum per PUT; SHA-256 is the one the key is named after.
         ChecksumSHA256=base64.b64encode(bytes.fromhex(blob.sha256)).decode(),
     )
     return "uploaded"
