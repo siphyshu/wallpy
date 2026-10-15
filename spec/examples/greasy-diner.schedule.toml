@@ -1,5 +1,5 @@
 # Written 2026-10-16 from the image filenames; the original schedule was lost
-# with the S3 bucket. Artist unknown: confirm before publishing.
+# with the S3 bucket.
 [meta]
 type = "timeblocks"
 name = "Greasy Diner"

@@ -1,0 +1,70 @@
+[
+  {
+    "id": "b6af6041-4ced-4ed0-bf2a-fcdb01acb9f7",
+    "slug": "zelda-wind-walker",
+    "title": "Zelda Wind Walker",
+    "description": "An idyllic view of Outset Island shifting beautifully from day to night in the whimsical style of Studio Ghibli.",
+    "tags": [
+      "gaming",
+      "digital",
+      "landscape"
+    ],
+    "is_original": false,
+    "author_name": "Matt Vince",
+    "author_url": "https://mattvince.com",
+    "pack_type": "daypack",
+    "status": "approved",
+    "is_published": true,
+    "created_at": "2025-07-01 22:42:31.525617+00"
+  },
+  {
+    "id": "6161a8f2-ae5a-4ce1-9e80-d3ba1892caf5",
+    "slug": "tokyo-street-mj32fzzl",
+    "title": "Tokyo Street",
+    "description": "A quiet Tokyo street shifting beautifully from day to night.",
+    "tags": [
+      "street",
+      "digital art",
+      "japan"
+    ],
+    "is_original": false,
+    "author_name": "ArseniXC",
+    "author_url": "deviantart.com/arsenixc",
+    "pack_type": "daypack",
+    "status": "approved",
+    "is_published": true,
+    "created_at": "2025-12-12 16:13:04.590165+00"
+  },
+  {
+    "id": "7a4f572c-945f-472e-b178-9dac88f65129",
+    "slug": "ocean-hours-mj3csy5s",
+    "title": "Ocean Hours",
+    "description": null,
+    "tags": [
+      "ocean"
+    ],
+    "is_original": true,
+    "author_name": null,
+    "author_url": null,
+    "pack_type": "daypack",
+    "status": "approved",
+    "is_published": true,
+    "created_at": "2025-12-12 21:03:07.581159+00"
+  },
+  {
+    "id": "997916f2-cb46-4c5b-a15e-53605883d044",
+    "slug": "greasy-diner",
+    "title": "Greasy Diner",
+    "description": null,
+    "tags": [
+      "digital art"
+    ],
+    "is_original": true,
+    "author_name": null,
+    "author_url": null,
+    "pack_type": "daypack",
+    "status": "pending",
+    "is_published": false,
+    "created_at": "2025-12-12 23:09:23.608677+00"
+  }
+]
