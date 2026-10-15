@@ -91,9 +91,13 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setIsFilterOpen(!isFilterOpen)}
-                      className={`p-4 rounded-lg border border-white/10 transition-all duration-200 flex items-center gap-2
+                      aria-expanded={isFilterOpen}
+                      className={`relative p-4 rounded-lg border border-white/10 transition-all duration-200 flex items-center gap-2
                         ${isFilterOpen ? 'bg-white/10' : 'bg-white/5 hover:bg-white/10'}`}
                     >
+                      {hideAi && (
+                        <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-white/70" aria-label="Filter on" />
+                      )}
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white/50" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
                       </svg>
@@ -104,7 +108,7 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
                     
                     {/* Filter Dropdown */}
                     {isFilterOpen && (
-                      <div className="absolute right-0 mt-2 w-48 rounded-lg bg-[#1d1d1d] border border-white/10 shadow-lg backdrop-blur-sm">
+                      <div className="absolute right-0 mt-2 w-56 rounded-lg bg-[#1d1d1d] border border-white/10 shadow-lg backdrop-blur-sm z-30">
                         <div className="py-1">
                           {sortOptions.map((option) => (
                             <button
@@ -121,6 +125,24 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
                             </button>
                           ))}
                         </div>
+                        <div className="border-t border-white/10 py-1">
+                          <button
+                            role="menuitemcheckbox"
+                            aria-checked={hideAi}
+                            onClick={toggleHideAi}
+                            className={`w-full px-4 py-2 text-sm flex items-center gap-2 transition-colors duration-200
+                              ${hideAi ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                              {hideAi ? (
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              ) : (
+                                <path fillRule="evenodd" d="M3 10a7 7 0 1114 0 7 7 0 01-14 0zm7-5a5 5 0 100 10 5 5 0 000-10z" clipRule="evenodd" />
+                              )}
+                            </svg>
+                            Hide AI packs
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -130,15 +152,11 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
           </div>
 
           {/* Category Filters */}
-          <div className="mb-12 flex flex-col items-center gap-4">
+          <div className="mb-12">
             <GalleryFilters 
               selectedCategory={selectedCategory}
               onCategoryChange={changeCategory}
             />
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-white/70 select-none">
-              <input type="checkbox" checked={hideAi} onChange={toggleHideAi} className="accent-white" />
-              Hide AI-assisted and AI-generated packs
-            </label>
           </div>
           
           {/* Gallery Grid */}
