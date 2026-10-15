@@ -231,7 +231,7 @@ const WeekpackBuilder = ({ scheduleConfig, imageFiles, onConfigChange, daysOfWee
               <button onClick={selectAllImages} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors">Select All</button>
               <button onClick={clearSelectedImages} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors">Clear</button>
             </div>
-            <hr className="mb-4 border-white/10" />
+            <hr className="my-4 border-white/10" />
             <div 
               className={`space-y-2 flex-1 overflow-y-auto scrollbar pr-2 ${selectedImages.length > 0 ? 'cursor-move' : ''}`}
               style={{ maxHeight: '100%' }}

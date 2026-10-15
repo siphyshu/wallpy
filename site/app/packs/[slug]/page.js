@@ -1,168 +1,214 @@
-"use client";
-
-import { useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { wallpapers } from '@/data/wallpapers';
-import NavBar from '@/components/navbar';
 import Footer from '@/components/footer';
-import { useState } from 'react';
+import { createClient } from '@/lib/supabase/server';
+import PackImageGallery from '@/components/packs/PackImageGallery';
+import toml from '@iarna/toml';
 
-export default function WallpackPage() {
-  const params = useParams();
-  const slug = params.slug;
-  const wallpack = wallpapers.find(w => w.url.includes(slug));
-  const [selectedImage, setSelectedImage] = useState(wallpack.preview);
+export default async function WallpackPage({ params }) {
+  const { slug } = await params;
+  const supabase = await createClient();
 
-  if (!wallpack) {
-    return (
-      <div className="min-h-screen bg-background/80 text-white">
-        <NavBar />
-        <div className="max-w-7xl mx-auto px-6 py-24 text-center">
-          <h1 className="text-4xl font-serif mb-4">Wallpack Not Found</h1>
-          <p className="text-white/80">The wallpack you are looking for does not exist.</p>
-          <Link href="/gallery" className="mt-6 inline-block px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-            Back to Gallery
-          </Link>
-        </div>
-        <Footer />
-      </div>
-    );
+  // Fetch pack by slug
+  const { data: pack, error } = await supabase
+    .from('packs')
+    .select(`
+      *,
+      uploaded_by_user:users!packs_uploaded_by_fkey (
+        id,
+        username,
+        name,
+        avatar_url
+      )
+    `)
+    .eq('slug', slug)
+    .single();
+
+  if (error || !pack) {
+    notFound();
   }
 
-  // Simulate additional images for the wallpack
-  const additionalImages = [
-    wallpack.preview,
-    '/wallpapers/day.jpg',
-    '/wallpapers/sunrise.jpg',
-    '/wallpapers/sunset.jpg',
-    '/wallpapers/night.jpg'
-  ];
+  // Check if user can view this pack
+  const { data: { user } } = await supabase.auth.getUser();
+  const isOwner = user && pack.uploaded_by === user.id;
+  const canView = pack.is_published || isOwner;
+
+  if (!canView) {
+    notFound();
+  }
+
+  // Get author info
+  const authorName = pack.is_original 
+    ? (pack.uploaded_by_user?.name || pack.uploaded_by_user?.username || 'Unknown')
+    : (pack.author_name || 'Unknown');
+  const authorUrl = pack.is_original
+    ? (pack.uploaded_by_user?.username ? `/profile/${pack.uploaded_by_user.username}` : '#')
+    : (pack.author_url || '#');
+  const authorAvatar = pack.is_original
+    ? (pack.uploaded_by_user?.avatar_url || '/artists/anon.png')
+    : '/artists/anon.png';
+
+  // Fetch schedule.toml to get all images
+  let allImages = [];
+  const previewImage = pack.preview_image_url || '/wallpapers/default.jpg';
+  
+  try {
+    // Construct S3 URL for schedule.toml from zip_file_url
+    // zip_file_url format: https://bucket.s3.region.amazonaws.com/slug/slug.zip
+    // schedule.toml should be at: https://bucket.s3.region.amazonaws.com/slug/schedule.toml
+    let scheduleUrl = null;
+    if (pack.zip_file_url) {
+      scheduleUrl = pack.zip_file_url.replace(/\/[^/]+\.zip$/, '/schedule.toml');
+    }
+    
+    if (scheduleUrl) {
+      const scheduleResponse = await fetch(scheduleUrl, { 
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      });
+      
+      if (scheduleResponse.ok) {
+        const scheduleText = await scheduleResponse.text();
+        const scheduleData = toml.parse(scheduleText);
+        
+        // Extract all images based on pack type
+        if (pack.pack_type === 'daypack' && scheduleData.timeblocks) {
+          Object.values(scheduleData.timeblocks).forEach(block => {
+            if (block.images && Array.isArray(block.images)) {
+              allImages.push(...block.images);
+            }
+          });
+        } else if (pack.pack_type === 'weekpack' && scheduleData.days) {
+          Object.values(scheduleData.days).forEach(day => {
+            if (day.images && Array.isArray(day.images)) {
+              allImages.push(...day.images);
+            }
+          });
+        } else if (pack.pack_type === 'album' && scheduleData.album) {
+          if (scheduleData.album.images && Array.isArray(scheduleData.album.images)) {
+            allImages.push(...scheduleData.album.images);
+          }
+        }
+        
+        // Remove duplicates and construct full URLs
+        const uniqueImages = [...new Set(allImages)];
+        const baseUrl = scheduleUrl.replace('/schedule.toml', '/full/');
+        allImages = uniqueImages.map(img => `${baseUrl}${img}`);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch schedule.toml:', err);
+    // Fallback to preview image only
+    allImages = [previewImage];
+  }
+  
+  // If no images found, use preview
+  if (allImages.length === 0) {
+    allImages = [previewImage];
+  }
+
+  // Format tags
+  const tags = Array.isArray(pack.tags) ? pack.tags : [];
+
+  // Get pack type display name
+  const getPackTypeName = (type) => {
+    switch (type) {
+      case 'daypack': return 'Daypack';
+      case 'weekpack': return 'Weekpack';
+      case 'album': return 'Album';
+      default: return 'Wallpack';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background/80 text-white mt-20">
-      <NavBar />
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Pack wallpapers preview */}
-          <div className="md:w-2/3">
-            <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-              <Image
-                src={selectedImage}
-                alt={wallpack.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="mt-4 flex overflow-x-auto gap-2 no-scrollbar">
-              {additionalImages.map((img, index) => (
-                <div
-                  key={index}
-                  className="relative h-40 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer aspect-video"
-                  onClick={() => setSelectedImage(img)}
-                >
-                  <Image
-                    src={img}
-                    alt={`${wallpack.name} - Image ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <PackImageGallery images={allImages} />
 
           {/* Pack Info */}
           <div className="md:w-1/3">
-          <div className="flex flex-col items-start">
-            <h1 className="text-4xl font-serif mb-2">{wallpack.name}</h1>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-white/80 text-sm">by</span>
-              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/20">
-                <Image
-                  src={wallpack.author_profile}
-                  alt={wallpack.author}
-                  fill
-                  className="object-cover"
-                />
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-4xl font-serif">{pack.title}</h1>
+                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
+                  {getPackTypeName(pack.pack_type)}
+                </span>
               </div>
-              <a
-                href={wallpack.author_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white/80 hover:text-white transition-colors text-sm"
-              >
-                {wallpack.author}
-              </a>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-white/80 text-sm">by</span>
+                <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/20">
+                  <Image
+                    src={authorAvatar}
+                    alt={authorName}
+                    fill
+                    className="object-cover"
+                    unoptimized={authorAvatar.startsWith('http')}
+                  />
+                </div>
+                {pack.is_original ? (
+                  <Link
+                    href={authorUrl}
+                    className="text-white/80 hover:text-white transition-colors text-sm"
+                  >
+                    {authorName}
+                  </Link>
+                ) : (
+                  <a
+                    href={authorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/80 hover:text-white transition-colors text-sm"
+                  >
+                    {authorName}
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-            <p className="prose text-white/80 mb-4">A serene street frozen in a summer haze. Perfect for calm workflows. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {['#anime', '#cityscape', '#summer', '#slice-of-life'].map((tag) => (
-                <span key={tag} className="px-2 py-1 bg-white/10 rounded-full text-sm">{tag}</span>
-              ))}
-            </div>
-            {/* <div className="flex items-center gap-2 mb-4">
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/20">
-                <Image
-                  src={wallpack.author_profile}
-                  alt={wallpack.author}
-                  fill
-                  className="object-cover"
-                />
+            
+            {pack.description && (
+              <p className="prose text-white/80 mb-4">{pack.description}</p>
+            )}
+            
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {tags.map((tag, index) => (
+                  <span key={index} className="px-2 py-1 bg-white/10 rounded-full text-sm">
+                    #{tag}
+                  </span>
+                ))}
               </div>
-              <a
-                href={wallpack.author_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                {wallpack.author}
-              </a>
-            </div> */}
-            {/* <div className="flex items-center gap-4 mb-4 text-sm text-white/60">
-              <div className="flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span>{wallpack.rating.toFixed(1)}</span>
-              </div>
+            )}
+
+            <div className="flex items-center gap-4 mb-4 text-sm text-white/60">
               <div className="flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                <span>{wallpack.downloads}</span>
+                <span>{pack.download_count || 0} downloads</span>
               </div>
-            </div> */}
+            </div>
+
             <div className="flex flex-col mt-8 gap-2">
               <button className="flex-1 px-4 py-2 bg-white text-black rounded-lg hover:bg-white/90 transition-colors">
                 Install with Wallpy
               </button>
-              <button className="flex-1 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80">
-                Download ZIP
-              </button>
+              {pack.zip_file_url && (
+                <a
+                  href={pack.zip_file_url}
+                  download
+                  className="flex-1 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center"
+                >
+                  Download ZIP
+                </a>
+              )}
             </div>
-            {/* <div className="mt-8">
-              <h2 className="text-2xl font-serif mb-4">Frequently Asked Questions</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold">What is a dynamic wallpack?</h3>
-                  <p className="text-white/80">A dynamic wallpack changes based on time of day, day of week, or is shuffled.</p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">How do I install a wallpack?</h3>
-                  <p className="text-white/80">Click the 'Install with Wallpy' button and follow the instructions in the CLI app.</p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Can I download individual wallpapers?</h3>
-                  <p className="text-white/80">Yes, you can download individual wallpapers by clicking the 'Download ZIP' button and extracting the files.</p>
-                </div>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
       <Footer />
     </div>
   );
-} 
+}

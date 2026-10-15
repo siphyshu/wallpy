@@ -8,7 +8,7 @@ import InstallSection from '@/components/homepage/InstallSection';
 
 export default function Home() {
   return (
-    <div classame="relative min-h-screen overflow-x-hidden text-white bg-black">
+    <div className="relative min-h-screen overflow-x-hidden text-white">
       <div className="fixed inset-0 z-[-10]">
         <div className="w-full h-full bg-cover bg-center animate-daycycle bg-[url('/wallpapers/day.jpg')] priority" />
       </div>

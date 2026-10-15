@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon, CalendarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import DaypackBuilder from './DaypackBuilder';
 import WeekpackBuilder from './WeekpackBuilder';
 import AlbumBuilder from './AlbumBuilder';
 import ScheduleUploader from './ScheduleUploader';
 import DayPreview from './DayPreview';
+import WeekPreview from './WeekPreview';
+import AlbumPreview from './AlbumPreview';
 import toml from '@iarna/toml';
 
 const daysOfWeek = [
@@ -17,74 +19,76 @@ const daysOfWeek = [
   { id: 'sunday', name: 'Sunday', icon: '😴' }
 ];
  
-export default function ScheduleBuilder({ wallpackType, files, config, onConfigChange }) {
+export default function ScheduleBuilder({ wallpackType, files, config, onConfigChange, metadata }) {
   const [scheduleConfig, setScheduleConfig] = useState(config || {});
   const [isInitialized, setIsInitialized] = useState(false);
   const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
   useEffect(() => {
-    if (!config) {
-      // Initialize default config based on wallpack type
-      let defaultConfig = {
-        meta: {
-          type: wallpackType === 'daypack' ? 'timeblocks' : wallpackType === 'weekpack' ? 'days' : 'album',
-          name: '',
-          author: '',
-          description: '',
-          version: '1.0'
-        }
-      };
-
-      if (wallpackType === 'daypack') {
-        defaultConfig.timeblocks = {
-          sunrise: {
-            start: 'dawn',
-            end: 'sunrise+30m',
-            images: [],
-            shuffle: false
-          },
-          day: {
-            start: 'sunrise+30m',
-            end: 'sunset-30m',
-            images: [],
-            shuffle: false
-          },
-          sunset: {
-            start: 'sunset-30m',
-            end: 'dusk+30m',
-            images: [],
-            shuffle: false
-          },
-          night: {
-            start: 'dusk+30m',
-            end: 'dawn',
-            images: [],
-            shuffle: false
+    if (!isInitialized) {
+      if (!config) {
+        // Initialize default config based on wallpack type
+        let defaultConfig = {
+          meta: {
+            type: wallpackType === 'daypack' ? 'timeblocks' : wallpackType === 'weekpack' ? 'days' : 'album',
+            name: '',
+            author: '',
+            description: '',
+            version: '1.0'
           }
         };
-      } else if (wallpackType === 'weekpack') {
-        defaultConfig.days = {};
-        daysOfWeek.forEach(day => {
-          defaultConfig.days[day.id] = {
-            images: [],
+
+        if (wallpackType === 'daypack') {
+          defaultConfig.timeblocks = {
+            sunrise: {
+              start: 'dawn',
+              end: 'sunrise+30m',
+              images: [],
+              shuffle: false
+            },
+            day: {
+              start: 'sunrise+30m',
+              end: 'sunset-30m',
+              images: [],
+              shuffle: false
+            },
+            sunset: {
+              start: 'sunset-30m',
+              end: 'dusk+30m',
+              images: [],
+              shuffle: false
+            },
+            night: {
+              start: 'dusk+30m',
+              end: 'dawn',
+              images: [],
+              shuffle: false
+            }
+          };
+        } else if (wallpackType === 'weekpack') {
+          defaultConfig.days = {};
+          daysOfWeek.forEach(day => {
+            defaultConfig.days[day.id] = {
+              images: [],
+              shuffle: false
+            };
+          });
+        } else if (wallpackType === 'album') {
+          defaultConfig.album = {
+            images: imageFiles.map(f => f.name),
             shuffle: false
           };
-        });
-      } else if (wallpackType === 'album') {
-        defaultConfig.album = {
-          images: imageFiles.map(f => f.name),
-          shuffle: true,
-          rotation: 'sequential'
-        };
-      }
+        }
 
-      setScheduleConfig(defaultConfig);
-      onConfigChange(defaultConfig);
-    } else {
-      setScheduleConfig(config);
+        setScheduleConfig(defaultConfig);
+        onConfigChange(defaultConfig);
+      } else {
+        setScheduleConfig(config);
+      }
+      setIsInitialized(true);
     }
-    setIsInitialized(true);
-  }, [wallpackType, files, config, onConfigChange]);
+    // eslint-disable-next-line
+  }, [wallpackType, files]);
 
   const updateConfig = (newConfig) => {
     setScheduleConfig(newConfig);
@@ -126,6 +130,36 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
   const tomlRef = useRef(null);
   // Copied indication state
   const [copied, setCopied] = useState(false);
+
+  // Update meta section when metadata changes (only after initialization)
+  useEffect(() => {
+    if (metadata && scheduleConfig && isInitialized && scheduleConfig.meta) {
+      // Only update if meta actually changed to avoid loops
+      const newMeta = {
+        name: metadata.title || '',
+        type: wallpackType === 'daypack' ? 'timeblocks' : wallpackType === 'weekpack' ? 'days' : 'album',
+        author: metadata.isOriginal ? '' : (metadata.authorName || ''),
+        description: metadata.description || '',
+        version: '1.0'
+      };
+      
+      // Check if meta actually changed
+      const metaChanged = 
+        scheduleConfig.meta.name !== newMeta.name ||
+        scheduleConfig.meta.author !== newMeta.author ||
+        scheduleConfig.meta.description !== newMeta.description;
+      
+      if (metaChanged) {
+        const updatedConfig = {
+          ...scheduleConfig,
+          meta: newMeta
+        };
+        setScheduleConfig(updatedConfig);
+        onConfigChange(updatedConfig);
+      }
+    }
+    // eslint-disable-next-line
+  }, [metadata?.title, metadata?.description, metadata?.authorName, metadata?.isOriginal, isInitialized]);
 
   useEffect(() => {
     try {
@@ -235,50 +269,117 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
             />
           )}
 
+          {/* Week Preview */}
+          {wallpackType === 'weekpack' && (
+            <WeekPreview
+              scheduleConfig={scheduleConfig}
+              imageFiles={imageFiles}
+            />
+          )}
+
+          {/* Album Preview */}
+          {wallpackType === 'album' && (
+            <AlbumPreview
+              scheduleConfig={scheduleConfig}
+              imageFiles={imageFiles}
+            />
+          )}
+
           {/* Schedule Uploader */}
-          {wallpackType === 'daypack' && (
+          {(wallpackType === 'daypack' || wallpackType === 'weekpack' || wallpackType === 'album') && (
             <ScheduleUploader
               onConfigChange={updateConfig}
               currentConfig={scheduleConfig}
+              wallpackType={wallpackType}
             />
           )}
         </div>
       </div>
 
-      {/* Configuration Guide (moved from DaypackBuilder) */}
+      {/* Configuration Guide */}
       <div id="configuration-guide" className="max-w-6xl mx-auto mt-8">
         <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-8">
           <div className="text-center mb-8">
             <h3 className="text-xl font-bold mb-2">Configuration Guide</h3>
-            <p className="text-white/70">Everything you need to know about setting up your daypack</p>
+            <p className="text-white/70">
+              {wallpackType === 'daypack' && 'Everything you need to know about setting up your daypack'}
+              {wallpackType === 'weekpack' && 'Everything you need to know about setting up your weekpack'}
+              {wallpackType === 'album' && 'Everything you need to know about setting up your album'}
+            </p>
           </div>
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
-              {/* Time Block Management */}
+              {/* Structure Management */}
               <div className="bg-white/5 rounded-lg p-6 border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <PlusIcon className="w-5 h-5 text-blue-400" />
+                    {wallpackType === 'daypack' && <PlusIcon className="w-5 h-5 text-blue-400" />}
+                    {wallpackType === 'weekpack' && <CalendarIcon className="w-5 h-5 text-blue-400" />}
+                    {wallpackType === 'album' && <PhotoIcon className="w-5 h-5 text-blue-400" />}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-lg">Time Block Management</h4>
-                    <p className="text-sm text-white/60">Create and organize your daypack structure</p>
+                    <h4 className="font-semibold text-lg">
+                      {wallpackType === 'daypack' && 'Time Block Management'}
+                      {wallpackType === 'weekpack' && 'Day Management'}
+                      {wallpackType === 'album' && 'Album Organization'}
+                    </h4>
+                    <p className="text-sm text-white/60">
+                      {wallpackType === 'daypack' && 'Create and organize your daypack structure'}
+                      {wallpackType === 'weekpack' && 'Assign images to days of the week'}
+                      {wallpackType === 'album' && 'Organize your image collection'}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-3 text-sm text-white/80">
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Add or remove timeblocks and rename by clicking on block names<span className="font-mono"></span></p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Each block represents a time period with its own image collection<span className="font-mono"></span></p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Ensure time blocks do not overlap and have unique names.<span className="font-mono"></span></p>
-                  </div>
+                  {wallpackType === 'daypack' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Add or remove timeblocks and rename by clicking on block names</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Each block represents a time period with its own image collection</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Ensure time blocks do not overlap and have unique names</p>
+                      </div>
+                    </>
+                  )}
+                  {wallpackType === 'weekpack' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Each day of the week can have its own set of wallpapers</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Wallpapers automatically change when the day changes</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Days without images will be skipped in the rotation</p>
+                      </div>
+                    </>
+                  )}
+                  {wallpackType === 'album' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Click images from the available panel to add them to your album</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Drag images to reorder them in your album</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Use "Add All" to quickly include all uploaded images</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               {/* Image Assignment */}
@@ -299,41 +400,87 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Reorder images within blocks by dragging them to new positions<span className="font-mono"></span></p>
+                    <p>Reorder images by dragging them to new positions</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Use the shuffle toggle to randomize image order for each block</p>
+                    <p>Use the shuffle toggle to randomize image order</p>
                   </div>
                 </div>
               </div>
             </div>
             {/* Right Column */}
             <div className="space-y-6">
-              {/* Time Configuration */}
+              {/* Type-specific Configuration */}
               <div className="bg-white/5 rounded-lg p-6 border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                    <SunIcon className="w-5 h-5 text-orange-400" />
+                    {wallpackType === 'daypack' && <SunIcon className="w-5 h-5 text-orange-400" />}
+                    {wallpackType === 'weekpack' && <CalendarIcon className="w-5 h-5 text-orange-400" />}
+                    {wallpackType === 'album' && <ArrowPathIcon className="w-5 h-5 text-orange-400" />}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-lg">Time Configuration</h4>
-                    <p className="text-sm text-white/60">Set start and end times for each block</p>
+                    <h4 className="font-semibold text-lg">
+                      {wallpackType === 'daypack' && 'Time Configuration'}
+                      {wallpackType === 'weekpack' && 'Weekly Schedule'}
+                      {wallpackType === 'album' && 'Rotation Settings'}
+                    </h4>
+                    <p className="text-sm text-white/60">
+                      {wallpackType === 'daypack' && 'Set start and end times for each block'}
+                      {wallpackType === 'weekpack' && 'How the weekly rotation works'}
+                      {wallpackType === 'album' && 'Control how images cycle'}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-3 text-sm text-white/80">
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Use solar events: <span className="font-mono text-orange-300">dawn</span>, <span className="font-mono text-orange-300">sunrise</span>, <span className="font-mono text-orange-300">noon</span>, <span className="font-mono text-orange-300">sunset</span>, <span className="font-mono text-orange-300">dusk</span>, <span className="font-mono text-orange-300">midnight</span></p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Add offsets: <span className="font-mono text-orange-300">dawn+15m</span>, <span className="font-mono text-orange-300">sunset-30m</span></p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Or use 24h format: <span className="font-mono text-orange-300">12:00</span>, <span className="font-mono text-orange-300">14:30</span></p>
-                  </div>
+                  {wallpackType === 'daypack' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Use solar events: <span className="font-mono text-orange-300">dawn</span>, <span className="font-mono text-orange-300">sunrise</span>, <span className="font-mono text-orange-300">noon</span>, <span className="font-mono text-orange-300">sunset</span>, <span className="font-mono text-orange-300">dusk</span>, <span className="font-mono text-orange-300">midnight</span></p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Add offsets: <span className="font-mono text-orange-300">dawn+15m</span>, <span className="font-mono text-orange-300">sunset-30m</span></p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Or use 24h format: <span className="font-mono text-orange-300">12:00</span>, <span className="font-mono text-orange-300">14:30</span></p>
+                      </div>
+                    </>
+                  )}
+                  {wallpackType === 'weekpack' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Wallpapers change at midnight when the day changes</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Multiple images per day will rotate throughout the day</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Enable shuffle for random order within each day</p>
+                      </div>
+                    </>
+                  )}
+                  {wallpackType === 'album' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>With shuffle off, images cycle in the order you arranged them</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Enable shuffle to randomize the rotation order</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Set your preferred rotation interval in the Wallpy CLI</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               {/* Preview & Export */}
@@ -350,7 +497,11 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                 <div className="space-y-3 text-sm text-white/80">
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Preview your daypack throughout the day in the schedule preview</p>
+                    <p>
+                      {wallpackType === 'daypack' && 'Preview your daypack throughout the day'}
+                      {wallpackType === 'weekpack' && 'Preview your weekpack across all days'}
+                      {wallpackType === 'album' && 'Preview your album collection'}
+                    </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
