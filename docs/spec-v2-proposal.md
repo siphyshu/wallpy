@@ -1,8 +1,8 @@
-# Pack format v2 (proposal)
+# Pack format v2
 
-Status: **proposal, under consideration** (2026-10-16). Agreed direction: port the
-CLI to Go and use the port to simplify the pack format. Nothing depends on this
-yet; v1 (`spec/schedule.schema.json`) is what the site and database use today.
+Status: **accepted** (2026-10-16). The CLI is being ported to Go and implements
+v2 (and reads v1). Until the site is migrated, v1 (`spec/schedule.schema.json`)
+is what the site and database store.
 
 ## What v1 gets wrong
 
@@ -117,8 +117,8 @@ templates; they are presets of one format, not three formats.
 5. End-to-end: upload → approve → `wallpy download` on a clean machine → the
    wallpaper changes.
 
-## Open questions
+## Decisions (2026-10-16)
 
-- Does "each slot runs until the next one starts" match how you think about packs?
-- Rotation as an explicit `rotate` setting: right defaults?
-- Retire the Python CLI instead of testing it end-to-end?
+- The slot model is accepted: each slot runs until the next one starts.
+- Rotation is an explicit `rotate` setting (`"spread"` by default, or `"every <duration>"`), with optional `shuffle`.
+- The Python CLI is retired rather than tested end-to-end; a final PyPI release will point to the new installers.
