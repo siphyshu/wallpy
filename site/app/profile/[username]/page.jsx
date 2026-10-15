@@ -1,30 +1,28 @@
+import { notFound } from 'next/navigation';
 import ProfileCard from '@/components/profile/ProfileCard';
 import PacksSection from '@/components/profile/PacksSection';
 import Footer from '@/components/footer';
-import { getUserByUsername, getCurrentUser } from '@/lib/data/users';
-import { getPacksByUsername, getFavouritedPacksByUsername } from '@/lib/data/packs';
+import { getProfileByUsername, getCurrentProfile } from '@/lib/data/profiles';
+import { listPacksByOwner, listMyFavourites } from '@/lib/data/packs';
+
+export async function generateMetadata({ params }) {
+  const profile = await getProfileByUsername((await params).username);
+  if (!profile) return { title: 'Profile not found | Wallpy' };
+  return { title: `${profile.name || profile.username} (@${profile.username}) | Wallpy` };
+}
 
 export default async function ProfilePage({ params }) {
   const { username } = await params;
-  const user = await getUserByUsername(username);
-  if (!user) {
-    return (
-      <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-        <div className="flex min-h-screen items-center justify-center mt-20 pt-24">
-          <div className="text-center">
-            <h1 className="text-2xl font-serif mb-4">User Not Found</h1>
-            <p className="text-white/70">The user you're looking for doesn't exist.</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-  const currentUser = await getCurrentUser();
-  const isCurrentUser = currentUser && currentUser.id === user.id;
-  const uploadedPacks = await getPacksByUsername(username);
-  // Favourites are private, so only the owner can see their own.
-  const favouritedPacks = isCurrentUser ? await getFavouritedPacksByUsername(username) : [];
+  const profile = await getProfileByUsername(username);
+  if (!profile) notFound();
+
+  const current = await getCurrentProfile();
+  const isCurrentUser = current?.id === profile.id;
+  const [packs, favourites] = await Promise.all([
+    listPacksByOwner(profile.id),
+    // Favourites are private: only the owner sees theirs.
+    isCurrentUser ? listMyFavourites() : Promise.resolve([]),
+  ]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
@@ -32,17 +30,16 @@ export default async function ProfilePage({ params }) {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-1/3">
-              <ProfileCard user={user} isCurrentUser={isCurrentUser} />
+              <ProfileCard user={profile} isCurrentUser={isCurrentUser} />
             </div>
             <div className="w-full lg:w-2/3 flex flex-col gap-8">
-              <PacksSection type="uploaded" packs={uploadedPacks} />
-              {isCurrentUser && <PacksSection type="favourited" packs={favouritedPacks} />}
+              <PacksSection type="uploaded" packs={packs} />
+              {isCurrentUser && <PacksSection type="favourited" packs={favourites} />}
             </div>
           </div>
         </div>
       </section>
-      
       <Footer />
     </div>
   );
-} 
+}

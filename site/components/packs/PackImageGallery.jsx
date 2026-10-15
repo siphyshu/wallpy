@@ -2,49 +2,40 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { Blurhash } from 'react-blurhash';
 
-export default function PackImageGallery({ images }) {
-  const [selectedImage, setSelectedImage] = useState(images[0] || null);
-
-  if (!images || images.length === 0) {
-    return null;
-  }
+/** Large viewer plus a filmstrip. `files` come from getPackBySlug. */
+export default function PackImageGallery({ files = [] }) {
+  const [selected, setSelected] = useState(files[0] ?? null);
+  if (!selected) return null;
 
   return (
     <div className="md:w-2/3">
       <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-white/5">
-        {selectedImage && (
-          <Image
-            src={selectedImage}
-            alt="Pack preview"
-            fill
-            className="object-cover"
-            unoptimized={selectedImage.startsWith('http')}
-          />
+        {selected.blurhash && (
+          <Blurhash hash={selected.blurhash} width="100%" height="100%" resolutionX={32} resolutionY={32} punch={1}
+                    style={{ position: 'absolute', inset: 0 }} />
         )}
+        <Image key={selected.sha256} src={selected.url} alt={selected.path} fill priority
+               sizes="(min-width: 768px) 66vw, 100vw" className="object-cover relative" />
       </div>
-      {images.length > 1 && (
+      {files.length > 1 && (
         <div className="mt-4 flex overflow-x-auto gap-2 no-scrollbar">
-          {images.map((img, index) => (
-            <div
-              key={index}
-              className={`relative h-40 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer aspect-video bg-white/5 border-2 transition-all ${
-                selectedImage === img ? 'border-white' : 'border-transparent opacity-70 hover:opacity-100'
+          {files.map((file) => (
+            <button
+              key={file.id}
+              type="button"
+              onClick={() => setSelected(file)}
+              aria-label={`Show ${file.path}`}
+              className={`relative h-24 md:h-32 flex-shrink-0 rounded-lg overflow-hidden aspect-video bg-white/5 border-2 transition-all ${
+                selected.id === file.id ? 'border-white' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
-              onClick={() => setSelectedImage(img)}
             >
-              <Image
-                src={img}
-                alt={`Image ${index + 1}`}
-                fill
-                className="object-cover"
-                unoptimized={img.startsWith('http')}
-              />
-            </div>
+              <Image src={file.url} alt="" fill sizes="240px" className="object-cover" />
+            </button>
           ))}
         </div>
       )}
     </div>
   );
 }
-

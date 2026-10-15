@@ -2,209 +2,134 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import Footer from '@/components/footer';
-import { createClient } from '@/lib/supabase/server';
 import PackImageGallery from '@/components/packs/PackImageGallery';
-import toml from '@iarna/toml';
+import DownloadZipButton from '@/components/packs/DownloadZipButton';
+import InstallCommand from '@/components/packs/InstallCommand';
+import FavouriteButton from '@/components/packs/FavouriteButton';
+import { getPackBySlug } from '@/lib/data/packs';
+import { createClient } from '@/lib/supabase/server';
 
-export default async function WallpackPage({ params }) {
-  const { slug } = await params;
-  const supabase = await createClient();
+const LICENSES = {
+  'personal-use': 'Personal use only',
+  'cc-by-4.0': 'CC BY 4.0',
+  'cc-by-nc-4.0': 'CC BY-NC 4.0',
+  cc0: 'CC0 (public domain)',
+  other: 'Other',
+};
 
-  // Fetch pack by slug
-  const { data: pack, error } = await supabase
-    .from('packs')
-    .select(`
-      *,
-      uploaded_by_user:users!packs_uploaded_by_fkey (
-        id,
-        username,
-        name,
-        avatar_url
-      )
-    `)
-    .eq('slug', slug)
-    .single();
+const STATUS_NOTES = {
+  draft: 'This is a draft. Only you can see it until you submit it for review.',
+  pending: 'Waiting for review. Only you and moderators can see it for now.',
+  rejected: 'This version was rejected. Check the review notes, then submit a new version.',
+};
 
-  if (error || !pack) {
-    notFound();
-  }
-
-  // Check if user can view this pack
-  const { data: { user } } = await supabase.auth.getUser();
-  const isOwner = user && pack.uploaded_by === user.id;
-  const canView = pack.is_published || isOwner;
-
-  if (!canView) {
-    notFound();
-  }
-
-  // Get author info
-  const authorName = pack.is_original 
-    ? (pack.uploaded_by_user?.name || pack.uploaded_by_user?.username || 'Unknown')
-    : (pack.author_name || 'Unknown');
-  const authorUrl = pack.is_original
-    ? (pack.uploaded_by_user?.username ? `/profile/${pack.uploaded_by_user.username}` : '#')
-    : (pack.author_url || '#');
-  const authorAvatar = pack.is_original
-    ? (pack.uploaded_by_user?.avatar_url || '/artists/anon.png')
-    : '/artists/anon.png';
-
-  // Fetch schedule.toml to get all images
-  let allImages = [];
-  const previewImage = pack.preview_image_url || '/wallpapers/default.jpg';
-  
-  try {
-    // Construct S3 URL for schedule.toml from zip_file_url
-    // zip_file_url format: https://bucket.s3.region.amazonaws.com/slug/slug.zip
-    // schedule.toml should be at: https://bucket.s3.region.amazonaws.com/slug/schedule.toml
-    let scheduleUrl = null;
-    if (pack.zip_file_url) {
-      scheduleUrl = pack.zip_file_url.replace(/\/[^/]+\.zip$/, '/schedule.toml');
-    }
-    
-    if (scheduleUrl) {
-      const scheduleResponse = await fetch(scheduleUrl, { 
-        cache: 'no-store',
-        next: { revalidate: 0 }
-      });
-      
-      if (scheduleResponse.ok) {
-        const scheduleText = await scheduleResponse.text();
-        const scheduleData = toml.parse(scheduleText);
-        
-        // Extract all images based on pack type
-        if (pack.pack_type === 'daypack' && scheduleData.timeblocks) {
-          Object.values(scheduleData.timeblocks).forEach(block => {
-            if (block.images && Array.isArray(block.images)) {
-              allImages.push(...block.images);
-            }
-          });
-        } else if (pack.pack_type === 'weekpack' && scheduleData.days) {
-          Object.values(scheduleData.days).forEach(day => {
-            if (day.images && Array.isArray(day.images)) {
-              allImages.push(...day.images);
-            }
-          });
-        } else if (pack.pack_type === 'album' && scheduleData.album) {
-          if (scheduleData.album.images && Array.isArray(scheduleData.album.images)) {
-            allImages.push(...scheduleData.album.images);
-          }
-        }
-        
-        // Remove duplicates and construct full URLs
-        const uniqueImages = [...new Set(allImages)];
-        const baseUrl = scheduleUrl.replace('/schedule.toml', '/full/');
-        allImages = uniqueImages.map(img => `${baseUrl}${img}`);
-      }
-    }
-  } catch (err) {
-    console.warn('Failed to fetch schedule.toml:', err);
-    // Fallback to preview image only
-    allImages = [previewImage];
-  }
-  
-  // If no images found, use preview
-  if (allImages.length === 0) {
-    allImages = [previewImage];
-  }
-
-  // Format tags
-  const tags = Array.isArray(pack.tags) ? pack.tags : [];
-
-  // Get pack type display name
-  const getPackTypeName = (type) => {
-    switch (type) {
-      case 'daypack': return 'Daypack';
-      case 'weekpack': return 'Weekpack';
-      case 'album': return 'Album';
-      default: return 'Wallpack';
-    }
+export async function generateMetadata({ params }) {
+  const pack = await getPackBySlug((await params).slug);
+  if (!pack) return { title: 'Pack not found | Wallpy' };
+  return {
+    title: `${pack.name} by ${pack.credit.name} | Wallpy`,
+    description: pack.version.description || `A ${pack.kindLabel.toLowerCase()} for Wallpy.`,
   };
+}
+
+export default async function PackPage({ params }) {
+  const { slug } = await params;
+  const pack = await getPackBySlug(slug);
+  if (!pack) notFound();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let favourited = false;
+  if (user) {
+    const { data } = await supabase.from('favourites').select('pack_id').eq('pack_id', pack.id).maybeSingle();
+    favourited = Boolean(data);
+  }
+
+  const { version, credit } = pack;
+  const statusNote = !pack.isPublic && (pack.removedAt
+    ? `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.`
+    : STATUS_NOTES[version.status]);
 
   return (
     <div className="min-h-screen bg-background/80 text-white mt-20">
       <div className="max-w-7xl mx-auto px-6 py-24">
+        {statusNote && (
+          <div className="mb-6 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+            {statusNote}
+          </div>
+        )}
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Pack wallpapers preview */}
-          <PackImageGallery images={allImages} />
+          <PackImageGallery files={pack.files} />
 
-          {/* Pack Info */}
           <div className="md:w-1/3">
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-4xl font-serif">{pack.title}</h1>
-                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
-                  {getPackTypeName(pack.pack_type)}
-                </span>
+            <div className="flex items-center gap-2 mb-2">
+              <h1 className="text-4xl font-serif">{version.title}</h1>
+              <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
+                {pack.kindLabel}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-white/80 text-sm">by</span>
+              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/20">
+                <Image src={credit.avatar} alt="" fill sizes="24px" className="object-cover" />
               </div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-white/80 text-sm">by</span>
-                <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/20">
-                  <Image
-                    src={authorAvatar}
-                    alt={authorName}
-                    fill
-                    className="object-cover"
-                    unoptimized={authorAvatar.startsWith('http')}
-                  />
-                </div>
-                {pack.is_original ? (
-                  <Link
-                    href={authorUrl}
-                    className="text-white/80 hover:text-white transition-colors text-sm"
-                  >
-                    {authorName}
+              {credit.url ? (
+                credit.internal ? (
+                  <Link href={credit.url} className="text-white/80 hover:text-white transition-colors text-sm">
+                    {credit.name}
                   </Link>
                 ) : (
-                  <a
-                    href={authorUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-white/80 hover:text-white transition-colors text-sm"
-                  >
-                    {authorName}
+                  <a href={credit.url} target="_blank" rel="noopener noreferrer"
+                     className="text-white/80 hover:text-white transition-colors text-sm">
+                    {credit.name}
                   </a>
-                )}
-              </div>
+                )
+              ) : (
+                <span className="text-white/80 text-sm">{credit.name}</span>
+              )}
+              {!credit.internal && pack.owner && (
+                <span className="text-white/50 text-sm">
+                  · shared by <Link href={`/profile/${pack.owner.username}`} className="hover:text-white">@{pack.owner.username}</Link>
+                </span>
+              )}
             </div>
-            
-            {pack.description && (
-              <p className="prose text-white/80 mb-4">{pack.description}</p>
-            )}
-            
-            {tags.length > 0 && (
+
+            {version.description && <p className="prose text-white/80 mb-4">{version.description}</p>}
+
+            {version.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
-                {tags.map((tag, index) => (
-                  <span key={index} className="px-2 py-1 bg-white/10 rounded-full text-sm">
+                {version.tags.map((tag) => (
+                  <Link key={tag} href={`/gallery?tag=${tag}`} className="px-2 py-1 bg-white/10 rounded-full text-sm hover:bg-white/20">
                     #{tag}
-                  </span>
+                  </Link>
                 ))}
               </div>
             )}
 
-            <div className="flex items-center gap-4 mb-4 text-sm text-white/60">
-              <div className="flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <div className="flex items-center gap-4 mb-2 text-sm text-white/60">
+              <span className="flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                   <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                <span>{pack.download_count || 0} downloads</span>
-              </div>
+                {pack.downloads} downloads
+              </span>
+              <FavouriteButton packId={pack.id} initialFavourited={favourited} initialCount={pack.favourites} signedIn={Boolean(user)} />
+              <span>{pack.files.length} images</span>
             </div>
+            <p className="text-xs text-white/50 mb-8">
+              {LICENSES[version.license]}{version.licenseNotes ? ` · ${version.licenseNotes}` : ''} · v{version.number}
+            </p>
 
-            <div className="flex flex-col mt-8 gap-2">
-              <button className="flex-1 px-4 py-2 bg-white text-black rounded-lg hover:bg-white/90 transition-colors">
-                Install with Wallpy
-              </button>
-              {pack.zip_file_url && (
-                <a
-                  href={pack.zip_file_url}
-                  download
-                  className="flex-1 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center"
-                >
-                  Download ZIP
-                </a>
-              )}
-            </div>
+            {pack.isPublic && (
+              <div className="flex flex-col gap-2">
+                <InstallCommand slug={pack.slug} />
+                <DownloadZipButton slug={pack.slug} title={version.title} />
+                <Link href="/#install" className="text-xs text-white/50 hover:text-white mt-1">
+                  Don&apos;t have Wallpy yet? Install it first.
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

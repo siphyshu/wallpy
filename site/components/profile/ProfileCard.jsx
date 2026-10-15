@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { PUBLIC_USER_COLUMNS } from '@/lib/data/user-columns';
-import { generatePresignedUrl } from '@/app/profile/[username]/actions';
+import { uploadProfileImage } from '@/lib/upload-client';
 import Image from 'next/image';
 import { 
   Link as LinkIcon,
@@ -52,6 +52,7 @@ function getLinkIcon(url) {
 }
 
 export default function ProfileCard({ user, isCurrentUser }) {
+  const router = useRouter();
   // Ensure links is always an array
   let initialLinks = [];
   if (Array.isArray(user.links)) {
@@ -75,7 +76,7 @@ export default function ProfileCard({ user, isCurrentUser }) {
   const [coverUrl, setCoverUrl] = useState(user.cover_url && !user.cover_url.includes('undefined') ? user.cover_url : '');
   const [coverFile, setCoverFile] = useState(null);
   const [links, setLinks] = useState(initialLinks);
-  const [emailContact, setEmailContact] = useState(user.email_contact || '');
+  const [emailContact, setEmailContact] = useState(user.contact_email || '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef();
@@ -99,47 +100,6 @@ export default function ProfileCard({ user, isCurrentUser }) {
     }
   };
 
-  // Upload file to S3 and return the public URL
-  async function uploadToS3(file, folder) {
-    try {
-      console.log(`Starting upload for ${folder}:`, file.name);
-      const randomId = Math.random().toString(36).substring(2, 15);
-      const ext = file.name.split('.').pop();
-      const filename = `${folder}/${randomId}_${Date.now()}.${ext}`;
-      console.log('Generated filename:', filename);
-      
-      const { presignedUrl, publicUrl, success } = await generatePresignedUrl(filename, file.type);
-      
-      if (!success) {
-        console.error('Failed to generate presigned URL');
-        setError('Failed to generate upload URL');
-        return null;
-      }
-      
-      console.log('Uploading to S3...');
-      const response = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
-      
-      if (!response.ok) {
-        console.error('S3 upload failed:', response.status, response.statusText);
-        setError(`Failed to upload ${folder.slice(0, -1)}.`);
-        return null;
-      }
-
-      console.log('S3 upload successful');
-      return publicUrl;
-    } catch (err) {
-      console.error(`Error uploading ${folder}:`, err);
-      setError(`Failed to upload ${folder.slice(0, -1)}.`);
-      return null;
-    }
-  }
-
   // Add a new link
   const addLink = () => {
     if (Array.isArray(links) ? links.length < 5 : true) {
@@ -161,67 +121,34 @@ export default function ProfileCard({ user, isCurrentUser }) {
 
   // Save profile changes
   const handleSave = async () => {
-    console.log('Starting save process...');
     setIsSaving(true);
     setError(null);
     
     try {
-      let uploadedAvatarUrl = avatarUrl;
-      let uploadedCoverUrl = coverUrl;
-
-      // Upload avatar if changed
-      if (avatarFile) {
-        console.log('Uploading avatar...');
-        uploadedAvatarUrl = await uploadToS3(avatarFile, 'avatars');
-        if (!uploadedAvatarUrl) {
-          throw new Error('Avatar upload failed');
-        }
-      }
-
-      // Upload cover if changed
-      if (coverFile) {
-        console.log('Uploading cover...');
-        uploadedCoverUrl = await uploadToS3(coverFile, 'covers');
-        if (!uploadedCoverUrl) {
-          throw new Error('Cover upload failed');
-        }
-      }
-
-      // Filter out empty links
-      const validLinks = links.filter(link => link.name.trim() && link.url.trim());
-      console.log('Valid links:', validLinks);
-
-      console.log('Updating database...');
-      const supabase = createClient();
-      
+      // Images go straight to R2 under keys the server derives from your id
+      // and the file's hash; the profile row only stores the key.
       const updateData = {
-        name,
-        bio,
-        avatar_url: uploadedAvatarUrl,
-        cover_url: uploadedCoverUrl,
-        links: validLinks,
-        email_contact: emailContact.trim() || null,
+        display_name: name.trim() || null,
+        bio: bio.trim() || null,
+        links: links.filter(link => link.name.trim() && link.url.trim()),
+        contact_email: emailContact.trim() || null,
       };
-      
-      console.log('Update data:', updateData);
-      
-      const { data, error: updateError } = await supabase
-        .from('users')
+      if (avatarFile) updateData.avatar_key = await uploadProfileImage(avatarFile);
+      if (coverFile) updateData.cover_key = await uploadProfileImage(coverFile);
+
+      const supabase = createClient();
+      const { error: updateError } = await supabase
+        .from('profiles')
         .update(updateData)
-        .eq('id', user.id)
-        .select(PUBLIC_USER_COLUMNS);
-        
-      if (updateError) {
-        console.error('Database update error:', updateError);
-        throw updateError;
-      }
-      
-      console.log('Database update successful:', data);
+        .eq('id', user.id);
+      if (updateError) throw updateError;
+
       setEditing(false);
-      window.location.reload();
+      setAvatarFile(null);
+      setCoverFile(null);
+      router.refresh();
     } catch (err) {
-      console.error('Save error:', err);
-      setError(`Failed to update profile: ${err.message}`);
+      setError(`Couldn't save your profile: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -237,7 +164,7 @@ export default function ProfileCard({ user, isCurrentUser }) {
     setCoverUrl(user.cover_url || '');
     setCoverFile(null);
     setLinks(initialLinks);
-    setEmailContact(user.email_contact || '');
+    setEmailContact(user.contact_email || '');
     setError(null);
   };
 
@@ -271,7 +198,7 @@ export default function ProfileCard({ user, isCurrentUser }) {
             </svg>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               ref={coverFileInputRef}
               onChange={handleCoverChange}
@@ -309,7 +236,7 @@ export default function ProfileCard({ user, isCurrentUser }) {
               </svg>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 ref={fileInputRef}
                 onChange={handleAvatarChange}
@@ -470,10 +397,10 @@ export default function ProfileCard({ user, isCurrentUser }) {
                   })}
                 </div>
               )}
-              {user.email_contact && (
+              {user.contact_email && (
                 <div className="mt-4 flex items-center justify-center gap-2 text-white/70 text-sm">
                   <Mail className="w-4 h-4" />
-                  <a href={`mailto:${user.email_contact}`} className="hover:underline">{user.email_contact}</a>
+                  <a href={`mailto:${user.contact_email}`} className="hover:underline">{user.contact_email}</a>
                 </div>
               )}
             </>

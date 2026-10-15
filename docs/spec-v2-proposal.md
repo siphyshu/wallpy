@@ -71,6 +71,10 @@ images = ["weekend.jpg"]
   before the previous slot's start, it is clamped to it (that slot gets zero
   length that day). Events that don't occur (polar day/night) use fixed fallback
   times, as the v1 CLI already does.
+- **Slots are an array, never a keyed table.** Order carries meaning (it breaks
+  ties and drives the high-latitude clamping), and Postgres `jsonb` does not keep
+  object key order: v1's `[timeblocks.dawn]`… come back sorted as
+  `day, dawn, dusk, night`. Arrays (`[[slot]]`) keep their order everywhere.
 - **Rotation is explicit:** `rotate = "spread"` (default: divide the slot evenly
   across its images) or `rotate = "every <duration>"`; `shuffle = true` permutes
   the order with a seed per cycle, so it needs no saved state.

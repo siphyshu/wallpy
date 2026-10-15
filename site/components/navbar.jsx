@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Alegreya } from 'next/font/google';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR } from '@/lib/data/profile-shape';
 import { Button } from '@/components/ui/button';
 import { User, Upload, LogOut } from 'lucide-react';
 
@@ -37,12 +38,12 @@ const NavBar = () => {
 
         const loadProfile = async (userId) => {
             const { data: profileData } = await supabase
-                .from('users')
-                .select('id, username, name, avatar_url')
+                .from('profiles')
+                .select(PROFILE_COLUMNS)
                 .eq('id', userId)
                 .single();
             if (mounted) {
-                setProfile(profileData);
+                setProfile(toProfile(profileData));
             }
         };
 
@@ -204,7 +205,7 @@ const NavBar = () => {
                             >
                                 <Link href={`/profile/${profile?.username}`} className="flex items-center gap-2 focus:outline-none">
                                     <Image
-                                        src={profile?.avatar_url && !profile.avatar_url.includes('undefined') ? profile.avatar_url : "/artists/anon.png"}
+                                        src={profile?.avatar_url || DEFAULT_AVATAR}
                                         alt={profile?.name || profile?.username || "User"}
                                         width={36}
                                         height={36}

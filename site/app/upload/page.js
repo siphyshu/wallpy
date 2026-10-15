@@ -134,11 +134,11 @@ export default function UploadPage() {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
             const { data: profile } = await supabase
-              .from('users')
-              .select('name, username')
+              .from('profiles')
+              .select('display_name, username')
               .eq('id', user.id)
               .single();
-            authorName = profile?.name || profile?.username || null;
+            authorName = profile?.display_name || profile?.username || null;
           }
         } catch (err) {
           console.warn('Failed to fetch user profile:', err);

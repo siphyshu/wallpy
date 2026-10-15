@@ -7,7 +7,7 @@ export default function GalleryFilters({ selectedCategory, onCategoryChange }) {
     { id: 'gaming', name: 'Gaming' },
     { id: 'minimal', name: 'Minimal' },
     { id: 'anime', name: 'Anime' },
-    { id: 'digital art', name: 'Digital Art' },
+    { id: 'digital-art', name: 'Digital Art' },
     { id: 'realistic', name: 'Realistic' },
     { id: 'typography', name: 'Typography' },
     { id: 'seasons', name: 'Seasons' },
