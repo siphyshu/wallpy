@@ -22,6 +22,7 @@ bucket. The e2e tests create throwaway users and delete everything they made.
 | E2E | `cd site && npm run test:e2e` | Needs `npm run dev` running; api, ui (album), moderation, versions, builders (Daypack + Weekpack, uses samples/) suites (each also runnable alone: `test:e2e:<name>`; `SHOTS=dir` saves screenshots) |
 | DB security | `supabase/scripts/test_security.sh` | Every migration on a scratch local Postgres, then the attack checks in `supabase/tests/security.sql` |
 | Spec | `pytest spec/tests` | Needs `pip install -r spec/requirements.txt` |
+| CLI | `cd cli && go vet ./... && go test ./...` | Runs `spec/vectors/vectors.json`; after changing `spec/schedule.schema.json`, copy it to `cli/internal/spec/` (a test checks) |
 | Build | `cd site && npm run build` | |
 
 Local Postgres for the security tests: Homebrew `postgresql@17` on

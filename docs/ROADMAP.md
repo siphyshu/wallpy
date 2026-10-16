@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-18 (builders done)
+Last updated: 2026-10-17 (Go spec package)
 
 ## Goal
 
@@ -28,7 +28,7 @@ Ship the site (wallpy.siphyshu.me), tested end to end, and a Go CLI
 
 ## Now: Go CLI
 
-- [ ] Scheduler + validator passing `spec/vectors/vectors.json`
+- [x] Scheduler + validator passing `spec/vectors/vectors.json` (2026-10-17): `cli/internal/spec`; solar maths ported from astral, identical to the second on 3,660 sample times
 - [ ] `wallpy download <slug>` via `/api/packs/<slug>/manifest?download=cli`, verifying SHA-256
 - [ ] Set wallpaper: macOS, Windows, Linux (GNOME/KDE/sway…)
 - [ ] Background service: launchd, systemd user unit, Task Scheduler
