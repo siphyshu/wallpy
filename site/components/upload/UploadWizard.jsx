@@ -9,24 +9,76 @@ import ScheduleBuilder, { defaultScheduleConfig } from '@/components/upload/Sche
 import PackMetadata from '@/components/upload/PackMetadata';
 import UploadProgress from '@/components/upload/UploadProgress';
 import { submitPack } from '@/lib/packs/client-upload';
-import { builderToSchedule } from '@/lib/spec/builder';
+import { builderToSchedule, scheduleToBuilder } from '@/lib/spec/builder';
 
-export default function UploadWizard() {
+const BUILDER_KINDS = { timeblocks: 'daypack', days: 'weekpack', album: 'album' };
+
+/**
+ * The wizard's starting state. Editing (a new version of `edit`, an
+ * EditablePack) starts from that version: its images are reused, not re-uploaded.
+ */
+function initialState(edit) {
+  if (!edit) {
+    return {
+      step: 1, type: null, files: [], config: null, scheduleNotice: null,
+      metadata: { title: '', description: '', isOriginal: true, authorName: '', authorUrl: '', tags: '', aiUse: null, license: 'personal-use' },
+    };
+  }
+  const { base } = edit;
+  const type = BUILDER_KINDS[base.kind] ?? 'daypack';
+  let config = null;
+  let scheduleNotice = null;
+  try {
+    config = scheduleToBuilder(type, base.schedule);
+    // The builders can't show every schedule the format allows (e.g. a file
+    // uploaded by hand). Say so rather than quietly changing it.
+    // Labels don't count: the builder names unnamed blocks.
+    const rebuilt = builderToSchedule(type, config, { name: base.title });
+    // Sorted keys: jsonb from the database doesn't keep the original key order.
+    const slots = (schedule) => JSON.stringify(schedule.slot.map(({ label: _label, ...slot }) =>
+      Object.fromEntries(Object.entries(slot).sort(([a], [b]) => a.localeCompare(b)))));
+    if (slots(rebuilt) !== slots(base.schedule)) {
+      scheduleNotice = 'This schedule uses options the builder can\'t show yet. Check the schedule step: what you see there is what will be submitted.';
+    }
+  } catch {
+    scheduleNotice = 'The builder couldn\'t read this schedule. Set it up again on the schedule step.';
+  }
+  return {
+    step: 2,
+    type,
+    config,
+    scheduleNotice,
+    files: base.files.map((f) => ({
+      id: `${f.sha256.slice(0, 12)}-${f.path}`,
+      name: f.path,
+      size: f.size,
+      type: f.mime,
+      preview: f.url,
+      existing: { sha256: f.sha256, url: f.url },
+    })),
+    metadata: {
+      title: base.title,
+      description: base.description,
+      isOriginal: base.uploaderIsArtist,
+      authorName: base.artist?.name ?? '',
+      authorUrl: base.artist?.url ?? '',
+      tags: base.tags.join(', '),
+      aiUse: base.aiUse,
+      license: base.license,
+    },
+  };
+}
+
+/** @param {{ edit?: import('@/lib/data/editing').EditablePack | null }} props */
+export default function UploadWizard({ edit = null }) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [wallpackType, setWallpackType] = useState(null);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [scheduleConfig, setScheduleConfig] = useState(null);
-  const [packMetadata, setPackMetadata] = useState({
-    title: '',
-    description: '',
-    isOriginal: true,
-    authorName: '',
-    authorUrl: '',
-    tags: '',
-    aiUse: null,
-    license: 'personal-use'
-  });
+  const [initial] = useState(() => initialState(edit));
+  const [currentStep, setCurrentStep] = useState(initial.step);
+  const [wallpackType, setWallpackType] = useState(initial.type);
+  const [uploadedFiles, setUploadedFiles] = useState(initial.files);
+  const [scheduleConfig, setScheduleConfig] = useState(initial.config);
+  const [packMetadata, setPackMetadata] = useState(initial.metadata);
+  const nextVersion = edit ? edit.latest.number + 1 : null;
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
@@ -78,7 +130,7 @@ export default function UploadWizard() {
     setUploadError(null);
     setUploadProgress(0);
     try {
-      const images = uploadedFiles.map((f) => ({ name: f.name, file: f.file }));
+      const images = uploadedFiles.map((f) => (f.existing ? { name: f.name, existing: f.existing } : { name: f.name, file: f.file }));
       const { slug } = await submitPack(
         {
           title: packMetadata.title,
@@ -100,6 +152,10 @@ export default function UploadWizard() {
           setUploadStatus(status);
           setUploadProgress(percent);
         },
+        edit ? {
+          slug: edit.slug,
+          previous: { coverSha256: edit.base.coverSha256, thumbSha256: edit.base.thumbSha256, previewSha256: edit.base.previewSha256 },
+        } : undefined,
       );
       router.push(`/packs/${slug}`);
     } catch (error) {
@@ -172,11 +228,30 @@ export default function UploadWizard() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-serif mb-6">Create Wallpack</h1>
+            <h1 className="text-4xl md:text-6xl font-serif mb-6">{edit ? 'Update Wallpack' : 'Create Wallpack'}</h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto">
-              Create and share your dynamic wallpaper packs with the Wallpy community.
+              {!edit
+                ? 'Create and share your dynamic wallpaper packs with the Wallpy community.'
+                : edit.isPublic
+                  ? `Changes go to review as version ${nextVersion}. Version ${edit.base.number} stays live until it's approved.`
+                  : `Make your changes, then send version ${nextVersion} back for review.`}
             </p>
           </div>
+
+          {edit && (edit.latest.notes || initial.scheduleNotice) && (
+            <div className="max-w-3xl mx-auto mb-12 flex flex-col gap-3">
+              {edit.latest.notes && (
+                <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                  <span className="font-medium">Changes requested on version {edit.latest.number}:</span> &ldquo;{edit.latest.notes}&rdquo;
+                </div>
+              )}
+              {initial.scheduleNotice && (
+                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+                  {initial.scheduleNotice}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Progress Steps */}
           <div className="mb-12">
@@ -240,7 +315,7 @@ export default function UploadWizard() {
                   disabled={!canProceedToNext() || isUploading}
                   className="px-6 py-3 bg-green-500 hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isUploading ? 'Uploading...' : 'Upload Wallpack'}
+                  {isUploading ? 'Uploading...' : edit ? `Submit version ${nextVersion}` : 'Upload Wallpack'}
                 </button>
               )}
             </div>

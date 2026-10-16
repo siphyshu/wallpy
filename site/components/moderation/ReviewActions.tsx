@@ -3,17 +3,39 @@
 import { useState, useTransition } from 'react';
 import { moderateVersion } from '@/app/moderation/actions';
 
-/** Approve, or reject with a note for the uploader. */
-export default function ReviewActions({ versionId, slug }: { versionId: string; slug: string }) {
-  const [rejecting, setRejecting] = useState(false);
+type Mode = 'reject' | 'decline';
+
+const MODES: Record<Mode, { placeholder: string; missing: string; confirm: string; busy: string; className: string }> = {
+  reject: {
+    placeholder: "What should the uploader change? They'll see this note.",
+    missing: 'Say what needs to change.',
+    confirm: 'Send back with note',
+    busy: 'Sending…',
+    className: 'bg-amber-400/10 text-amber-200 border-amber-400/30 hover:bg-amber-400/20',
+  },
+  decline: {
+    placeholder: "Why is this pack declined? The uploader will see this, and can't resubmit.",
+    missing: 'Say why the pack is declined.',
+    confirm: 'Decline pack',
+    busy: 'Declining…',
+    className: 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30',
+  },
+};
+
+/**
+ * Approve; request changes (the uploader can resubmit); or, for new packs,
+ * decline (a final no). Sending back and declining both need a note.
+ */
+export default function ReviewActions({ versionId, slug, isUpdate = false }: { versionId: string; slug: string; isUpdate?: boolean }) {
+  const [mode, setMode] = useState<Mode | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const run = (action: 'approve' | 'reject') => {
+  const run = (action: 'approve' | Mode) => {
     // Instant feedback; the server checks this too.
-    if (action === 'reject' && !notes.trim()) {
-      setError('Say what needs to change.');
+    if (action !== 'approve' && !notes.trim()) {
+      setError(MODES[action].missing);
       return;
     }
     startTransition(async () => {
@@ -23,34 +45,32 @@ export default function ReviewActions({ versionId, slug }: { versionId: string; 
     });
   };
 
+  const secondary = 'px-4 py-2 rounded-lg text-sm font-medium bg-white/10 border border-white/20 hover:bg-white/20 transition-colors disabled:opacity-50';
+
   return (
     <div className="flex flex-col gap-3">
-      {rejecting && (
+      {mode && (
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           maxLength={1000}
           autoFocus
-          placeholder="What should the uploader change? They'll see this note."
+          placeholder={MODES[mode].placeholder}
           className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 text-sm resize-none"
         />
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {rejecting ? (
+        {mode ? (
           <>
             <button
-              onClick={() => run('reject')}
+              onClick={() => run(mode)}
               disabled={pending}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${MODES[mode].className}`}
             >
-              {pending ? 'Sending…' : 'Send back with note'}
+              {pending ? MODES[mode].busy : MODES[mode].confirm}
             </button>
-            <button
-              onClick={() => { setRejecting(false); setError(null); }}
-              disabled={pending}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-white/10 border border-white/20 hover:bg-white/20 transition-colors disabled:opacity-50"
-            >
+            <button onClick={() => { setMode(null); setError(null); }} disabled={pending} className={secondary}>
               Cancel
             </button>
           </>
@@ -63,13 +83,19 @@ export default function ReviewActions({ versionId, slug }: { versionId: string; 
             >
               {pending ? 'Publishing…' : 'Approve & publish'}
             </button>
-            <button
-              onClick={() => setRejecting(true)}
-              disabled={pending}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-white/10 border border-white/20 hover:bg-white/20 transition-colors disabled:opacity-50"
-            >
+            <button onClick={() => setMode('reject')} disabled={pending} className={secondary}>
               Request changes
             </button>
+            {/* Updates to published packs can't be declined: request changes, or take the pack down. */}
+            {!isUpdate && (
+              <button
+                onClick={() => setMode('decline')}
+                disabled={pending}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-red-300/80 border border-transparent hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 sm:ml-auto"
+              >
+                Decline
+              </button>
+            )}
           </>
         )}
       </div>

@@ -37,7 +37,8 @@ export default function DownloadZipButton({ slug }: { slug: string }) {
       setState((s) => ({ ...s, total: manifest.files.length }));
 
       for (const file of manifest.files) {
-        const buffer = await (await fetch(file.url)).arrayBuffer();
+        // 'reload': the page's <img> tags may have cached a copy without CORS headers.
+        const buffer = await (await fetch(file.url, { cache: 'reload' })).arrayBuffer();
         if ((await sha256Hex(buffer)) !== file.sha256) {
           throw new Error(`${file.path} didn't match its checksum; try again`);
         }

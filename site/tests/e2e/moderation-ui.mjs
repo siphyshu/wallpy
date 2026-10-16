@@ -17,7 +17,7 @@ try {
 
   // Two packs from the uploader.
   const slugs = {};
-  for (const name of ['Reject Me', 'Approve Me']) {
+  for (const name of ['Reject Me', 'Approve Me', 'Decline Me']) {
     const day = await makeImage(`${name} day`, '230,160,70');
     const night = await makeImage(`${name} night`, '20,30,80');
     await uploadImages(uploader, [day, night]);
@@ -72,11 +72,30 @@ try {
   check('approved pack leaves the queue', true);
   await shot(mod, 'mod-2-after');
 
+  // Decline (a final no) needs a reason too.
+  const declineCard = cardFor(`Decline Me ${runId}`);
+  await declineCard.getByRole('button', { name: 'Decline', exact: true }).click();
+  await declineCard.getByRole('button', { name: 'Decline pack' }).click();
+  await declineCard.getByText('Say why the pack is declined.').waitFor({ timeout: 10_000 }).catch(() => {});
+  check('declining needs a reason', await declineCard.getByText('Say why the pack is declined.').isVisible());
+  await declineCard.getByPlaceholder(/Why is this pack declined/).fill('Not wallpapers.');
+  await declineCard.getByRole('button', { name: 'Decline pack' }).click();
+  await declineCard.waitFor({ state: 'detached', timeout: 30_000 });
+  check('declined pack leaves the queue', true);
+
   // Uploader sees the note on the rejected pack.
   const up = await as(uploader);
   await up.goto(`${BASE}/packs/${slugs['Reject Me']}`, { waitUntil: 'networkidle' });
   check('uploader sees the moderator\'s note', await up.getByText(/Please add a night image with more stars/).isVisible());
   await shot(up, 'mod-3-rejected-note');
+
+  // Declined: told why, with no way to resubmit.
+  await up.goto(`${BASE}/packs/${slugs['Decline Me']}`, { waitUntil: 'networkidle' });
+  check('uploader sees the pack was declined, and why', await up.getByText(/Declined by a moderator: "Not wallpapers\."/).isVisible());
+  check('a declined pack offers no "Make changes"', !(await up.getByRole('link', { name: 'Make changes' }).isVisible()));
+  await up.goto(`${BASE}/packs/${slugs['Decline Me']}/edit`, { waitUntil: 'networkidle' });
+  check('the edit page sends a declined pack back to its page', up.url().endsWith(`/packs/${slugs['Decline Me']}`));
+  await shot(up, 'mod-4-declined');
 
   // The approved pack is public.
   const manifest = await fetch(`${BASE}/api/packs/${slugs['Approve Me']}/manifest`);

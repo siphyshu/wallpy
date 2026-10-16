@@ -313,5 +313,49 @@ select pg_temp.expect('a shared blob can be used by everyone who uploaded it',
 select pg_temp.expect_error('users cannot claim blobs directly',
   $q$insert into public.blob_uploads (sha256, profile_id) values (repeat('b', 64), auth.uid())$q$);
 
+-- Thumbnails follow the same rule as files.
+select pg_temp.expect_error('cannot use someone else''s private blob as a thumbnail',
+  $q$select public.create_pack(pg_temp.payload('Thumb Thief', '{c.jpg}', jsonb_build_array(jsonb_build_object('path', 'c.jpg', 'sha256', repeat('c', 64))))
+     || jsonb_build_object('thumb_sha256', repeat('b', 64)))$q$,
+  '{42501}');
+
+-- New versions: one open version at a time; after a rejection, the owner resubmits.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect_error('cannot submit a new version while one is in review',
+  $q$select public.create_version('beach-2', pg_temp.payload('Beach again', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))))$q$,
+  '{23505}');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select public.moderate((select v.id from public.pack_versions v join public.packs p on p.id = v.pack_id where p.slug = 'beach-2'), 'reject', 'needs a night image');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+create temp table resubmitted as
+  select public.create_version('beach-2', pg_temp.payload('Beach at night', '{a.jpg,b.jpg}',
+    jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)),
+                      jsonb_build_object('path', 'b.jpg', 'sha256', repeat('b', 64))))
+    || jsonb_build_object('thumb_sha256', repeat('a', 64))) as r;
+select pg_temp.expect('after a rejection the owner can submit version 2',
+  (select v.number = 2 and v.status = 'pending' and v.thumb_sha256 = repeat('a', 64)
+   from resubmitted join public.pack_versions v on v.id = (r ->> 'version_id')::uuid));
+select pg_temp.expect('the rejected version stays as it was',
+  (select status = 'rejected' and title = 'Beach' from public.pack_versions v join public.packs p on p.id = v.pack_id
+   where p.slug = 'beach-2' and v.number = 1));
+
+-- Declining closes a new pack for good.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+create temp table spam as
+  select public.create_pack(pg_temp.payload('Spam', '{c.jpg}', jsonb_build_array(jsonb_build_object('path', 'c.jpg', 'sha256', repeat('c', 64))))) as r;
+select pg_temp.expect_error('uploaders cannot decline',
+  $q$select public.moderate((select (r ->> 'version_id')::uuid from spam), 'decline', 'no')$q$, '{42501}');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect_error('declining needs a reason',
+  $q$select public.moderate((select (r ->> 'version_id')::uuid from spam), 'decline', ' ')$q$, '{23514}');
+select public.moderate((select (r ->> 'version_id')::uuid from spam), 'decline', 'spam');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect('a declined pack is closed and its version rejected',
+  (select p.removed_at is not null and p.removed_reason = 'spam' and v.status = 'rejected'
+   from spam join public.pack_versions v on v.id = (r ->> 'version_id')::uuid join public.packs p on p.id = v.pack_id));
+select pg_temp.expect_error('a closed pack takes no new versions',
+  $q$select public.create_version((select r ->> 'slug' from spam), pg_temp.payload('Spam again', '{c.jpg}', jsonb_build_array(jsonb_build_object('path', 'c.jpg', 'sha256', repeat('c', 64)))))$q$,
+  '{42501}');
+
 select pg_temp.as_admin();
 rollback;

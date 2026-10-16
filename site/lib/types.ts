@@ -56,6 +56,8 @@ export type PackCard = {
   aiUse: AiUse | null;
   status: VersionStatus | null;
   isPublic: boolean;
+  /** owner's view only: the newest version is in review, sent back, or declined */
+  review?: 'pending' | 'rejected' | 'declined';
 };
 
 export type PackFile = {

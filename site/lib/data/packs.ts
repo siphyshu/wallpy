@@ -148,7 +148,11 @@ export async function listPacksByOwner(ownerId: string): Promise<PackCard[]> {
   return data.map((p) => {
     const versions = [...p.versions].sort((a, b) => b.number - a.number);
     const shown = versions.find((v) => v.id === p.current_version_id) ?? versions[0];
-    return toCard(p, shown);
+    // Only owners and moderators can see versions that aren't public.
+    const newest = versions[0]?.status;
+    const review = newest === 'rejected' && p.removed_at && !p.current_version_id ? 'declined'
+      : newest === 'pending' || newest === 'rejected' ? newest : undefined;
+    return { ...toCard(p, shown), ...(review ? { review } : {}) };
   });
 }
 

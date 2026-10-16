@@ -572,6 +572,7 @@ export type Database = {
         | "reject"
         | "takedown"
         | "restore"
+        | "decline"
       pack_kind: "timeblocks" | "days" | "album"
       pack_license:
         | "personal-use"
@@ -715,7 +716,14 @@ export const Constants = {
     Enums: {
       ai_use: ["none", "assisted", "generated"],
       download_client: ["cli", "web"],
-      moderation_action: ["submit", "approve", "reject", "takedown", "restore"],
+      moderation_action: [
+        "submit",
+        "approve",
+        "reject",
+        "takedown",
+        "restore",
+        "decline",
+      ],
       pack_kind: ["timeblocks", "days", "album"],
       pack_license: [
         "personal-use",

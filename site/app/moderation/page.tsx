@@ -81,7 +81,7 @@ export default async function ModerationPage() {
                     </div>
 
                     <div className="mt-2">
-                      <ReviewActions versionId={v.versionId} slug={v.slug} />
+                      <ReviewActions versionId={v.versionId} slug={v.slug} isUpdate={v.isUpdate} />
                     </div>
                   </div>
                 </div>

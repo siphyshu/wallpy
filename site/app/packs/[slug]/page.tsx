@@ -8,7 +8,7 @@ import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
 import AiUseLabel from '@/components/packs/AiUseLabel';
 import { getPackBySlug } from '@/lib/data/packs';
-import { latestRejectionNotes } from '@/lib/data/moderation';
+import { latestVersion } from '@/lib/data/editing';
 import { createClient } from '@/lib/supabase/server';
 import type { PackLicense, VersionStatus } from '@/lib/types';
 
@@ -23,8 +23,37 @@ const LICENSES: Record<PackLicense, string> = {
 const STATUS_NOTES: Partial<Record<VersionStatus, string>> = {
   draft: 'This is a draft. Only you can see it until you submit it for review.',
   pending: 'Waiting for review. Only you and moderators can see it for now.',
-  rejected: 'This version was rejected. Check the review notes, then submit a new version.',
+  rejected: 'This version was rejected. Submit a new version to try again.',
 };
+
+/** What the owner is told about their pack, and what they can do next. */
+function ownerNotice(
+  pack: { isPublic: boolean; removedAt: string | null; removedReason: string | null; version: { id: string; number: number; status: VersionStatus } },
+  latest: { id: string; number: number; status: VersionStatus; notes: string | null } | null,
+): { text: string; action?: 'edit' } | null {
+  if (pack.removedAt) {
+    // Closed before it was ever published: declined in review.
+    return pack.version.status === 'rejected'
+      ? { text: `Declined by a moderator: "${pack.removedReason || 'no reason given'}" This pack can't be resubmitted.` }
+      : { text: `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.` };
+  }
+  if (!latest) return null;
+  const isUpdate = latest.id !== pack.version.id;
+  if (latest.status === 'rejected') {
+    const why = latest.notes ? ` "${latest.notes}"` : '';
+    return {
+      text: isUpdate
+        ? `Changes requested on version ${latest.number}:${why} Version ${pack.version.number} is still live.`
+        : `Changes requested:${why}`,
+      action: 'edit',
+    };
+  }
+  if (latest.status === 'pending' && isUpdate) {
+    return { text: `Version ${latest.number} is waiting for review. Version ${pack.version.number} stays live until it's approved.` };
+  }
+  if (!pack.isPublic) return STATUS_NOTES[latest.status] ? { text: STATUS_NOTES[latest.status]! } : null;
+  return null;
+}
 
 export async function generateMetadata({ params }: PageProps<'/packs/[slug]'>) {
   const pack = await getPackBySlug((await params).slug);
@@ -49,21 +78,30 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
   }
 
   const { version, credit } = pack;
-  const rejectionNotes = version.status === 'rejected' && user?.id === pack.ownerId
-    ? await latestRejectionNotes(version.id)
-    : null;
-  const statusNote = !pack.isPublic && (pack.removedAt
-    ? `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.`
-    : rejectionNotes
-      ? `Changes requested: "${rejectionNotes}" Upload a new version to try again.`
-      : STATUS_NOTES[version.status]);
+  const isOwner = user?.id === pack.ownerId;
+  const latest = isOwner ? await latestVersion(pack.id) : null;
+  const notice = isOwner
+    ? ownerNotice(pack, latest)
+    : !pack.isPublic && pack.removedAt
+      ? { text: `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.` }
+      : !pack.isPublic ? { text: STATUS_NOTES[version.status] ?? '' } : null;
+  // Owners can send a new version unless one is already in review.
+  const canUpdate = isOwner && !pack.removedAt && latest?.status === 'approved';
 
   return (
     <div className="min-h-screen bg-background/80 text-white mt-20">
       <div className="max-w-7xl mx-auto px-6 py-24">
-        {statusNote && (
-          <div className="mb-6 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-            {statusNote}
+        {notice?.text && (
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+            <p className="flex-1">{notice.text}</p>
+            {notice.action === 'edit' && (
+              <Link
+                href={`/packs/${pack.slug}/edit`}
+                className="shrink-0 self-start sm:self-auto px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors"
+              >
+                Make changes
+              </Link>
+            )}
           </div>
         )}
         <div className="flex flex-col md:flex-row gap-8">
@@ -139,6 +177,20 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
                 <Link href="/#install" className="text-xs text-white/50 hover:text-white mt-1">
                   Don&apos;t have Wallpy yet? Install it first.
                 </Link>
+              </div>
+            )}
+
+            {canUpdate && (
+              <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-2">
+                <Link
+                  href={`/packs/${pack.slug}/edit`}
+                  className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center"
+                >
+                  Upload a new version
+                </Link>
+                <p className="text-xs text-white/50">
+                  Change images, the schedule or details. Version {version.number} stays live until the new one is approved.
+                </p>
               </div>
             )}
           </div>

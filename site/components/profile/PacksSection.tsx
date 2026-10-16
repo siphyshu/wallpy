@@ -7,8 +7,24 @@ const STATUS: Record<string, { label: string; className: string }> = {
   approved: { label: 'Published', className: 'bg-green-500/20 text-green-300 border-green-500/30' },
   pending: { label: 'In review', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
   draft: { label: 'Draft', className: 'bg-white/10 text-white/70 border-white/20' },
-  rejected: { label: 'Changes requested', className: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  rejected: { label: 'Changes requested', className: 'bg-amber-400/10 text-amber-200 border-amber-400/30' },
+  declined: { label: 'Declined', className: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  removed: { label: 'Taken down', className: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  updatePending: { label: 'Update in review', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
+  updateRejected: { label: 'Update sent back', className: 'bg-amber-400/10 text-amber-200 border-amber-400/30' },
 };
+
+/** The badge on an uploaded pack: its state, and any newer version's (owners only see those). */
+function statusOf(pack: PackCard) {
+  if (pack.review === 'declined') return STATUS.declined;
+  if (pack.isPublic) {
+    if (pack.review === 'pending') return STATUS.updatePending;
+    if (pack.review === 'rejected') return STATUS.updateRejected;
+    return STATUS.public;
+  }
+  if (pack.status === 'approved') return STATUS.removed; // published, then taken down or unlisted
+  return STATUS[pack.review ?? pack.status ?? 'draft'] ?? STATUS.draft;
+}
 
 export default function PacksSection({ type, packs = [] }: { type: 'uploaded' | 'favourited'; packs: PackCard[] }) {
   const title = type === 'uploaded' ? 'Uploaded Packs' : 'Favourited Packs';
@@ -42,7 +58,7 @@ export default function PacksSection({ type, packs = [] }: { type: 'uploaded' | 
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {packs.map(pack => {
-            const status = STATUS[pack.isPublic ? 'public' : (pack.status ?? 'draft')] ?? STATUS.draft;
+            const status = statusOf(pack);
             return (
               <Link
                 key={pack.id}

@@ -86,29 +86,25 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
         return {
           title: 'Upload Images for Daypack',
           description: 'Upload images that will be used throughout the day. You can organize them into time blocks later.',
-          accept: 'image/jpeg,image/png,image/webp',
-          maxFiles: 20
+          accept: 'image/jpeg,image/png,image/webp'
         };
       case 'weekpack':
         return {
           title: 'Upload Images for Weekpack',
           description: 'Upload images for different days of the week. You can assign them to specific days later.',
-          accept: 'image/jpeg,image/png,image/webp',
-          maxFiles: 35
+          accept: 'image/jpeg,image/png,image/webp'
         };
       case 'album':
         return {
           title: 'Upload Images for Album',
           description: 'Upload a collection of images that will rotate or shuffle.',
-          accept: 'image/jpeg,image/png,image/webp',
-          maxFiles: 50
+          accept: 'image/jpeg,image/png,image/webp'
         };
       default:
         return {
           title: 'Upload Images',
           description: 'Upload your wallpaper images.',
-          accept: 'image/jpeg,image/png,image/webp',
-          maxFiles: 20
+          accept: 'image/jpeg,image/png,image/webp'
         };
     }
   };
@@ -121,9 +117,9 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
         <h2 className="text-3xl font-serif font-bold mb-4">{instructions.title}</h2>
         <p className="text-white/80 text-lg mb-4">{instructions.description}</p>
         <div className="flex items-center justify-center space-x-6 text-sm text-white/60">
-          <span>• Max file size: 100MB</span>
-          <span>• Supported: JPG, PNG, ZIP</span>
-          <span>• Max files: {instructions.maxFiles}</span>
+          <span>• Max file size: 30 MB</span>
+          <span>• Supported: JPG, PNG, WebP</span>
+          <span>• Max files: {PACK_LIMITS.maxFiles}</span>
         </div>
       </div>
 
@@ -220,7 +216,7 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
                   {/* File Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-white/60">{formatFileSize(file.size)}</p>
+                    <p className="text-xs text-white/60">{file.existing ? 'Already in the pack · ' : ''}{formatFileSize(file.size)}</p>
                   </div>
                   
                   {/* Remove Button */}
@@ -249,9 +245,9 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
             <li>• Use descriptive filenames for better organization</li>
           </ul>
           <ul className="space-y-2">
-            <li>• Maximum file size: 100MB per file</li>
-            <li>• Supported formats: JPG, PNG, ZIP</li>
-            <li>• Images will be automatically optimized</li>
+            <li>• Maximum file size: 30 MB per file</li>
+            <li>• Supported formats: JPG, PNG, WebP</li>
+            <li>• Originals are kept as uploaded; previews are made for the site</li>
           </ul>
         </div>
       </div>
