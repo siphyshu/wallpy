@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -51,12 +52,15 @@ func use(ctx context.Context, version, ref string) error {
 	p := printerAt(now, st.Location())
 	p.Blank()
 
+	// An installed pack's name wins over a folder of the same name here;
+	// "./name" always means the folder.
 	var pack *library.Pack
-	if info, err := os.Stat(ref); err == nil && info.IsDir() {
+	installed, installedErr := lib.Get(ref)
+	if info, err := os.Stat(ref); err == nil && info.IsDir() && (installedErr != nil || strings.ContainsAny(ref, `/\`)) {
 		if pack, err = lib.Import(ref); err != nil {
 			return &problem{msg: sentence(err.Error()), err: err}
 		}
-	} else if installed, err := lib.Get(ref); err == nil {
+	} else if installedErr == nil {
 		pack = installed
 	} else {
 		c := remote.New(version)

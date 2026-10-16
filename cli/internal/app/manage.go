@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/siphyshu/wallpy/cli/internal/spec"
 	"github.com/siphyshu/wallpy/cli/internal/state"
 	"github.com/siphyshu/wallpy/cli/internal/ui"
+	"github.com/siphyshu/wallpy/cli/internal/wallpaper"
 )
 
 func newList() *cobra.Command {
@@ -265,6 +268,9 @@ func newRemove() *cobra.Command {
 				}
 			}
 			title := pack.Title()
+			if st.Active == pack.Slug {
+				keepWallpaper(st)
+			}
 			if err := lib.Remove(pack.Slug); err != nil {
 				return err
 			}
@@ -321,5 +327,26 @@ func newCheck() *cobra.Command {
 			p.Blank()
 			return errQuiet
 		},
+	}
+}
+
+// keepWallpaper copies the image on screen out of a pack that's about to be
+// deleted and points the desktop at the copy, so the wallpaper survives a
+// restart instead of falling back to the system default.
+func keepWallpaper(st *state.State) {
+	if st.LastSet == "" {
+		return
+	}
+	data, err := os.ReadFile(st.LastSet)
+	if err != nil {
+		return
+	}
+	home, err := library.Home()
+	if err != nil {
+		return
+	}
+	keep := filepath.Join(home, "last-wallpaper"+filepath.Ext(st.LastSet))
+	if os.WriteFile(keep, data, 0o644) == nil {
+		wallpaper.Set(keep)
 	}
 }
