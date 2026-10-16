@@ -9,7 +9,7 @@ import type { User as AuthUser } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
 import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR } from '@/lib/data/profile-shape';
 import { Button } from '@/components/ui/button';
-import { User, Upload, LogOut } from 'lucide-react';
+import { User, Upload, LogOut, ShieldCheck } from 'lucide-react';
 
 const testing = Alegreya({
     subsets: ['latin'],
@@ -257,6 +257,16 @@ const NavBar = () => {
                             <Upload size={18} />
                             Upload
                         </Link>
+                        {(profile?.role === 'moderator' || profile?.role === 'admin') && (
+                            <Link
+                                href="/moderation"
+                                className={`${isMobile ? 'px-4 py-3' : 'px-6 py-2'} hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3`}
+                                onClick={() => isMobile && setDropdownOpen(false)}
+                            >
+                                <ShieldCheck size={18} />
+                                Review queue
+                            </Link>
+                        )}
                         <button
                             onClick={() => {
                                 handleSignOut();

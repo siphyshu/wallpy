@@ -8,6 +8,7 @@ import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
 import AiUseLabel from '@/components/packs/AiUseLabel';
 import { getPackBySlug } from '@/lib/data/packs';
+import { latestRejectionNotes } from '@/lib/data/moderation';
 import { createClient } from '@/lib/supabase/server';
 import type { PackLicense, VersionStatus } from '@/lib/types';
 
@@ -48,9 +49,14 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
   }
 
   const { version, credit } = pack;
+  const rejectionNotes = version.status === 'rejected' && user?.id === pack.ownerId
+    ? await latestRejectionNotes(version.id)
+    : null;
   const statusNote = !pack.isPublic && (pack.removedAt
     ? `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.`
-    : STATUS_NOTES[version.status]);
+    : rejectionNotes
+      ? `Changes requested: "${rejectionNotes}" Upload a new version to try again.`
+      : STATUS_NOTES[version.status]);
 
   return (
     <div className="min-h-screen bg-background/80 text-white mt-20">

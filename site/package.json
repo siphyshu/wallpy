@@ -11,7 +11,9 @@
     "db:types": "supabase gen types typescript --project-id tblvogsucpzuqbhcvwba --schema public > lib/database.types.ts",
     "test": "vitest run",
     "test:e2e:api": "node --env-file=.env.local tests/e2e/upload-api.mjs",
-    "test:e2e:ui": "node --env-file=.env.local tests/e2e/upload-ui.mjs"
+    "test:e2e:ui": "node --env-file=.env.local tests/e2e/upload-ui.mjs",
+    "test:e2e:moderation": "node --env-file=.env.local tests/e2e/moderation-ui.mjs",
+    "test:e2e": "npm run test:e2e:api && npm run test:e2e:ui && npm run test:e2e:moderation"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
