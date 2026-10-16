@@ -28,6 +28,12 @@ func newRun() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			hideConsole()
 			lock, err := service.TryLock()
+			// An agent that's being replaced (wallpy stop then resume, or an
+			// upgrade on Windows) may still be letting go: wait a little.
+			for i := 0; errors.Is(err, service.ErrRunning) && i < 10; i++ {
+				time.Sleep(time.Second)
+				lock, err = service.TryLock()
+			}
 			if errors.Is(err, service.ErrRunning) {
 				return nil // one agent is enough; exiting cleanly stops launchd restarting us
 			}
@@ -50,8 +56,14 @@ func agent(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+	exe, _ := os.Executable()
+	built := fileStamp(exe)
 	lastErr := ""
 	for {
+		if stamp := fileStamp(exe); built != "" && stamp != "" && stamp != built {
+			logger.Printf("wallpy was updated; restarting into the new version")
+			return restartSelf(exe)
+		}
 		now := time.Now()
 		wait := time.Minute
 		cur, changed, err := engine.Apply(lib, now, false)
@@ -179,4 +191,14 @@ func newStop() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// fileStamp identifies a version of a file by its size and modification
+// time ("" if it can't be read).
+func fileStamp(path string) string {
+	info, err := os.Stat(path)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%d-%d", info.Size(), info.ModTime().UnixNano())
 }

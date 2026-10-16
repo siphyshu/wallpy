@@ -262,11 +262,12 @@ func newRemove() *cobra.Command {
 					return nil
 				}
 			}
+			title := pack.Title()
 			if err := lib.Remove(pack.Slug); err != nil {
 				return err
 			}
 			p.Blank()
-			p.Success(p.Muted("Removed ") + p.Plain(pack.Title()))
+			p.Success(p.Muted("Removed ") + p.Plain(title))
 			if st.Active == pack.Slug {
 				state.Update(func(s *state.State) { s.Active, s.LastSet = "", "" })
 				p.Raw("  " + p.Muted("It was in use, so your wallpaper stays as it is until you pick another."))

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/siphyshu/wallpy/cli/internal/library"
 )
@@ -75,7 +76,15 @@ func Uninstall() error {
 			p.Kill()
 		}
 	}
-	return nil
+	// Return once the agent has really gone, so a following start isn't
+	// turned away by the old agent's lock.
+	for i := 0; i < 50; i++ {
+		if _, running := holder(); !running {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return errors.New("the agent didn't stop within 5 seconds")
 }
 
 // Executable is the path the agent should run: the command on PATH when
