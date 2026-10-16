@@ -44,7 +44,7 @@ hidden `run` for the service.
 
 - [x] `wallpy get <slug|url>` (2026-10-17): manifest → parallel downloads streamed through SHA-256 + size checks → schedule validated against the files → atomic swap; reinstall reuses verified local files (`--force` repairs); Ctrl-C leaves nothing; downloads counted (`?download=cli`) only after a successful install on the real site. Packs live in `library.Home()` (per-OS data dir, `WALLPY_HOME` overrides)
 - [ ] `wallpy` home screen: active pack, today's slots as a coloured timeline, what's showing now and when it changes next
-- [ ] Set wallpaper: macOS, Windows, Linux (GNOME/KDE/sway…)
+- [x] Set wallpaper (2026-10-17): `internal/wallpaper`. macOS via AppKit through purego (no cgo, no AppleScript prompt; main thread only, waits until macOS applies it; checked live with `WALLPY_TEST_DESKTOP=1`). Windows via SystemParametersInfo (compile-checked). Linux/BSD: GNOME, Cinnamon, MATE, KDE, Xfce, LXQt, sway, Hyprland (swww/hyprpaper), feh (selection unit-tested; not yet run on a Linux desktop)
 - [ ] Background service: launchd, systemd user unit, Task Scheduler
 - [ ] `wallpy browse` with image previews (Kitty/iTerm2 graphics, half-block fallback) and a guided first run (Huh: location, pick a pack, install the service)
 - [ ] GoReleaser: Homebrew tap, winget, Scoop, deb/rpm, AUR

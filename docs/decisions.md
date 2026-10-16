@@ -5,6 +5,7 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | macOS wallpaper via AppKit (`NSWorkspace.setDesktopImageURL`) through purego, on the main thread, waiting until applied | AppleScript needs an Automation permission prompt; cgo complicates cross-compiled releases; AppKit crashes off the main thread and applies changes asynchronously |
 | 2026-10-17 | The CLI counts a download only after a successful install, and only against the real site (never with `WALLPY_SITE`) | Accurate numbers; local dev shares the production DB |
 | 2026-10-17 | CLI commands designed around tasks, not the Python CLI: `use` installs + switches + sets + starts the service; `show` absorbs info/preview; no `config`/`service` groups (`pause`/`resume`/`doctor` instead) | Fewer verbs; the common path is one command |
 | 2026-10-17 | CLI stack: Cobra + Fang for commands, Charm (Lip Gloss, Huh, Bubble Tea) for everything shown; one `internal/ui` design system | The CLI should feel crafted at every touchpoint; Cobra gives structure and completion, Charm gives the look. Interactive screens only on a TTY |

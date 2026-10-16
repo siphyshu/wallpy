@@ -18,6 +18,9 @@ type Active struct {
 	ImageIndex int // position of Image in the slot's images
 	// Wall times (see package doc); Instant converts them to real times.
 	SlotStart, SlotEnd time.Time
+	// Until is when the image next changes (wall): the next part of a
+	// spread, the next rotation, or the slot's end, whichever is first.
+	Until time.Time
 }
 
 type start struct {
@@ -102,15 +105,22 @@ func (s *Schedule) Active(now time.Time, loc *Location) (Active, error) {
 	n := len(slot.Images)
 	var k int
 	var order []int
+	until := end
 	if every := Every(slot.rotate()); every == 0 { // spread
 		part := end.Sub(current.at).Seconds() / float64(n)
 		k = min(int(wall.Sub(current.at).Seconds()/part), n-1)
+		if k < n-1 {
+			until = current.at.Add(time.Duration(part * float64(k+1) * float64(time.Second))).Truncate(time.Second)
+		}
 		if slot.Shuffle {
 			order = shuffled(n, fmt.Sprintf("%d/%s", current.slot, current.at.Format(time.DateOnly)))
 		}
 	} else {
 		cycle := floorDiv(int64(wall.Sub(anchor)), int64(every))
 		k = int(cycle - floorDiv(cycle, int64(n))*int64(n))
+		if next := anchor.Add(time.Duration(cycle+1) * every); next.Before(until) {
+			until = next
+		}
 		if slot.Shuffle {
 			order = shuffled(n, fmt.Sprintf("%d/%d", current.slot, floorDiv(cycle, int64(n))))
 		}
@@ -119,7 +129,50 @@ func (s *Schedule) Active(now time.Time, loc *Location) (Active, error) {
 	if order != nil {
 		index = order[k]
 	}
-	return Active{current.slot, slot.Images[index], index, current.at, end}, nil
+	return Active{current.slot, slot.Images[index], index, current.at, end, until}, nil
+}
+
+// Span is one slot's stretch of a day (wall times).
+type Span struct {
+	Slot       int
+	Start, End time.Time
+}
+
+// Day is the slots that show on the wall day containing `date`, from 00:00
+// to 24:00: the previous night's slot until the first start, then each
+// slot until the next. Slots clamped to zero length are left out.
+func (s *Schedule) Day(date time.Time, loc *Location) ([]Span, error) {
+	day := wallDay(Wall(date))
+	first, err := s.Active(Instant(day, time.UTC), loc)
+	if err != nil {
+		return nil, err
+	}
+	midnight := day.AddDate(0, 0, 1)
+	spans := []Span{{Slot: first.Slot, Start: day}}
+	for _, st := range starts(s, day, loc) {
+		if !st.at.After(day) {
+			spans[0].Slot = st.slot // starts at 00:00 exactly
+			continue
+		}
+		spans[len(spans)-1].End = st.at
+		spans = append(spans, Span{Slot: st.slot, Start: st.at})
+	}
+	spans[len(spans)-1].End = midnight
+	out := spans[:0]
+	for _, sp := range spans {
+		if sp.End.After(sp.Start) {
+			out = append(out, sp)
+		}
+	}
+	return out, nil
+}
+
+// SunTimes is when dawn, sunrise, sunset and dusk happen on the wall day
+// containing `date` (fallback times without a location or in polar day/night).
+func SunTimes(date time.Time, loc *Location) (dawn, sunrise, sunset, dusk time.Time) {
+	day := wallDay(Wall(date))
+	return solarWall("dawn", day, loc), solarWall("sunrise", day, loc),
+		solarWall("sunset", day, loc), solarWall("dusk", day, loc)
 }
 
 // floorDiv rounds towards negative infinity, like Python's //.

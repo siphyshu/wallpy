@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/siphyshu/wallpy/cli/internal/remote"
+	"github.com/siphyshu/wallpy/cli/internal/spec"
 )
 
 // Home is where Wallpy keeps its data: WALLPY_HOME if set, else the
@@ -112,4 +113,42 @@ func (l *Library) List() ([]*Pack, error) {
 	}
 	sort.Slice(packs, func(i, j int) bool { return packs[i].Slug < packs[j].Slug })
 	return packs, nil
+}
+
+// Schedule reads and validates the pack's schedule.toml against its images.
+func (p *Pack) Schedule() (*spec.Schedule, error) {
+	data, err := os.ReadFile(filepath.Join(p.Dir, "schedule.toml"))
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	if entries, err := os.ReadDir(filepath.Join(p.Dir, "images")); err == nil {
+		for _, e := range entries {
+			if !e.IsDir() && e.Name()[0] != '.' {
+				files = append(files, e.Name())
+			}
+		}
+	}
+	s, problems, err := spec.ParseTOML(data, files)
+	if err != nil {
+		return nil, fmt.Errorf("%s/schedule.toml: %w", p.Slug, err)
+	}
+	if len(problems) > 0 {
+		return nil, fmt.Errorf("%s doesn't follow the pack spec: %s", p.Slug, problems[0])
+	}
+	return s, nil
+}
+
+// Image is the path of one of the pack's images.
+func (p *Pack) Image(name string) string { return filepath.Join(p.Dir, "images", name) }
+
+// Title is the pack's display name.
+func (p *Pack) Title() string {
+	if p.Info != nil && p.Info.Manifest.Title != "" {
+		return p.Info.Manifest.Title
+	}
+	if s, err := p.Schedule(); err == nil {
+		return s.Name
+	}
+	return p.Slug
 }

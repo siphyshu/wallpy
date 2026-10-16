@@ -2,6 +2,7 @@ package spec
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -214,5 +215,65 @@ shuffle = true
 	}
 	if _, _, err := ParseTOML([]byte("spec = "), nil); err == nil {
 		t.Error("broken TOML parsed")
+	}
+}
+
+func mustParse(t *testing.T, s string) *Schedule {
+	t.Helper()
+	sched, p, err := ParseJSON([]byte(s), nil)
+	if err != nil || len(p) > 0 {
+		t.Fatal(err, p)
+	}
+	return sched
+}
+
+func TestUntil(t *testing.T) {
+	at := func(h, m int) time.Time { return time.Date(2026, 6, 21, h, m, 0, 0, time.UTC) }
+	for _, c := range []struct {
+		schedule string
+		now      time.Time
+		want     string
+	}{
+		{daypack, at(12, 30), "13:00"}, // spread: day1 until the halfway split
+		{daypack, at(13, 30), "18:00"}, // last part: until the slot ends
+		{daypack, at(21, 5), "21:20"},  // every 20m, counted from the anchor
+		{daypack, at(4, 50), "05:00"},  // every 20m, but the slot ends first
+		{album, at(9, 0), "00:00"},     // every 1d: next midnight
+	} {
+		a, err := mustParse(t, c.schedule).Active(c.now, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := a.Until.Format("15:04"); got != c.want {
+			t.Errorf("%s: until %s, want %s", c.now.Format("15:04"), got, c.want)
+		}
+	}
+}
+
+func TestDay(t *testing.T) {
+	format := func(spans []Span) string {
+		var parts []string
+		for _, sp := range spans {
+			parts = append(parts, fmt.Sprintf("%d %s-%s", sp.Slot, sp.Start.Format("15:04"), sp.End.Format("15:04")))
+		}
+		return strings.Join(parts, ", ")
+	}
+	for _, c := range []struct {
+		schedule string
+		date     time.Time
+		want     string
+	}{
+		{daypack, time.Date(2026, 6, 21, 15, 0, 0, 0, time.UTC),
+			"3 00:00-05:00, 0 05:00-08:00, 1 08:00-18:00, 2 18:00-20:30, 3 20:30-00:00"},
+		{weekpack, time.Date(2026, 10, 17, 9, 0, 0, 0, time.UTC), "1 00:00-12:00, 2 12:00-00:00"}, // Saturday
+		{weekpack, time.Date(2026, 10, 14, 9, 0, 0, 0, time.UTC), "0 00:00-00:00"},                // Wednesday
+	} {
+		spans, err := mustParse(t, c.schedule).Day(c.date, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := format(spans); got != c.want {
+			t.Errorf("%s: %s, want %s", c.date.Format("Mon"), got, c.want)
+		}
 	}
 }
