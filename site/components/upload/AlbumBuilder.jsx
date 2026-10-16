@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { ArrowsUpDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Shuffle } from 'lucide-react';
+import IntervalPicker from './builder/IntervalPicker';
 
-const INTERVALS = [
-  { value: '15m', label: '15 min' },
-  { value: '30m', label: '30 min' },
-  { value: '1h', label: '1 hour' },
-  { value: '6h', label: '6 hours' },
-  { value: '1d', label: '1 day' },
-];
-
+/** Album: one slot whose images change on a fixed interval. */
 export default function AlbumBuilder({ 
   scheduleConfig, 
   imageFiles, 
@@ -19,53 +13,17 @@ export default function AlbumBuilder({
   const [draggedImage, setDraggedImage] = useState(null);
   const [draggedOverIndex, setDraggedOverIndex] = useState(null);
 
-  const albumImages = scheduleConfig?.album?.images || [];
+  const album = scheduleConfig.slots[0];
+  const albumImages = album.images;
+  const setAlbum = (patch) => onConfigChange({ mode: 'builder', slots: [{ ...album, ...patch }] });
 
-  const updateConfig = (newConfig) => {
-    onConfigChange(newConfig);
-  };
-
-  // How long each image stays up (spec: 5 minutes to 7 days).
-  const setRotationInterval = (interval) => {
-    const newConfig = { ...scheduleConfig, album: { ...scheduleConfig.album, interval } };
-    onConfigChange(newConfig);
-  };
-
-  const toggleShuffle = () => {
-    const newConfig = { ...scheduleConfig };
-    newConfig.album.shuffle = !newConfig.album.shuffle;
-    updateConfig(newConfig);
-  };
-
-  // Add image to album
+  const toggleShuffle = () => setAlbum({ shuffle: !album.shuffle });
   const addImageToAlbum = (imageName) => {
-    const newConfig = { ...scheduleConfig };
-    if (!newConfig.album.images.includes(imageName)) {
-      newConfig.album.images.push(imageName);
-      updateConfig(newConfig);
-    }
+    if (!albumImages.includes(imageName)) setAlbum({ images: [...albumImages, imageName] });
   };
-
-  // Remove image from album
-  const removeImageFromAlbum = (imageName) => {
-    const newConfig = { ...scheduleConfig };
-    newConfig.album.images = newConfig.album.images.filter(img => img !== imageName);
-    updateConfig(newConfig);
-  };
-
-  // Add all images
-  const addAllImages = () => {
-    const newConfig = { ...scheduleConfig };
-    newConfig.album.images = imageFiles.map(f => f.name);
-    updateConfig(newConfig);
-  };
-
-  // Clear all images
-  const clearAllImages = () => {
-    const newConfig = { ...scheduleConfig };
-    newConfig.album.images = [];
-    updateConfig(newConfig);
-  };
+  const removeImageFromAlbum = (imageName) => setAlbum({ images: albumImages.filter((img) => img !== imageName) });
+  const addAllImages = () => setAlbum({ images: imageFiles.map((f) => f.name) });
+  const clearAllImages = () => setAlbum({ images: [] });
 
   // Drag and drop for reordering
   const handleDragStart = (e, imageName) => {
@@ -81,15 +39,12 @@ export default function AlbumBuilder({
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
     if (draggedImage) {
-      const newConfig = { ...scheduleConfig };
-      const images = [...newConfig.album.images];
+      const images = [...albumImages];
       const draggedIndex = images.indexOf(draggedImage);
-      
       if (draggedIndex !== -1 && draggedIndex !== dropIndex) {
         images.splice(draggedIndex, 1);
         images.splice(dropIndex, 0, draggedImage);
-        newConfig.album.images = images;
-        updateConfig(newConfig);
+        setAlbum({ images });
       }
     }
     setDraggedImage(null);
@@ -106,27 +61,12 @@ export default function AlbumBuilder({
   };
 
   const addSelectedImages = () => {
-    const newConfig = { ...scheduleConfig };
-    selectedImages.forEach(name => {
-      if (!newConfig.album.images.includes(name)) {
-        newConfig.album.images.push(name);
-      }
-    });
-    updateConfig(newConfig);
+    setAlbum({ images: [...albumImages, ...selectedImages.filter((n) => !albumImages.includes(n))] });
     setSelectedImages([]);
   };
 
   // Get unassigned images
   const unassignedImages = imageFiles.filter(f => !albumImages.includes(f.name));
-
-  if (!scheduleConfig?.album) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-        <p className="mt-4 text-white/60">Loading album configuration...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-10">
@@ -229,11 +169,11 @@ export default function AlbumBuilder({
               <button
                 onClick={toggleShuffle}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm font-medium ${
-                  scheduleConfig.album.shuffle 
+                  album.shuffle 
                     ? 'bg-white text-black border-white' 
                     : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
                 }`}
-                title={scheduleConfig.album.shuffle ? 'Shuffle enabled' : 'Shuffle disabled'}
+                title={album.shuffle ? 'Shuffle enabled' : 'Shuffle disabled'}
               >
                 <Shuffle className="w-4 h-4" />
                 Shuffle
@@ -250,22 +190,9 @@ export default function AlbumBuilder({
                 <span>Drag to reorder</span>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="text-sm text-white/60 mr-1">Change image every</span>
-              {INTERVALS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setRotationInterval(option.value)}
-                  aria-pressed={(scheduleConfig.album.interval ?? '1h') === option.value}
-                  className={`px-3 py-1.5 rounded-lg border transition-colors text-sm font-medium ${
-                    (scheduleConfig.album.interval ?? '1h') === option.value
-                      ? 'bg-white text-black border-white'
-                      : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <span className="text-sm text-white/60">Change image every</span>
+              <IntervalPicker value={album.rotate} onChange={(rotate) => setAlbum({ rotate })} />
             </div>
             <hr className="my-4 border-white/10" />
             <div className="flex-1 overflow-y-auto scrollbar pr-2">

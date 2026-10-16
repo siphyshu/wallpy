@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-18
+Last updated: 2026-10-18 (builders done)
 
 ## Goal
 
@@ -24,22 +24,9 @@ Ship the site (wallpy.siphyshu.me), tested end to end, and a Go CLI
 - [x] New versions: `/packs/<slug>/edit` for changes after review and for updates; existing images reused
 - [x] Owners can delete declined packs from their profile
 - [x] Production cleaned of test data (2026-10-18); sample packs in [../samples](../samples)
+- [x] Builders on the v2 slot model (2026-10-18): state is spec 2 slots; v1 removed from the site; Daypack start-time picker + per-block "change images"; Weekpack day groups with presets; Album custom interval; "Edit as text" for anything the builders can't show; e2e for Daypack + Weekpack (`test:e2e:builders`)
 
-## Now: builders on the v2 slot model
-
-Proposal sent 2026-10-18, **waiting for sign-off** (design matters: reuse existing
-components and classes, check screenshots).
-
-- [ ] Builder state is the v2 slot list (no v1-shaped `timeblocks/days/album` state)
-- [ ] Remove v1 from the site entirely (v1 import in ScheduleUploader, `scheduleToBuilder` v1 branch)
-- [ ] Daypack: start-time picker (event + offset, or clock time); blocks shown in time order; per-block "Change images: across the block / every …"
-- [ ] Weekpack: day groups with weekday pills; presets (one per day, weekdays/weekend, every day); uncovered-day warning
-- [ ] Album: custom interval (5m–7d) after the presets
-- [ ] Schedules the builder can't show: show as text with a note, never reshape silently
-- [ ] Open question: weekday pills on Daypack blocks? (recommended: not now)
-- [ ] E2E for Daypack + Weekpack wizards (Album is covered)
-
-## Next: Go CLI
+## Now: Go CLI
 
 - [ ] Scheduler + validator passing `spec/vectors/vectors.json`
 - [ ] `wallpy download <slug>` via `/api/packs/<slug>/manifest?download=cli`, verifying SHA-256
@@ -61,6 +48,7 @@ components and classes, check screenshots).
 
 ## Later / ideas
 
+- Weekday pills on Daypack blocks (weekend variants of a time block); the format allows it, the builder doesn't (use Edit as text)
 - Withdraw a version that's in review
 - Garbage-collect R2 blobs no version uses (deleting a pack keeps its images)
 - Keep moderation history when an owner deletes a declined pack (deleting cascades it today)

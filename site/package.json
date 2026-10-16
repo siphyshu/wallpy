@@ -14,7 +14,8 @@
     "test:e2e:ui": "node --env-file=.env.local tests/e2e/upload-ui.mjs",
     "test:e2e:moderation": "node --env-file=.env.local tests/e2e/moderation-ui.mjs",
     "test:e2e:versions": "node --env-file=.env.local tests/e2e/versions-ui.mjs",
-    "test:e2e": "npm run test:e2e:api && npm run test:e2e:ui && npm run test:e2e:moderation && npm run test:e2e:versions"
+    "test:e2e:builders": "node --env-file=.env.local tests/e2e/builders-ui.mjs",
+    "test:e2e": "npm run test:e2e:api && npm run test:e2e:ui && npm run test:e2e:moderation && npm run test:e2e:versions && npm run test:e2e:builders"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",

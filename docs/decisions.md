@@ -5,6 +5,10 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-18 | Builders hold spec 2 slots directly; anything a builder can't show exactly opens as text ("Edit as text"), never reshaped | What you see is what's submitted |
+| 2026-10-18 | Daypack blocks are always listed and written in start order; picking a new solar event clears the offset | Order rule can't fail; offsets usually belong to their event |
+| 2026-10-18 | Builders write a label on every slot (the block or group name) | Names show in previews and the CLI; harmless if unused |
+| 2026-10-18 | No weekday pills on Daypack blocks for now | Keeps Daypack and Weekpack distinct; text mode covers mixed schedules |
 | 2026-10-18 | Spec 1 is retired everywhere: the site accepts and shows only spec 2; the Go CLI reads spec 2 only | All production packs are already spec 2; one format to maintain |
 | 2026-10-18 | **Decline** = final no for *new* packs (closes the pack). Updates to published packs get *request changes* or a takedown | A decline on an update would strand the live pack |
 | 2026-10-18 | Owners may delete declined packs; images stay in R2 (shared by hash) | Lets people clear dead packs without risking images other packs use |

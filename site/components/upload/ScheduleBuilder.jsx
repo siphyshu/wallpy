@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon, CalendarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useState, useMemo } from 'react';
+import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon, CalendarIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import DaypackBuilder from './DaypackBuilder';
 import WeekpackBuilder from './WeekpackBuilder';
 import AlbumBuilder from './AlbumBuilder';
@@ -7,130 +7,41 @@ import ScheduleUploader from './ScheduleUploader';
 import DayPreview from './DayPreview';
 import WeekPreview from './WeekPreview';
 import AlbumPreview from './AlbumPreview';
-import toml from '@iarna/toml';
-import { builderToSchedule, scheduleToBuilder } from '@/lib/spec/builder';
+import { configToSchedule, fitsBuilder, scheduleToConfig, scheduleToToml } from '@/lib/spec/builder';
 import { validateSchedule } from '@/lib/spec/validate';
 
-const daysOfWeek = [
-  { id: 'monday', name: 'Monday', icon: '📅' },
-  { id: 'tuesday', name: 'Tuesday', icon: '📅' },
-  { id: 'wednesday', name: 'Wednesday', icon: '📅' },
-  { id: 'thursday', name: 'Thursday', icon: '📅' },
-  { id: 'friday', name: 'Friday', icon: '📅' },
-  { id: 'saturday', name: 'Saturday', icon: '🎉' },
-  { id: 'sunday', name: 'Sunday', icon: '😴' }
-];
- 
-/** Starting point for each builder (the wizard creates it on entering the schedule step). */
-export function defaultScheduleConfig(wallpackType, imageFiles) {
-  const defaultConfig = {};
-    if (wallpackType === 'daypack') {
-      defaultConfig.timeblocks = {
-        sunrise: {
-          start: 'dawn',
-          images: [],
-          shuffle: false
-        },
-        day: {
-          start: 'sunrise+30m',
-          images: [],
-          shuffle: false
-        },
-        sunset: {
-          start: 'sunset-30m',
-          images: [],
-          shuffle: false
-        },
-        night: {
-          start: 'dusk+30m',
-          images: [],
-          shuffle: false
-        }
-      };
-    } else if (wallpackType === 'weekpack') {
-      defaultConfig.days = {};
-      daysOfWeek.forEach(day => {
-        defaultConfig.days[day.id] = {
-          images: [],
-          shuffle: false
-        };
-      });
-    } else if (wallpackType === 'album') {
-      defaultConfig.album = {
-        images: imageFiles.map(f => f.name),
-        shuffle: false,
-        interval: '1h'
-      };
-    }
+const TYPE_NAMES = { daypack: 'Daypack', weekpack: 'Weekpack', album: 'Album' };
 
-  return defaultConfig;
-}
-
+/**
+ * The schedule step: a builder for the pack's template, or (for schedules the
+ * builder can't show) the schedule.toml as text. Either way the Schedule
+ * Preview is exactly what's submitted, checked by the same validator as the server.
+ */
 export default function ScheduleBuilder({ wallpackType, files, config, onConfigChange, metadata }) {
-  const scheduleConfig = config;
-  const imageFiles = files.filter(f => f.type.startsWith('image/'));
-
-  const updateConfig = (newConfig) => {
-    onConfigChange(newConfig);
-  };
-
-  const renderDaypackBuilder = () => {
-    return (
-      <DaypackBuilder
-        scheduleConfig={scheduleConfig}
-        imageFiles={imageFiles}
-        onConfigChange={updateConfig}
-      />
-    );
-  };
-
-  const renderWeekpackBuilder = () => (
-    <WeekpackBuilder
-      scheduleConfig={scheduleConfig}
-      imageFiles={imageFiles}
-      onConfigChange={updateConfig}
-      daysOfWeek={daysOfWeek}
-    />
-  );
-
-  const renderAlbumBuilder = () => {
-    return (
-      <AlbumBuilder
-        scheduleConfig={scheduleConfig}
-        imageFiles={imageFiles}
-        onConfigChange={updateConfig}
-      />
-    );
-  };
-
-  const tomlRef = useRef(null);
-  // Copied indication state
+  const imageFiles = useMemo(() => files.filter(f => f.type.startsWith('image/')), [files]);
   const [copied, setCopied] = useState(false);
+  const meta = useMemo(() => ({
+    name: metadata?.title || 'Untitled',
+    author: metadata?.isOriginal ? undefined : metadata?.authorName,
+  }), [metadata]);
 
-
-  // The schedule.toml the CLI will actually receive (pack spec 2), derived
-  // from the builder state, plus the first problem the validator finds.
-  const { tomlString, tomlError } = useMemo(() => {
-    if (!scheduleConfig) return { tomlString: '', tomlError: '' };
+  // The schedule.toml the CLI will receive, and the first problem with it.
+  const { schedule, tomlString, tomlError } = useMemo(() => {
+    if (!config) return { schedule: null, tomlString: '', tomlError: '' };
     try {
-      const schedule = builderToSchedule(wallpackType, scheduleConfig, {
-        name: metadata?.title || 'Untitled',
-        author: metadata?.isOriginal ? undefined : metadata?.authorName,
-      });
-      const problems = validateSchedule(schedule, imageFiles.map((f) => f.name));
-      return { tomlString: toml.stringify(schedule), tomlError: problems[0] ?? '' };
-    } catch {
-      return { tomlString: '# Error converting to TOML', tomlError: '' };
+      const built = configToSchedule(wallpackType, config, meta);
+      const problems = validateSchedule(built, imageFiles.map((f) => f.name));
+      return { schedule: built, tomlString: config.mode === 'text' ? config.text : scheduleToToml(built), tomlError: problems[0] ?? '' };
+    } catch (e) {
+      return { schedule: null, tomlString: config.mode === 'text' ? config.text : '', tomlError: `Not valid TOML: ${e.message}` };
     }
-  }, [scheduleConfig, wallpackType, metadata, imageFiles]);
+  }, [config, wallpackType, meta, imageFiles]);
+
+  const isText = config?.mode === 'text';
+  const canUseBuilder = isText && schedule && fitsBuilder(wallpackType, schedule);
 
   const handleCopy = () => {
-    if (tomlRef.current) {
-      tomlRef.current.select();
-      document.execCommand('copy');
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(tomlString);
-    }
+    navigator.clipboard?.writeText(tomlString);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -147,7 +58,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
     URL.revokeObjectURL(url);
   };
 
-  if (!scheduleConfig) {
+  if (!config) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
@@ -156,20 +67,58 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
     );
   }
 
+  const builderProps = { scheduleConfig: config, imageFiles, onConfigChange };
+  const previewable = schedule && schedule.slot.length > 0;
+
   return (
     <div className="max-w-7xl mx-auto">
-      {wallpackType === 'daypack' && renderDaypackBuilder()}
-      {wallpackType === 'weekpack' && renderWeekpackBuilder()}
-      {wallpackType === 'album' && renderAlbumBuilder()}
+      {isText ? (
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-serif font-bold mb-2 tracking-tight">Edit Schedule as Text</h2>
+          <p className="text-white/70 text-lg mb-6">
+            You&apos;re editing <span className="font-mono">schedule.toml</span> directly. The format is in the configuration guide below.
+          </p>
+          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70 flex flex-col sm:flex-row sm:items-center gap-3">
+            <p className="flex-1 text-left">
+              {canUseBuilder
+                ? `This schedule fits the ${TYPE_NAMES[wallpackType]} builder.`
+                : `The ${TYPE_NAMES[wallpackType]} builder can't show this schedule${schedule ? ' (it uses options the builder doesn\u2019t have)' : ''}, so it stays as text.`}
+            </p>
+            <button
+              onClick={() => onConfigChange(scheduleToConfig(wallpackType, schedule))}
+              disabled={!canUseBuilder}
+              className="shrink-0 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Back to builder
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {wallpackType === 'daypack' && <DaypackBuilder {...builderProps} />}
+          {wallpackType === 'weekpack' && <WeekpackBuilder {...builderProps} />}
+          {wallpackType === 'album' && <AlbumBuilder {...builderProps} />}
+        </>
+      )}
 
       {/* Schedule Preview, Upload, and Day Preview */}
       <div className="max-w-6xl mx-auto mt-8 grid lg:grid-cols-3 gap-8">
-        
+
         {/* Schedule Preview */}
         <div className="col-span-2 bg-white/5 rounded-lg p-6 border border-white/10 flex flex-col h-full min-h-[400px]">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold">Schedule Preview</h3>
             <div className="flex gap-2 items-center">
+              {!isText && (
+                <button
+                  onClick={() => onConfigChange({ mode: 'text', text: tomlString })}
+                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors flex items-center gap-2"
+                  title="Edit schedule.toml directly"
+                >
+                  <PencilSquareIcon className="w-4 h-4" />
+                  Edit as text
+                </button>
+              )}
               <button
                 onClick={handleCopy}
                 className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors flex items-center gap-2"
@@ -190,48 +139,34 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
             </div>
           </div>
           <div className="bg-black/20 rounded-lg flex-1 flex flex-col overflow-x-auto overflow-y-auto scrollbar">
-            <pre className="flex-1 w-full text-green-400 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent overflow-x-auto overflow-y-auto scrollbar">
-              <code>{tomlString}</code>
-            </pre>
+            {isText ? (
+              <textarea
+                aria-label="schedule.toml"
+                value={config.text}
+                onChange={(e) => onConfigChange({ mode: 'text', text: e.target.value })}
+                spellCheck={false}
+                className="flex-1 w-full min-h-[320px] text-green-400 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent resize-none scrollbar"
+              />
+            ) : (
+              <pre className="flex-1 w-full text-green-400 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent overflow-x-auto overflow-y-auto scrollbar">
+                <code>{tomlString}</code>
+              </pre>
+            )}
           </div>
-          <p className="text-xs text-white/60 mt-2">
-            This configuration will be saved as schedule.toml in your wallpack
-          </p>
+          {tomlError ? (
+            <p className="text-xs text-red-400 mt-2">{tomlError}</p>
+          ) : (
+            <p className="text-xs text-white/60 mt-2">
+              This is the schedule.toml in your wallpack{isText ? '. Name and author come from the pack details.' : ''}
+            </p>
+          )}
         </div>
-        
+
         <div className="col-span-1 flex flex-col gap-8">
-          {/* Day Preview */}
-          {wallpackType === 'daypack' && (
-            <DayPreview
-              scheduleConfig={scheduleConfig}
-              imageFiles={imageFiles}
-            />
-          )}
-
-          {/* Week Preview */}
-          {wallpackType === 'weekpack' && (
-            <WeekPreview
-              scheduleConfig={scheduleConfig}
-              imageFiles={imageFiles}
-            />
-          )}
-
-          {/* Album Preview */}
-          {wallpackType === 'album' && (
-            <AlbumPreview
-              scheduleConfig={scheduleConfig}
-              imageFiles={imageFiles}
-            />
-          )}
-
-          {/* Schedule Uploader */}
-          {(wallpackType === 'daypack' || wallpackType === 'weekpack' || wallpackType === 'album') && (
-            <ScheduleUploader
-              onConfigChange={updateConfig}
-              currentConfig={scheduleConfig}
-              wallpackType={wallpackType}
-            />
-          )}
+          {previewable && wallpackType === 'daypack' && <DayPreview schedule={schedule} imageFiles={imageFiles} />}
+          {previewable && wallpackType === 'weekpack' && <WeekPreview schedule={schedule} imageFiles={imageFiles} />}
+          {previewable && wallpackType === 'album' && <AlbumPreview schedule={schedule} imageFiles={imageFiles} />}
+          <ScheduleUploader onConfigChange={onConfigChange} wallpackType={wallpackType} />
         </div>
       </div>
 
@@ -275,15 +210,15 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                     <>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Add or remove timeblocks and rename by clicking on block names</p>
+                        <p>Add or remove blocks; click a block&apos;s name to rename it</p>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Each block represents a time period with its own image collection</p>
+                        <p>A block runs from its start until the next block starts (the last one runs overnight)</p>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Ensure time blocks do not overlap and have unique names</p>
+                        <p>Blocks are always listed in the order they start; two can&apos;t start at the same time</p>
                       </div>
                     </>
                   )}
@@ -291,15 +226,15 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                     <>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Each day of the week can have its own set of wallpapers</p>
+                        <p>Group days that share wallpapers: one per day, weekdays + weekend, or your own mix</p>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Wallpapers automatically change when the day changes</p>
+                        <p>Each day belongs to exactly one group, and every day needs one</p>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Days without images will be skipped in the rotation</p>
+                        <p>Click a day to move it in or out of a group</p>
                       </div>
                     </>
                   )}
@@ -343,7 +278,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Use the shuffle toggle to randomize image order</p>
+                    <p>Every uploaded image has to be used somewhere; the image list marks the ones that aren&apos;t</p>
                   </div>
                 </div>
               </div>
@@ -365,7 +300,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                       {wallpackType === 'album' && 'Rotation Settings'}
                     </h4>
                     <p className="text-sm text-white/60">
-                      {wallpackType === 'daypack' && 'Set start and end times for each block'}
+                      {wallpackType === 'daypack' && 'When each block starts'}
                       {wallpackType === 'weekpack' && 'How the weekly rotation works'}
                       {wallpackType === 'album' && 'Control how images cycle'}
                     </p>
@@ -386,6 +321,10 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                         <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Or use 24h format: <span className="font-mono text-orange-300">12:00</span>, <span className="font-mono text-orange-300">14:30</span></p>
                       </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>Several images in a block: split across the block, or changing every 15 min, hour, …</p>
+                      </div>
                     </>
                   )}
                   {wallpackType === 'weekpack' && (
@@ -396,11 +335,11 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Multiple images per day will rotate throughout the day</p>
+                        <p>Several images share the day: split evenly, or changing every 15 min, hour, …</p>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Enable shuffle for random order within each day</p>
+                        <p>Shuffle picks a new order each time, the same on every computer</p>
                       </div>
                     </>
                   )}
@@ -416,7 +355,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Choose how often the image changes, from 15 minutes to a day</p>
+                        <p>Choose how often the image changes: a preset, or a custom interval from 5 minutes to 7 days</p>
                       </div>
                     </>
                   )}
@@ -448,7 +387,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Upload existing configurations using the file uploader</p>
+                    <p>Load a spec 2 schedule.toml, or use &ldquo;Edit as text&rdquo; for options the builder doesn&apos;t have</p>
                   </div>
                 </div>
               </div>

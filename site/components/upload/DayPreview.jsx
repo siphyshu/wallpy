@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { builderToSchedule } from '@/lib/spec/builder';
 import { active } from '@/lib/spec/scheduler';
 import { fallbackMinutes } from '@/lib/spec/time';
 import { PlayIcon, PauseIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
-export default function DayPreview({ scheduleConfig, imageFiles }) {
+/** Scrub through a day with the real scheduler. `schedule` is the spec 2 schedule being built. */
+export default function DayPreview({ schedule, imageFiles }) {
   // Store current time as minute index (0-1439)
   const [currentMinute, setCurrentMinute] = useState(360); // 6 AM = 360
   const [isPlaying, setIsPlaying] = useState(false);
@@ -15,10 +15,6 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
 
   // The preview runs the real scheduler (lib/spec, the same rules as the CLI)
   // on today's date at the fallback solar times.
-  const schedule = useMemo(
-    () => builderToSchedule('daypack', scheduleConfig, { name: 'Preview' }),
-    [scheduleConfig],
-  );
   const timeline = useMemo(() => schedule.slot.map((slot, i) => {
     const next = schedule.slot[(i + 1) % schedule.slot.length];
     let start = null;
@@ -206,28 +202,28 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
           {timeline.map((block) => {
             const isActive = currentBlock === block.name;
             return (
-              <div key={block.name} className={`grid grid-cols-3 items-center gap-3 p-4 rounded-lg transition-colors ${
+              <div key={block.name} className={`grid grid-cols-[4.5rem_1fr_4.5rem] items-center gap-2 p-4 rounded-lg transition-colors ${
                   isActive ? 'bg-white/10 border border-white/20' : 'bg-white/5'
                 }`}>
                   {/* Start Time */}
-                  <div className="text-xs text-white/60 flex flex-col items-start gap-0">
+                  <div className="text-xs text-white/60 flex flex-col items-start gap-0 min-w-0">
                     <span>{block.start === null ? '--:--' : formatTime(((block.start % 1440) + 1440) % 1440)}</span>
                     {isSolarEvent(block.at) && (
-                      <span className="text-[10px] text-white/40 mt-0.5">({block.at})</span>
+                      <span className="text-[10px] text-white/40 mt-0.5 truncate max-w-full" title={block.at}>({block.at})</span>
                     )}
                   </div>
                   {/* Block Name and Details */}
                   <div className="flex flex-col items-center min-w-0">
                     <div className="text-sm font-medium text-white truncate">{block.name}</div>
-                    <div className="text-xs text-white/60 truncate">
-                      {block.slot.images.length} images • {block.slot.shuffle ? 'Shuffle' : 'Sequential'}
+                    <div className="text-xs text-white/60 truncate max-w-full">
+                      {block.slot.images.length} {block.slot.images.length === 1 ? 'image' : 'images'}{block.slot.images.length > 1 ? ` • ${block.slot.rotate?.startsWith('every ') ? block.slot.rotate : 'across the block'}${block.slot.shuffle ? ', shuffled' : ''}` : ''}
                     </div>
                   </div>
                   {/* Ends when the next block starts */}
-                  <div className="text-xs text-white/60 flex flex-col items-end gap-0">
+                  <div className="text-xs text-white/60 flex flex-col items-end gap-0 min-w-0">
                     <span>{block.end === null ? '--:--' : formatTime(((block.end % 1440) + 1440) % 1440)}</span>
                     {isSolarEvent(block.nextAt) && (
-                      <span className="text-[10px] text-white/40 mt-0.5">({block.nextAt})</span>
+                      <span className="text-[10px] text-white/40 mt-0.5 truncate max-w-full" title={block.nextAt}>({block.nextAt})</span>
                     )}
                   </div>
                 </div>

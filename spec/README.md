@@ -9,7 +9,7 @@ CLI must install it and show exactly the image this document says it shows.
 | `examples/` | Spec 2 schedules for the packs in the gallery |
 | `reference/wallpy_ref.py` | Reference implementation: validator, scheduler, v1 converter |
 | `vectors/` | Test vectors: *(schedule, time, location) → image*. Every implementation must pass them |
-| `schedule.v1.schema.json`, `v1-examples/` | Spec 1 (legacy). Read by the CLI, converted on upload |
+| `schedule.v1.schema.json`, `v1-examples/` | Spec 1, **retired**: kept only as the record of the one-time conversion. Nothing reads it any more |
 | `tests/` | `pytest spec/tests` |
 
 ## Pack layout
@@ -135,10 +135,12 @@ Validators (site server, CLI) must also check:
 6. **Every weekday is covered** by at least one slot (else that day would have
    no wallpaper of its own).
 
-## Spec 1 (legacy)
+## Spec 1 (retired)
 
-`timeblocks` / `days` / `album` tables keyed by name. The converter
-(`reference/wallpy_ref.py: convert_v1`) maps them onto slots:
+Spec 1 is no longer accepted anywhere: the site takes spec 2 only, and the CLI
+reads spec 2 only. Every pack in the gallery was converted once (2026-10-16).
+For the record, spec 1 had `timeblocks` / `days` / `album` tables keyed by
+name, and the converter (`reference/wallpy_ref.py: convert_v1`) mapped them onto slots:
 
 - `[timeblocks.*]`: one slot per block, ordered by start at the fallback
   times; `end` is dropped (the gallery's blocks were all contiguous, checked when

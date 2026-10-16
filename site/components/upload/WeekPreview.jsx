@@ -2,23 +2,27 @@ import { useState, useEffect } from 'react';
 import { PlayIcon, PauseIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const daysOfWeek = [
-  { id: 'monday', name: 'Monday', short: 'Mon' },
-  { id: 'tuesday', name: 'Tuesday', short: 'Tue' },
-  { id: 'wednesday', name: 'Wednesday', short: 'Wed' },
-  { id: 'thursday', name: 'Thursday', short: 'Thu' },
-  { id: 'friday', name: 'Friday', short: 'Fri' },
-  { id: 'saturday', name: 'Saturday', short: 'Sat' },
-  { id: 'sunday', name: 'Sunday', short: 'Sun' }
+  { id: 'mon', name: 'Monday', short: 'Mon' },
+  { id: 'tue', name: 'Tuesday', short: 'Tue' },
+  { id: 'wed', name: 'Wednesday', short: 'Wed' },
+  { id: 'thu', name: 'Thursday', short: 'Thu' },
+  { id: 'fri', name: 'Friday', short: 'Fri' },
+  { id: 'sat', name: 'Saturday', short: 'Sat' },
+  { id: 'sun', name: 'Sunday', short: 'Sun' }
 ];
 
-export default function WeekPreview({ scheduleConfig, imageFiles }) {
+/** The slot (day group) that applies on a weekday. */
+const slotFor = (schedule, day) => schedule.slot.find((s) => (s.days ?? daysOfWeek.map((d) => d.id)).includes(day));
+
+/** Step through the week. `schedule` is the spec 2 schedule being built. */
+export default function WeekPreview({ schedule, imageFiles }) {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1 = 1 day/sec, 2 = 2 days/sec
 
   const currentDay = daysOfWeek[currentDayIndex];
-  const dayConfig = scheduleConfig?.days?.[currentDay.id] || { images: [], shuffle: false };
+  const dayConfig = slotFor(schedule, currentDay.id) ?? { images: [], shuffle: false };
   const dayImages = dayConfig.images || [];
   
   // Get the current image file
@@ -66,7 +70,7 @@ export default function WeekPreview({ scheduleConfig, imageFiles }) {
 
   // Get image count for a day
   const getImageCount = (dayId) => {
-    return scheduleConfig?.days?.[dayId]?.images?.length || 0;
+    return slotFor(schedule, dayId)?.images.length || 0;
   };
 
   return (
@@ -142,7 +146,8 @@ export default function WeekPreview({ scheduleConfig, imageFiles }) {
         </div>
         <div className="text-sm text-white/60">
           {dayImages.length} {dayImages.length === 1 ? 'image' : 'images'}
-          {dayConfig.shuffle && ' • Shuffle enabled'}
+          {dayConfig.label && ` • ${dayConfig.label}`}
+          {dayConfig.shuffle && ' • shuffled'}
         </div>
       </div>
 

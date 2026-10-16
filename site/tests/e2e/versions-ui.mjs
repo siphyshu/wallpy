@@ -100,11 +100,11 @@ try {
   await shot(up, 'v-3-edit-files');
   await next.click();
 
-  // Schedule: add stars.jpg to the second block (the builder names unnamed blocks).
+  // Schedule: add stars.jpg to the second block (the builder names unnamed blocks after their start).
   const row = up.locator('div[draggable="true"]', { hasText: 'stars.jpg' }).first();
   await row.locator('input[type=checkbox]').check();
   await up.getByRole('combobox').first().click();
-  await up.getByRole('option', { name: 'Block 2' }).click();
+  await up.getByRole('option', { name: 'Sunset' }).click();
   await up.getByRole('button', { name: 'Add', exact: true }).click();
   await up.locator('pre code').filter({ hasText: 'stars.jpg' }).waitFor({ timeout: 10_000 });
   check('schedule preview includes the new image', (await up.locator('pre code').innerText()).includes('"night.jpg", "stars.jpg"'));

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { PlayIcon, PauseIcon, ArrowPathIcon, ForwardIcon, BackwardIcon } from '@heroicons/react/24/outline';
 
-export default function AlbumPreview({ scheduleConfig, imageFiles }) {
+/** Step through an album. `schedule` is the spec 2 schedule being built (one slot). */
+export default function AlbumPreview({ schedule, imageFiles }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(2); // seconds per image
 
-  const albumImages = scheduleConfig?.album?.images || [];
+  const album = schedule.slot[0] ?? { images: [] };
+  const albumImages = album.images;
   // Images can be removed while previewing: fall back to the first.
   const index = currentIndex < albumImages.length ? currentIndex : 0;
   const currentImageName = albumImages[index];
@@ -17,7 +19,7 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
     let interval;
     if (isPlaying && albumImages.length > 0) {
       interval = setInterval(() => {
-        if (scheduleConfig?.album?.shuffle) {
+        if (album.shuffle) {
           // Random next image
           const randomIndex = Math.floor(Math.random() * albumImages.length);
           setCurrentIndex(randomIndex);
@@ -28,7 +30,7 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
       }, playbackSpeed * 1000);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, playbackSpeed, albumImages.length, scheduleConfig?.album?.shuffle]);
+  }, [isPlaying, playbackSpeed, albumImages.length, album.shuffle]);
 
   const togglePlayback = () => setIsPlaying(!isPlaying);
   
@@ -38,7 +40,7 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
   };
 
   const nextImage = () => {
-    if (scheduleConfig?.album?.shuffle) {
+    if (album.shuffle) {
       const randomIndex = Math.floor(Math.random() * albumImages.length);
       setCurrentIndex(randomIndex);
     } else {
@@ -117,7 +119,7 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
           {albumImages.length > 0 ? `${index + 1} / ${albumImages.length}` : '0 / 0'}
         </div>
         <div className="text-sm text-white/60">
-          {scheduleConfig?.album?.shuffle ? 'Shuffle enabled' : 'Sequential order'}
+          {album.shuffle ? 'Shuffled' : 'In order'}{album.rotate?.startsWith('every ') ? ` · changes ${album.rotate}` : ''}
         </div>
       </div>
 

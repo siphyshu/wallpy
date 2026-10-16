@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
 import WallpackTypeSelector from '@/components/upload/WallpackTypeSelector';
 import FileUploader from '@/components/upload/FileUploader';
-import ScheduleBuilder, { defaultScheduleConfig } from '@/components/upload/ScheduleBuilder';
+import ScheduleBuilder from '@/components/upload/ScheduleBuilder';
 import PackMetadata from '@/components/upload/PackMetadata';
 import UploadProgress from '@/components/upload/UploadProgress';
 import { submitPack } from '@/lib/packs/client-upload';
-import { builderToSchedule, scheduleToBuilder } from '@/lib/spec/builder';
-
-const BUILDER_KINDS = { timeblocks: 'daypack', days: 'weekpack', album: 'album' };
+import { BUILDER_KINDS, configToSchedule, defaultConfig, scheduleToConfig } from '@/lib/spec/builder';
+import { validateSchedule } from '@/lib/spec/validate';
 
 /**
  * The wizard's starting state. Editing (a new version of `edit`, an
@@ -20,34 +19,18 @@ const BUILDER_KINDS = { timeblocks: 'daypack', days: 'weekpack', album: 'album' 
 function initialState(edit) {
   if (!edit) {
     return {
-      step: 1, type: null, files: [], config: null, scheduleNotice: null,
+      step: 1, type: null, files: [], config: null,
       metadata: { title: '', description: '', isOriginal: true, authorName: '', authorUrl: '', tags: '', aiUse: null, license: 'personal-use' },
     };
   }
   const { base } = edit;
   const type = BUILDER_KINDS[base.kind] ?? 'daypack';
-  let config = null;
-  let scheduleNotice = null;
-  try {
-    config = scheduleToBuilder(type, base.schedule);
-    // The builders can't show every schedule the format allows (e.g. a file
-    // uploaded by hand). Say so rather than quietly changing it.
-    // Labels don't count: the builder names unnamed blocks.
-    const rebuilt = builderToSchedule(type, config, { name: base.title });
-    // Sorted keys: jsonb from the database doesn't keep the original key order.
-    const slots = (schedule) => JSON.stringify(schedule.slot.map(({ label: _label, ...slot }) =>
-      Object.fromEntries(Object.entries(slot).sort(([a], [b]) => a.localeCompare(b)))));
-    if (slots(rebuilt) !== slots(base.schedule)) {
-      scheduleNotice = 'This schedule uses options the builder can\'t show yet. Check the schedule step: what you see there is what will be submitted.';
-    }
-  } catch {
-    scheduleNotice = 'The builder couldn\'t read this schedule. Set it up again on the schedule step.';
-  }
+  // Schedules the builder can't show open as text on the schedule step.
+  const config = scheduleToConfig(type, base.schedule);
   return {
     step: 2,
     type,
     config,
-    scheduleNotice,
     files: base.files.map((f) => ({
       id: `${f.sha256.slice(0, 12)}-${f.path}`,
       name: f.path,
@@ -92,6 +75,17 @@ export default function UploadWizard({ edit = null }) {
     { id: 5, title: 'Upload', description: 'Upload to Wallpy' }
   ];
 
+  // The schedule step shows what's wrong; moving on needs a valid schedule.
+  const scheduleIsValid = () => {
+    if (!scheduleConfig) return false;
+    try {
+      const schedule = configToSchedule(wallpackType, scheduleConfig, { name: packMetadata.title || 'Untitled' });
+      return validateSchedule(schedule, uploadedFiles.map((f) => f.name)).length === 0;
+    } catch {
+      return false;
+    }
+  };
+
   const canProceedToNext = () => {
     switch (currentStep) {
       case 1:
@@ -102,7 +96,8 @@ export default function UploadWizard({ edit = null }) {
       case 3:
         return uploadedFiles.length > 0;
       case 4:
-        return scheduleConfig !== null;
+      case 5:
+        return scheduleIsValid();
       default:
         return true;
     }
@@ -112,7 +107,7 @@ export default function UploadWizard({ edit = null }) {
     if (canProceedToNext() && currentStep < steps.length) {
       // Entering the schedule step: start from the template for this pack type.
       if (currentStep === 3 && !scheduleConfig) {
-        setScheduleConfig(defaultScheduleConfig(wallpackType, uploadedFiles.filter((f) => f.type.startsWith('image/'))));
+        setScheduleConfig(defaultConfig(wallpackType, uploadedFiles.filter((f) => f.type.startsWith('image/')).map((f) => f.name)));
       }
       setCurrentStep(currentStep + 1);
     }
@@ -140,7 +135,7 @@ export default function UploadWizard({ edit = null }) {
           ai_use: packMetadata.aiUse,
           uploader_is_artist: packMetadata.isOriginal,
           artist: packMetadata.isOriginal ? null : { name: packMetadata.authorName, url: packMetadata.authorUrl },
-          schedule: builderToSchedule(wallpackType, scheduleConfig, {
+          schedule: configToSchedule(wallpackType, scheduleConfig, {
             name: packMetadata.title,
             author: packMetadata.isOriginal ? undefined : packMetadata.authorName,
           }),
@@ -238,18 +233,11 @@ export default function UploadWizard({ edit = null }) {
             </p>
           </div>
 
-          {edit && (edit.latest.notes || initial.scheduleNotice) && (
+          {edit?.latest.notes && (
             <div className="max-w-3xl mx-auto mb-12 flex flex-col gap-3">
-              {edit.latest.notes && (
-                <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-                  <span className="font-medium">Changes requested on version {edit.latest.number}:</span> &ldquo;{edit.latest.notes}&rdquo;
-                </div>
-              )}
-              {initial.scheduleNotice && (
-                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
-                  {initial.scheduleNotice}
-                </div>
-              )}
+              <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                <span className="font-medium">Changes requested on version {edit.latest.number}:</span> &ldquo;{edit.latest.notes}&rdquo;
+              </div>
             </div>
           )}
 

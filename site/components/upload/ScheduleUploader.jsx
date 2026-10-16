@@ -1,62 +1,33 @@
 import { useState, useRef } from 'react';
 import { CloudArrowUpIcon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import toml from '@iarna/toml';
-import { scheduleToBuilder } from '@/lib/spec/builder';
+import { scheduleToConfig } from '@/lib/spec/builder';
 
-export default function ScheduleUploader({ onConfigChange, currentConfig, wallpackType = 'daypack' }) {
+const TYPE_NAMES = { daypack: 'Daypack', weekpack: 'Weekpack', album: 'Album' };
+
+/** Load a spec 2 schedule.toml into the builder (or as text, if the builder can't show it). */
+export default function ScheduleUploader({ onConfigChange, wallpackType = 'daypack' }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
   const fileInputRef = useRef(null);
 
-  const getExpectedType = () => {
-    switch (wallpackType) {
-      case 'daypack': return 'timeblocks';
-      case 'weekpack': return 'days';
-      case 'album': return 'album';
-      default: return 'timeblocks';
-    }
-  };
+  const getTypeName = () => TYPE_NAMES[wallpackType] ?? 'wallpack';
 
-  const getTypeName = () => {
-    switch (wallpackType) {
-      case 'daypack': return 'daypack';
-      case 'weekpack': return 'weekpack';
-      case 'album': return 'album';
-      default: return 'wallpack';
+  const parseScheduleFile = async (file) => {
+    const parsed = toml.parse(await file.text());
+    if (parsed.meta || parsed.timeblocks || parsed.days || parsed.album) {
+      throw new Error('This is an old (spec 1) schedule. Wallpy now uses spec 2: start the file with spec = 2 and list [[slot]]s. See the configuration guide below.');
     }
-  };
-
-  const parseScheduleFile = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const content = e.target.result;
-          const parsed = toml.parse(content);
-          // Spec 1 files must match the chosen type; spec 2 files map onto any builder.
-          if (parsed.meta && parsed.meta.type !== getExpectedType()) {
-            throw new Error(`This schedule file is not a ${getTypeName()} configuration (expected type: ${getExpectedType()})`);
-          }
-          const parsedConfig = scheduleToBuilder(wallpackType, parsed);
-          resolve(parsedConfig);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
-      
-      reader.readAsText(file);
-    });
+    if (parsed.spec !== 2 || !Array.isArray(parsed.slot)) {
+      throw new Error('Not a Wallpy schedule: expected spec = 2 and at least one [[slot]].');
+    }
+    return scheduleToConfig(wallpackType, parsed);
   };
 
   const handleFileUpload = async (file) => {
     setUploadError(null);
-    setUploadSuccess(false);
+    setUploadSuccess(null);
     
     // Validate file type
     if (file.type !== 'text/plain' && !file.name.endsWith('.toml')) {
@@ -72,15 +43,11 @@ export default function ScheduleUploader({ onConfigChange, currentConfig, wallpa
     
     try {
       const parsedConfig = await parseScheduleFile(file);
-      
-      // Update the configuration
       onConfigChange(parsedConfig);
-      setUploadSuccess(true);
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setUploadSuccess(false);
-      }, 3000);
+      setUploadSuccess(parsedConfig.mode === 'builder'
+        ? 'Loaded into the builder.'
+        : `This schedule uses options the ${getTypeName()} builder can't show, so it's open as text in the Schedule Preview.`);
+      setTimeout(() => setUploadSuccess(null), 6000);
       
     } catch (error) {
       setUploadError(error.message);
@@ -125,7 +92,7 @@ export default function ScheduleUploader({ onConfigChange, currentConfig, wallpa
       <div className="text-center mb-6">
         <h3 className="text-xl font-bold mb-2">Upload Schedule File</h3>
         <p className="text-white/70 text-sm">
-          Upload an existing <span className="font-mono">schedule.toml</span> file to load a pre-configured {getTypeName()}
+          Upload an existing <span className="font-mono">schedule.toml</span> file (spec 2) to load it into the {getTypeName()} builder
         </p>
       </div>
 
@@ -188,9 +155,7 @@ export default function ScheduleUploader({ onConfigChange, currentConfig, wallpa
             <DocumentTextIcon className="w-5 h-5" />
             <span className="text-sm font-medium">Upload Successful</span>
           </div>
-          <p className="text-green-300 text-sm mt-1">
-            Schedule configuration loaded successfully!
-          </p>
+          <p className="text-green-300 text-sm mt-1">{uploadSuccess}</p>
         </div>
       )}
     </div>
