@@ -59,6 +59,39 @@ export type Database = {
           },
         ]
       }
+      blob_uploads: {
+        Row: {
+          created_at: string
+          profile_id: string
+          sha256: string
+        }
+        Insert: {
+          created_at?: string
+          profile_id: string
+          sha256: string
+        }
+        Update: {
+          created_at?: string
+          profile_id?: string
+          sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blob_uploads_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blob_uploads_sha256_fkey"
+            columns: ["sha256"]
+            isOneToOne: false
+            referencedRelation: "blobs"
+            referencedColumns: ["sha256"]
+          },
+        ]
+      }
       blobs: {
         Row: {
           blurhash: string | null
@@ -501,6 +534,8 @@ export type Database = {
       blob_is_public: { Args: { s: string }; Returns: boolean }
       can_see_version: { Args: { v: string }; Returns: boolean }
       can_use_blob: { Args: { s: string }; Returns: boolean }
+      create_pack: { Args: { p: Json }; Returns: Json }
+      create_version: { Args: { p: Json; p_slug: string }; Returns: Json }
       interval_minutes: { Args: { i: string }; Returns: number }
       is_api_caller: { Args: never; Returns: boolean }
       is_http_url: { Args: { u: string }; Returns: boolean }
@@ -523,8 +558,10 @@ export type Database = {
       schedule_ok: { Args: { s: Json }; Returns: boolean }
       spec_rotate_ok: { Args: { r: string }; Returns: boolean }
       spec_time_ok: { Args: { t: string }; Returns: boolean }
+      uploaded_by_me: { Args: { s: string }; Returns: boolean }
       valid_links: { Args: { l: Json }; Returns: boolean }
       valid_tags: { Args: { t: string[] }; Returns: boolean }
+      write_version: { Args: { p: Json; p_pack_id: string }; Returns: Json }
     }
     Enums: {
       ai_use: "none" | "assisted" | "generated"

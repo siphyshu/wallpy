@@ -68,6 +68,10 @@ insert into public.blobs (sha256, size, mime, uploaded_by) values
   (repeat('a', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000a'),
   (repeat('b', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000a'),
   (repeat('c', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000b');
+insert into public.blob_uploads (sha256, profile_id) values
+  (repeat('a', 64), '00000000-0000-0000-0000-00000000000a'),
+  (repeat('b', 64), '00000000-0000-0000-0000-00000000000a'),
+  (repeat('c', 64), '00000000-0000-0000-0000-00000000000b');
 select pg_temp.as_admin();
 
 select pg_temp.expect('signup creates a lowercased profile',
@@ -260,6 +264,54 @@ select pg_temp.expect('artist records who added it',
 update public.artists set name = 'Vandalised' where name = 'Test Artist T';
 select pg_temp.as_admin();
 select pg_temp.expect('only moderators edit artists', exists (select 1 from public.artists where name = 'Test Artist T'));
+
+-- ---- upload pipeline -------------------------------------------------------------
+create function pg_temp.payload(title text, images text[], files jsonb, submit boolean default true) returns jsonb
+language sql as $$
+  select jsonb_build_object(
+    'slug', 'beach', 'title', title, 'tags', '["sea"]'::jsonb, 'ai_use', 'none', 'submit', submit,
+    'uploader_is_artist', true, 'files', files, 'cover', files -> 0 ->> 'path',
+    'schedule', jsonb_build_object('spec', 2, 'name', title,
+      'slot', jsonb_build_array(jsonb_build_object('images', to_jsonb(images), 'rotate', 'every 1h'))))
+$$;
+grant execute on all functions in schema pg_temp to anon, authenticated, service_role;
+
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot create packs',
+  $q$select public.create_pack(pg_temp.payload('Beach', '{a.jpg}', '[{"path":"a.jpg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]'))$q$);
+
+-- Bob has a private draft called "beach"; Alice can't see it, but mustn't collide with it.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select public.create_pack(pg_temp.payload('Bob Beach', '{c.jpg}', jsonb_build_array(jsonb_build_object('path', 'c.jpg', 'sha256', repeat('c', 64))), false));
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+create temp table created as
+  select public.create_pack(pg_temp.payload('Beach', '{a.jpg,b.jpg}',
+    jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)),
+                      jsonb_build_object('path', 'b.jpg', 'sha256', repeat('b', 64))))) as r;
+select pg_temp.expect('create_pack creates and submits, picking a free slug past an invisible draft',
+  (select r ->> 'slug' = 'beach-2' and r ->> 'status' = 'pending' from created));
+select pg_temp.expect('cover defaults to the first file',
+  (select f.path from public.pack_versions v join public.version_files f on f.id = v.cover_file_id
+   join public.packs p on p.id = v.pack_id where p.slug = 'beach-2') = 'a.jpg');
+select pg_temp.expect_error('cannot build a pack from someone else''s private blob',
+  $q$select public.create_pack(pg_temp.payload('Stolen', '{c.jpg}', jsonb_build_array(jsonb_build_object('path', 'c.jpg', 'sha256', repeat('c', 64)))))$q$);
+select pg_temp.expect_error('a failed submission leaves nothing behind (missing image)',
+  $q$select public.create_pack(pg_temp.payload('Broken', '{a.jpg,ghost.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))))$q$,
+  '{23514}');
+select pg_temp.expect('no half-created pack', not exists (select 1 from public.packs where slug like 'beach-3%'));
+select pg_temp.expect_error('cannot add a version to someone else''s pack',
+  $q$select public.create_version('beach', pg_temp.payload('Hijack', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))))$q$,
+  '{P0002}');
+
+-- Bob uploads the same image Alice did: one blob, both may use it.
+select pg_temp.as_server();
+insert into public.blob_uploads (sha256, profile_id) values (repeat('a', 64), '00000000-0000-0000-0000-00000000000b');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect('a shared blob can be used by everyone who uploaded it',
+  (public.create_pack(pg_temp.payload('Same Pic', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))))) ->> 'status' = 'pending');
+select pg_temp.expect_error('users cannot claim blobs directly',
+  $q$insert into public.blob_uploads (sha256, profile_id) values (repeat('b', 64), auth.uid())$q$);
 
 select pg_temp.as_admin();
 rollback;
