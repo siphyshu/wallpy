@@ -1,5 +1,5 @@
 import 'server-only';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { serverEnv } from '@/lib/env';
 
@@ -65,4 +65,18 @@ export async function presignPut({ key, sha256, mime, size, expiresIn = 300 }: {
     url,
     headers: { 'Content-Type': mime, 'x-amz-checksum-sha256': checksum, 'Cache-Control': cacheControl },
   };
+}
+
+/** Size and type of an object, or null if it doesn't exist. */
+export async function headObject(
+  key: string,
+): Promise<{ size: number; contentType: string | undefined; lastModified: Date | undefined } | null> {
+  try {
+    const head = await r2().send(new HeadObjectCommand({ Bucket: PUBLIC_BUCKET, Key: key }));
+    return { size: head.ContentLength ?? 0, contentType: head.ContentType, lastModified: head.LastModified };
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+    if (status === 404 || (error instanceof Error && error.name === 'NotFound')) return null;
+    throw error;
+  }
 }

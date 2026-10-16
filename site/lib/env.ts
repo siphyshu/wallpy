@@ -22,4 +22,5 @@ export const serverEnv = {
   r2AccessKeyId: () => required('R2_ACCESS_KEY_ID', process.env.R2_ACCESS_KEY_ID),
   r2SecretAccessKey: () => required('R2_SECRET_ACCESS_KEY', process.env.R2_SECRET_ACCESS_KEY),
   downloadHashSecret: () => required('DOWNLOAD_HASH_SECRET', process.env.DOWNLOAD_HASH_SECRET),
+  uploadTicketSecret: () => required('UPLOAD_TICKET_SECRET', process.env.UPLOAD_TICKET_SECRET),
 };
