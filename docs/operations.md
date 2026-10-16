@@ -68,3 +68,24 @@ Make someone a moderator: `update public.profiles set role = 'moderator' where u
 
 `samples/` (see its README) has a Daypack and a Weekpack for trying workflows by
 hand; `node samples/make.mjs` regenerates them.
+
+## Release the CLI
+
+Config: `cli/.goreleaser.yaml`. Dry run (everything but publishing, no tag
+needed): `cd cli && goreleaser release --snapshot --clean`, then look in
+`cli/dist/`.
+
+To publish (ask first; it's public and permanent):
+
+1. One-time: create `siphyshu/homebrew-tap` and `siphyshu/scoop-bucket` on
+   GitHub, fork `microsoft/winget-pkgs` to `siphyshu/winget-pkgs`, and make an
+   AUR account with an SSH key for `wallpy-bin`.
+2. Tokens in the environment: `GITHUB_TOKEN` (releases on siphyshu/wallpy),
+   `HOMEBREW_TAP_GITHUB_TOKEN`, `SCOOP_BUCKET_GITHUB_TOKEN`,
+   `WINGET_GITHUB_TOKEN`, `AUR_KEY` (the private key).
+3. `git tag v0.1.0 && git push origin v0.1.0`, then
+   `cd cli && goreleaser release --clean`.
+
+Tags `v*` version the CLI (the site isn't versioned). Binaries are unsigned:
+the Homebrew cask clears macOS's quarantine flag; signing and notarizing
+(macOS) and code signing (Windows SmartScreen) are on the roadmap.

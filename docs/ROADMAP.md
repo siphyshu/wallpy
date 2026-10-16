@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-17 (Go spec package)
+Last updated: 2026-10-17 (Go CLI: all commands)
 
 ## Goal
 
@@ -48,9 +48,12 @@ hidden `run` for the service.
 - [x] Set wallpaper (2026-10-17): `internal/wallpaper`. macOS via AppKit through purego (no cgo, no AppleScript prompt; main thread only, waits until macOS applies it; checked live with `WALLPY_TEST_DESKTOP=1`). Windows via SystemParametersInfo (compile-checked). Linux/BSD: GNOME, Cinnamon, MATE, KDE, Xfce, LXQt, sway, Hyprland (swww/hyprpaper), feh (selection unit-tested; not yet run on a Linux desktop)
 - [x] Background agent (2026-10-17): `wallpy run` sleeps until the next change (waking at least every minute), one at a time via `agent.lock`, logs to `agent.log`; launchd LaunchAgent (tested live), XDG autostart on Linux, Task Scheduler logon task on Windows (both compile-checked)
 - [x] `wallpy browse [search]` (2026-10-17): Bubble Tea gallery, previews drawn in half blocks (any colour terminal), `/` filter, Enter installs and uses; plain list when piped
-- [ ] Guided first run (Huh: location, pick a pack)
+- [x] Guided first run (2026-10-17): first `wallpy` in a terminal asks where you are (time-zone guess first) and opens the gallery; prompts themed from `internal/ui`
 - [ ] Kitty/iTerm2 graphics for sharper previews (half blocks today)
-- [ ] GoReleaser: Homebrew tap, winget, Scoop, deb/rpm, AUR
+- [x] GoReleaser config (2026-10-17): `cli/.goreleaser.yaml`, cgo-free builds for macOS/Linux/Windows (amd64, arm64) and FreeBSD, archives with completions + man page, deb/rpm/apk, Homebrew cask, Scoop, winget, AUR; `--snapshot` verified
+- [ ] Publish the first release (needs the tap/bucket repos, winget fork, AUR key and tokens: operations.md "Release the CLI")
+- [ ] Sign and notarize macOS binaries (Apple Developer ID); sign Windows binaries (SmartScreen)
+- [ ] Run on a real Linux desktop (GNOME, KDE, sway) and a real Windows machine: setters and agent are compile-checked and unit-tested only
 - [ ] Final PyPI release of the Python CLI pointing at the new installers
 - [ ] E2E: upload on the site → approve → `wallpy download` on a clean machine → wallpaper changes
 

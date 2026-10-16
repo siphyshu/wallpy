@@ -5,6 +5,7 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | CLI releases are tagged `v*` from the monorepo and built from `cli/` (GoReleaser OSS has no monorepo tag prefixes) | The site isn't versioned, so `v*` can mean the CLI |
 | 2026-10-17 | Background agent is resident (`wallpy run`), sleeping until the next change, not a 5-minute tick | Changes land on time (e.g. right at sunset); it re-checks at least every minute for sleep and clock changes |
 | 2026-10-17 | Linux agent starts through XDG autostart, not a systemd user unit | Autostart runs inside the graphical session, so the agent sees DISPLAY/WAYLAND_DISPLAY/XDG_CURRENT_DESKTOP; systemd user units often don't |
 | 2026-10-17 | The agent only sets the wallpaper when the scheduled image changes | If someone picks another wallpaper by hand, Wallpy doesn't fight it until the next change |
