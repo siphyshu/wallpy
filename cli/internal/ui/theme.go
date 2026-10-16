@@ -38,6 +38,12 @@ type Sun struct{ Dawn, Sunrise, Sunset, Dusk int }
 // FallbackSun is the spec's fallback times, used without a location.
 var FallbackSun = Sun{spec.Fallbacks["dawn"], spec.Fallbacks["sunrise"], spec.Fallbacks["sunset"], spec.Fallbacks["dusk"]}
 
+// SunOf is a Sun from a day's wall times (spec.SunTimes).
+func SunOf(dawn, sunrise, sunset, dusk time.Time) Sun {
+	m := func(t time.Time) int { return t.Hour()*60 + t.Minute() }
+	return Sun{m(dawn), m(sunrise), m(sunset), m(dusk)}
+}
+
 // PhaseAt is the phase at `minute` after midnight.
 func (s Sun) PhaseAt(minute int) Phase {
 	switch {

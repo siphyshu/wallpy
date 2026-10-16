@@ -43,9 +43,10 @@ on first use), `browse`, `show [--at]`, `list`, `get` (alias `download`),
 hidden `run` for the service.
 
 - [x] `wallpy get <slug|url>` (2026-10-17): manifest → parallel downloads streamed through SHA-256 + size checks → schedule validated against the files → atomic swap; reinstall reuses verified local files (`--force` repairs); Ctrl-C leaves nothing; downloads counted (`?download=cli`) only after a successful install on the real site. Packs live in `library.Home()` (per-OS data dir, `WALLPY_HOME` overrides)
-- [ ] `wallpy` home screen: active pack, today's slots as a coloured timeline, what's showing now and when it changes next
+- [x] `wallpy` home screen (2026-10-17): active pack, sky strip on real sun times, today's slots with the current one marked, next change
+- [x] `use` (slug, link or folder: installs/imports, sets now, starts the agent), `list`, `show [--at]` (also for gallery packs, without installing), `remove` (asks first), `update` (reuses unchanged images), `check <folder>`, `location` (auto from time zone via embedded zone.tab, city search via Open-Meteo, lat,lon), `pause`/`resume`, `stop` (added: removes the agent, for uninstalling), `doctor` (wallpaper method, agent, pack hashes, location, last agent error)
 - [x] Set wallpaper (2026-10-17): `internal/wallpaper`. macOS via AppKit through purego (no cgo, no AppleScript prompt; main thread only, waits until macOS applies it; checked live with `WALLPY_TEST_DESKTOP=1`). Windows via SystemParametersInfo (compile-checked). Linux/BSD: GNOME, Cinnamon, MATE, KDE, Xfce, LXQt, sway, Hyprland (swww/hyprpaper), feh (selection unit-tested; not yet run on a Linux desktop)
-- [ ] Background service: launchd, systemd user unit, Task Scheduler
+- [x] Background agent (2026-10-17): `wallpy run` sleeps until the next change (waking at least every minute), one at a time via `agent.lock`, logs to `agent.log`; launchd LaunchAgent (tested live), XDG autostart on Linux, Task Scheduler logon task on Windows (both compile-checked)
 - [ ] `wallpy browse` with image previews (Kitty/iTerm2 graphics, half-block fallback) and a guided first run (Huh: location, pick a pack, install the service)
 - [ ] GoReleaser: Homebrew tap, winget, Scoop, deb/rpm, AUR
 - [ ] Final PyPI release of the Python CLI pointing at the new installers

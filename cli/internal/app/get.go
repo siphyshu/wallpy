@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,8 +38,28 @@ func newGet(version string) *cobra.Command {
 	return cmd
 }
 
+// fetch makes sure the latest version of a pack from the site is
+// installed, downloading with a progress line if needed. fresh reports
+// whether anything was downloaded.
+func fetch(ctx context.Context, p *ui.Printer, c *remote.Client, lib *library.Library, slug string, force bool) (pack *library.Pack, m *remote.Manifest, fresh bool, err error) {
+	m, err = c.Manifest(ctx, slug)
+	if err != nil {
+		return nil, nil, false, explainNetwork(c, slug, err)
+	}
+	if old, err := lib.Get(m.Slug); err == nil && old.Info != nil && old.Info.Manifest.Version == m.Version && !force {
+		return old, m, false, nil
+	}
+	t := p.Transfer(m.Title)
+	pack, err = lib.Install(ctx, c, m, t.Update)
+	t.Done()
+	if err != nil {
+		return nil, nil, false, explainNetwork(c, slug, err)
+	}
+	c.CountDownload(ctx, m.Slug)
+	return pack, m, true, nil
+}
+
 func get(cmd *cobra.Command, p *ui.Printer, c *remote.Client, ref string, force bool) error {
-	ctx := cmd.Context()
 	slug, err := c.Resolve(ref)
 	if err != nil {
 		return &problem{msg: sentence(err.Error()), err: err}
@@ -47,33 +68,24 @@ func get(cmd *cobra.Command, p *ui.Printer, c *remote.Client, ref string, force 
 	if err != nil {
 		return err
 	}
-	m, err := c.Manifest(ctx, slug)
+	p.Blank()
+	pack, m, fresh, err := fetch(cmd.Context(), p, c, lib, slug, force)
 	if err != nil {
-		return explainNetwork(c, slug, err)
+		return err
 	}
-
-	if old, err := lib.Get(m.Slug); err == nil && old.Info != nil && old.Info.Manifest.Version == m.Version && !force {
-		p.Blank()
+	if !fresh {
 		p.Success(p.Strong(m.Title) + "  " + p.Faint(fmt.Sprintf("v%d", m.Version)) + p.Muted(" is already installed."))
 		p.Blank()
 		p.Hints([2]string{"wallpy get " + m.Slug + " --force", "reinstall and re-check every file"})
 		p.Blank()
 		return nil
 	}
-
-	p.Blank()
-	t := p.Transfer(m.Title)
-	pack, err := lib.Install(ctx, c, m, t.Update)
-	t.Done()
-	if err != nil {
-		return explainNetwork(c, slug, err)
-	}
-	c.CountDownload(ctx, m.Slug)
-
 	p.Success(p.Strong(m.Title) + "  " + p.Faint(fmt.Sprintf("v%d", m.Version)))
 	p.Raw("  " + p.Muted(fmt.Sprintf("%d images · %s · verified", len(m.Files), ui.Bytes(m.Size()))))
 	p.Raw("  " + p.Muted(credit(m)))
 	p.Raw("  " + p.Faint(tilde(pack.Dir)))
+	p.Blank()
+	p.Hints([2]string{"wallpy use " + m.Slug, "make it your wallpaper"})
 	p.Blank()
 	return nil
 }

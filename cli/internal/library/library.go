@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/siphyshu/wallpy/cli/internal/remote"
@@ -151,4 +152,123 @@ func (p *Pack) Title() string {
 		return s.Name
 	}
 	return p.Slug
+}
+
+// CheckFolder validates a pack folder on disk: schedule.toml and images/.
+// problems lists what breaks the spec; err is for a folder that isn't a
+// pack at all.
+func CheckFolder(dir string) (s *spec.Schedule, files []string, problems []string, err error) {
+	data, err := os.ReadFile(filepath.Join(dir, "schedule.toml"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil, nil, fmt.Errorf("%s has no schedule.toml, so it isn't a pack", dir)
+	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	entries, err := os.ReadDir(filepath.Join(dir, "images"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil, nil, fmt.Errorf("%s has no images folder", dir)
+	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	for _, e := range entries {
+		if !e.IsDir() && e.Name()[0] != '.' {
+			files = append(files, e.Name())
+		}
+	}
+	s, problems, err = spec.ParseTOML(data, files)
+	if err != nil {
+		return nil, files, nil, fmt.Errorf("schedule.toml isn't valid TOML: %w", err)
+	}
+	return s, files, problems, nil
+}
+
+// Import copies a valid pack folder into the library and returns it. Its
+// slug comes from the pack's name.
+func (l *Library) Import(dir string) (*Pack, error) {
+	s, files, problems, err := CheckFolder(dir)
+	if err != nil {
+		return nil, err
+	}
+	if len(problems) > 0 {
+		return nil, fmt.Errorf("the pack doesn't follow the spec: %s (wallpy check %s lists everything)", problems[0], dir)
+	}
+	slug := Slugify(s.Name)
+	if existing, err := l.Get(slug); err == nil && existing.Info != nil {
+		slug += "-local" // don't replace a pack from the site
+	}
+	tmp := filepath.Join(l.Dir, "."+slug+"-incoming")
+	os.RemoveAll(tmp)
+	if err := os.MkdirAll(filepath.Join(tmp, "images"), 0o755); err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmp)
+	copyFile := func(src, dst string) error {
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(dst, data, 0o644)
+	}
+	if err := copyFile(filepath.Join(dir, "schedule.toml"), filepath.Join(tmp, "schedule.toml")); err != nil {
+		return nil, err
+	}
+	for _, f := range files {
+		if err := copyFile(filepath.Join(dir, "images", f), filepath.Join(tmp, "images", f)); err != nil {
+			return nil, err
+		}
+	}
+	final := filepath.Join(l.Dir, slug)
+	os.RemoveAll(final)
+	if err := os.Rename(tmp, final); err != nil {
+		return nil, err
+	}
+	return l.Get(slug)
+}
+
+// Slugify makes a pack name into a folder name: "Zelda Wind Waker" ->
+// "zelda-wind-waker".
+func Slugify(name string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(name) {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			b.WriteRune(r)
+			dash = false
+		} else if !dash && b.Len() > 0 {
+			b.WriteByte('-')
+			dash = true
+		}
+	}
+	s := strings.TrimSuffix(b.String(), "-")
+	if s == "" {
+		s = "pack"
+	}
+	return s
+}
+
+// Remove deletes an installed pack.
+func (l *Library) Remove(slug string) error {
+	if _, err := l.Get(slug); err != nil {
+		return err
+	}
+	// Move aside first so a half-deleted pack never looks installed.
+	aside := filepath.Join(l.Dir, "."+slug+"-removing-"+randomSuffix())
+	if err := os.Rename(filepath.Join(l.Dir, slug), aside); err != nil {
+		return err
+	}
+	return os.RemoveAll(aside)
+}
+
+// Size is the bytes a pack's images take on disk.
+func (p *Pack) Size() int64 {
+	var n int64
+	entries, _ := os.ReadDir(filepath.Join(p.Dir, "images"))
+	for _, e := range entries {
+		if info, err := e.Info(); err == nil {
+			n += info.Size()
+		}
+	}
+	return n
 }

@@ -43,30 +43,11 @@ func newRoot(version string) *cobra.Command {
 		Short: tagline,
 		Long:  tagline + "\n\nWallpaper packs that follow the sun, the week, or a schedule of their own.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			welcome(ui.Stdout(), version)
-			return nil
+			return home(version)
 		},
 	}
-	root.AddCommand(newGet(version))
+	root.AddCommand(newUse(version), newList(), newShow(version), newGet(version), newRemove(), newUpdate(version), newLocation(), newCheck(), newDoctor(version), newPause(), newResume(), newStop(), newRun())
 	return root
-}
-
-// welcome is `wallpy` on its own. Once packs can be installed it becomes
-// the home screen (docs/ROADMAP.md).
-func welcome(p *ui.Printer, version string) {
-	if version == "" {
-		version = "dev"
-	}
-	p.Blank()
-	p.Raw(p.Strong("wallpy") + "  " + p.Faint(version))
-	p.Raw(p.Muted(tagline))
-	if p.Rich() {
-		p.Blank()
-		p.Raw(p.SkyStrip())
-	}
-	p.Blank()
-	p.Hints([2]string{"wallpy --help", "commands and options"})
-	p.Blank()
 }
 
 // colorScheme dresses Fang's help screens in the ui palette.
@@ -98,6 +79,9 @@ func colorScheme(c lipgloss.LightDarkFunc) fang.ColorScheme {
 // writer it has already wrapped; we print to stderr through ui instead, so
 // errors look like every other message.
 func handleError(_ io.Writer, _ fang.Styles, err error) {
+	if errors.Is(err, errQuiet) {
+		return
+	}
 	p := ui.New(os.Stderr, ui.Look{Theme: ui.ThemeFor(ui.DetectDark()), Now: time.Now(), Sun: ui.FallbackSun})
 	msg, fix := explain(p, err)
 	p.Blank()

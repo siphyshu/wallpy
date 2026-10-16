@@ -10,6 +10,9 @@ import (
 	"github.com/siphyshu/wallpy/cli/internal/ui"
 )
 
+// errQuiet fails a command (exit status 1) that has already said why.
+var errQuiet = errors.New("")
+
 // problem is a failure explained for people: what went wrong, and what to
 // do about it. Commands return these; handleError prints them.
 type problem struct {
