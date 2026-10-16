@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image/color"
 	"io"
@@ -37,7 +38,7 @@ func Execute(ctx context.Context, version string) error {
 }
 
 func newRoot(version string) *cobra.Command {
-	return &cobra.Command{
+	root := &cobra.Command{
 		Use:   "wallpy",
 		Short: tagline,
 		Long:  tagline + "\n\nWallpaper packs that follow the sun, the week, or a schedule of their own.",
@@ -46,6 +47,8 @@ func newRoot(version string) *cobra.Command {
 			return nil
 		},
 	}
+	root.AddCommand(newGet(version))
+	return root
 }
 
 // welcome is `wallpy` on its own. Once packs can be installed it becomes
@@ -105,6 +108,14 @@ func handleError(_ io.Writer, _ fang.Styles, err error) {
 // explain turns an error into a sentence and, for mistakes in the command
 // line itself, a pointer to what would work.
 func explain(p *ui.Printer, err error) (msg, fix string) {
+	var prob *problem
+	if errors.As(err, &prob) {
+		if prob.fix != nil {
+			fix = prob.fix(p)
+		}
+		return prob.msg, fix
+	}
+
 	text := err.Error()
 	help := p.Muted("Run ") + p.Code("wallpy --help") + p.Muted(" to see what's available.")
 

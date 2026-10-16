@@ -36,7 +36,13 @@ silent and instant. Check every screen in a light and a dark terminal (VHS).
 
 - [x] Scheduler + validator passing `spec/vectors/vectors.json` (2026-10-17): `cli/internal/spec`; solar maths ported from astral, identical to the second on 3,660 sample times
 - [x] Foundation (2026-10-17): Cobra + Fang skeleton (`wallpy`, `--help`, `--version`, completion) and `internal/ui`, the terminal design system: the site's monochrome hierarchy plus one accent, the colour of the sky right now; a 24h sky strip; errors in Wallpy's voice with "did you mean"; adapts to light/dark; plain when piped
-- [ ] `wallpy download <slug>` via `/api/packs/<slug>/manifest?download=cli`, verifying SHA-256, with progress on the design system
+Commands (designed fresh, not copied from the Python CLI): `wallpy` (home),
+`use <pack|url|folder>` (install if needed, switch, set now, start the service
+on first use), `browse`, `show [--at]`, `list`, `get` (alias `download`),
+`update`, `remove`, `location`, `pause`/`resume`, `doctor`, `check <folder>`,
+hidden `run` for the service.
+
+- [x] `wallpy get <slug|url>` (2026-10-17): manifest → parallel downloads streamed through SHA-256 + size checks → schedule validated against the files → atomic swap; reinstall reuses verified local files (`--force` repairs); Ctrl-C leaves nothing; downloads counted (`?download=cli`) only after a successful install on the real site. Packs live in `library.Home()` (per-OS data dir, `WALLPY_HOME` overrides)
 - [ ] `wallpy` home screen: active pack, today's slots as a coloured timeline, what's showing now and when it changes next
 - [ ] Set wallpaper: macOS, Windows, Linux (GNOME/KDE/sway…)
 - [ ] Background service: launchd, systemd user unit, Task Scheduler

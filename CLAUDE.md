@@ -14,7 +14,7 @@ runs them (cli/, being rewritten in Go), and the pack format both follow (spec/)
 | `site/` | Next.js 16 App Router, strict TypeScript. `lib/spec` = TS port of the pack spec; `lib/data` = DB reads; `app/api` = upload/submit/manifest; `components/upload` = the wizard and builders (JS) |
 | `spec/` | Pack format spec 2 (`README.md` is normative), JSON Schema, Python reference implementation, test vectors |
 | `supabase/` | Migrations (applied to production), `tests/security.sql` (attack checks), `scripts/` (`prod_sql.py`, `test_security.sh`) |
-| `cli/` | Go CLI (in progress): `cmd/wallpy` = entry point; `internal/app` = Cobra commands; `internal/ui` = terminal design system (all output goes through it); `internal/spec` = Go port of the pack spec. `cli/python/` = old Python CLI (retired) |
+| `cli/` | Go CLI (in progress): `cmd/wallpy` = entry point; `internal/app` = Cobra commands; `internal/ui` = terminal design system (all output goes through it); `internal/library` = installed packs + verified install; `internal/remote` = site API client; `internal/spec` = Go port of the pack spec. `cli/python/` = old Python CLI (retired) |
 | `samples/` | Sample packs for manual testing |
 | `_src/` | Old clones and the recovered archive (git-excluded; never delete `_src/archive/`) |
 

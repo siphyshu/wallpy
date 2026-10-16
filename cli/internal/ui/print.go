@@ -48,6 +48,14 @@ func (p *Printer) Rich() bool { return p.w.Profile >= colorprofile.ANSI256 }
 // Styled reports whether the destination shows any colour or emphasis.
 func (p *Printer) Styled() bool { return p.w.Profile >= colorprofile.ANSI }
 
+// text styles msg as Plain unless the caller already styled it.
+func (p *Printer) text(msg string) string {
+	if strings.Contains(msg, "\x1b[") {
+		return msg
+	}
+	return p.Plain(msg)
+}
+
 func (p *Printer) line(s string) {
 	if s == "" {
 		fmt.Fprintln(p.w)
@@ -88,18 +96,18 @@ func (p *Printer) Heading(title, note string) {
 
 // Success reports something that worked.
 func (p *Printer) Success(msg string) {
-	p.line(p.fg(p.look.Success).Render(SymSuccess) + " " + p.Plain(msg))
+	p.line(p.fg(p.look.Success).Render(SymSuccess) + " " + p.text(msg))
 }
 
 // Notice is something to know that isn't a failure.
 func (p *Printer) Notice(msg string) {
-	p.line(p.fg(p.look.Notice).Render(SymNotice) + " " + p.Plain(msg))
+	p.line(p.fg(p.look.Notice).Render(SymNotice) + " " + p.text(msg))
 }
 
 // Fail reports what went wrong and, when there is one, what to do about
 // it. fix is composed by the caller (Muted, with commands as Code).
 func (p *Printer) Fail(msg, fix string) {
-	p.line(p.fg(p.look.Error).Render(SymError) + " " + p.Plain(msg))
+	p.line(p.fg(p.look.Error).Render(SymError) + " " + p.text(msg))
 	if fix != "" {
 		p.line("  " + fix)
 	}

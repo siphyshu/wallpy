@@ -24,6 +24,7 @@ bucket. The e2e tests create throwaway users and delete everything they made.
 | Spec | `pytest spec/tests` | Needs `pip install -r spec/requirements.txt` |
 | CLI | `cd cli && go vet ./... && go test ./...` | Runs `spec/vectors/vectors.json`; after changing `spec/schedule.schema.json`, copy it to `cli/internal/spec/` (a test checks) |
 | CLI look | `cd cli && go run ./cmd/wallpy` in a dark **and** a light terminal; `vhs <tape>` records both (needs `brew install vhs`) | Every screen goes through `internal/ui`; piped output must be plain (`go run ./cmd/wallpy \| cat -v`) |
+| CLI against dev | `WALLPY_SITE=http://localhost:3000 WALLPY_HOME=$(mktemp -d) go run ./cmd/wallpy get zelda-wind-waker` | `WALLPY_SITE` points at another site (downloads aren't counted there: dev shares the production DB); `WALLPY_HOME` keeps test packs out of your real library |
 | Build | `cd site && npm run build` | |
 
 Local Postgres for the security tests: Homebrew `postgresql@17` on

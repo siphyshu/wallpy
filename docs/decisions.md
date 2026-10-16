@@ -5,6 +5,8 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | The CLI counts a download only after a successful install, and only against the real site (never with `WALLPY_SITE`) | Accurate numbers; local dev shares the production DB |
+| 2026-10-17 | CLI commands designed around tasks, not the Python CLI: `use` installs + switches + sets + starts the service; `show` absorbs info/preview; no `config`/`service` groups (`pause`/`resume`/`doctor` instead) | Fewer verbs; the common path is one command |
 | 2026-10-17 | CLI stack: Cobra + Fang for commands, Charm (Lip Gloss, Huh, Bubble Tea) for everything shown; one `internal/ui` design system | The CLI should feel crafted at every touchpoint; Cobra gives structure and completion, Charm gives the look. Interactive screens only on a TTY |
 | 2026-10-17 | Go CLI lives at `cli/` (module `github.com/siphyshu/wallpy/cli`); the Python CLI moved to `cli/python/` until its final PyPI release | One CLI folder; history kept with `git mv` |
 | 2026-10-17 | Go solar events: astral's NOAA routine ported line for line, not a Go sun library | Matches the reference exactly instead of within tolerance |

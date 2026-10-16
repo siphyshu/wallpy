@@ -38,20 +38,20 @@ var schema = func() *jsonschema.Schema {
 
 // Schedule is a pack's schedule.toml.
 type Schedule struct {
-	Spec        int    `json:"spec"`
-	Name        string `json:"name"`
-	Author      string `json:"author,omitempty"`
-	Description string `json:"description,omitempty"`
-	Slot        []Slot `json:"slot"`
+	Spec        int    `json:"spec" toml:"spec"`
+	Name        string `json:"name" toml:"name"`
+	Author      string `json:"author,omitempty" toml:"author,omitempty"`
+	Description string `json:"description,omitempty" toml:"description,omitempty"`
+	Slot        []Slot `json:"slot" toml:"slot"`
 }
 
 type Slot struct {
-	Label   string   `json:"label,omitempty"`
-	At      string   `json:"at,omitempty"`
-	Days    []string `json:"days,omitempty"`
-	Images  []string `json:"images"`
-	Rotate  string   `json:"rotate,omitempty"`
-	Shuffle bool     `json:"shuffle,omitempty"`
+	Label   string   `json:"label,omitempty" toml:"label,omitempty"`
+	At      string   `json:"at,omitempty" toml:"at,omitempty"`
+	Days    []string `json:"days,omitempty" toml:"days,omitempty"`
+	Images  []string `json:"images" toml:"images"`
+	Rotate  string   `json:"rotate,omitempty" toml:"rotate,omitempty"`
+	Shuffle bool     `json:"shuffle,omitempty" toml:"shuffle,omitempty"`
 }
 
 func (s Slot) at() string {
