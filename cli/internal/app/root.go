@@ -46,7 +46,7 @@ func newRoot(version string) *cobra.Command {
 			return home(version)
 		},
 	}
-	root.AddCommand(newUse(version), newList(), newShow(version), newGet(version), newRemove(), newUpdate(version), newLocation(), newCheck(), newDoctor(version), newPause(), newResume(), newStop(), newRun())
+	root.AddCommand(newUse(version), newBrowse(version), newList(), newShow(version), newGet(version), newRemove(), newUpdate(version), newLocation(), newCheck(), newDoctor(version), newPause(), newResume(), newStop(), newRun())
 	return root
 }
 

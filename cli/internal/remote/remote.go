@@ -195,3 +195,51 @@ func (c *Client) get(ctx context.Context, rawURL string) (*http.Response, error)
 	}
 	return res, nil
 }
+
+// Listing is one pack in the gallery (GET /api/packs).
+type Listing struct {
+	Slug      string `json:"slug"`
+	Name      string `json:"name"`
+	Author    string `json:"author"`
+	Preview   string `json:"preview"`
+	Kind      string `json:"kindLabel"`
+	AIUse     string `json:"aiUse"`
+	Downloads int    `json:"downloads"`
+}
+
+// Gallery lists public packs, most popular first.
+func (c *Client) Gallery(ctx context.Context, search string) ([]Listing, int, error) {
+	q := url.Values{"limit": {"48"}, "sort": {"popular"}}
+	if search != "" {
+		q.Set("search", search)
+	}
+	res, err := c.get(ctx, c.Site+"/api/packs?"+q.Encode())
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, 0, fmt.Errorf("%s answered %s", c.Host(), res.Status)
+	}
+	var body struct {
+		Packs []Listing `json:"packs"`
+		Total int       `json:"total"`
+	}
+	if err := json.NewDecoder(io.LimitReader(res.Body, 4<<20)).Decode(&body); err != nil {
+		return nil, 0, err
+	}
+	return body.Packs, body.Total, nil
+}
+
+// Fetch downloads a small resource (a preview image), up to 30 MB.
+func (c *Client) Fetch(ctx context.Context, rawURL string) ([]byte, error) {
+	res, err := c.get(ctx, rawURL)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s", res.Status)
+	}
+	return io.ReadAll(io.LimitReader(res.Body, 30<<20))
+}
