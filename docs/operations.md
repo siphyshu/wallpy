@@ -23,6 +23,7 @@ bucket. The e2e tests create throwaway users and delete everything they made.
 | DB security | `supabase/scripts/test_security.sh` | Every migration on a scratch local Postgres, then the attack checks in `supabase/tests/security.sql` |
 | Spec | `pytest spec/tests` | Needs `pip install -r spec/requirements.txt` |
 | CLI | `cd cli && go vet ./... && go test ./...` | Runs `spec/vectors/vectors.json`; after changing `spec/schedule.schema.json`, copy it to `cli/internal/spec/` (a test checks) |
+| CLI look | `cd cli && go run ./cmd/wallpy` in a dark **and** a light terminal; `vhs <tape>` records both (needs `brew install vhs`) | Every screen goes through `internal/ui`; piped output must be plain (`go run ./cmd/wallpy \| cat -v`) |
 | Build | `cd site && npm run build` | |
 
 Local Postgres for the security tests: Homebrew `postgresql@17` on

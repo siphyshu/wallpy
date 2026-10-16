@@ -28,10 +28,19 @@ Ship the site (wallpy.siphyshu.me), tested end to end, and a Go CLI
 
 ## Now: Go CLI
 
+Goal: the CLI should feel delightful, crafted at every touchpoint from install
+to everyday use. Stack: Cobra + Fang (commands, help, errors), Lip Gloss (all
+output, via `internal/ui`), Huh (prompts), Bubble Tea + Bubbles (interactive
+screens). Plain output when piped, `NO_COLOR` respected, the background tick
+silent and instant. Check every screen in a light and a dark terminal (VHS).
+
 - [x] Scheduler + validator passing `spec/vectors/vectors.json` (2026-10-17): `cli/internal/spec`; solar maths ported from astral, identical to the second on 3,660 sample times
-- [ ] `wallpy download <slug>` via `/api/packs/<slug>/manifest?download=cli`, verifying SHA-256
+- [x] Foundation (2026-10-17): Cobra + Fang skeleton (`wallpy`, `--help`, `--version`, completion) and `internal/ui`, the terminal design system: the site's monochrome hierarchy plus one accent, the colour of the sky right now; a 24h sky strip; errors in Wallpy's voice with "did you mean"; adapts to light/dark; plain when piped
+- [ ] `wallpy download <slug>` via `/api/packs/<slug>/manifest?download=cli`, verifying SHA-256, with progress on the design system
+- [ ] `wallpy` home screen: active pack, today's slots as a coloured timeline, what's showing now and when it changes next
 - [ ] Set wallpaper: macOS, Windows, Linux (GNOME/KDE/sway…)
 - [ ] Background service: launchd, systemd user unit, Task Scheduler
+- [ ] `wallpy browse` with image previews (Kitty/iTerm2 graphics, half-block fallback) and a guided first run (Huh: location, pick a pack, install the service)
 - [ ] GoReleaser: Homebrew tap, winget, Scoop, deb/rpm, AUR
 - [ ] Final PyPI release of the Python CLI pointing at the new installers
 - [ ] E2E: upload on the site → approve → `wallpy download` on a clean machine → wallpaper changes

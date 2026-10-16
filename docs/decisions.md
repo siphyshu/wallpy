@@ -5,6 +5,7 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | CLI stack: Cobra + Fang for commands, Charm (Lip Gloss, Huh, Bubble Tea) for everything shown; one `internal/ui` design system | The CLI should feel crafted at every touchpoint; Cobra gives structure and completion, Charm gives the look. Interactive screens only on a TTY |
 | 2026-10-17 | Go CLI lives at `cli/` (module `github.com/siphyshu/wallpy/cli`); the Python CLI moved to `cli/python/` until its final PyPI release | One CLI folder; history kept with `git mv` |
 | 2026-10-17 | Go solar events: astral's NOAA routine ported line for line, not a Go sun library | Matches the reference exactly instead of within tolerance |
 | 2026-10-18 | Builders hold spec 2 slots directly; anything a builder can't show exactly opens as text ("Edit as text"), never reshaped | What you see is what's submitted |
