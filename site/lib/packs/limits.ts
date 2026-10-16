@@ -28,3 +28,25 @@ export function slugify(title: string): string {
 export function normalizeTag(tag: string): string {
   return slugify(tag).slice(0, 30);
 }
+
+/**
+ * A filename the pack spec accepts (letters, digits, space . _ -, a lowercase
+ * jpg/jpeg/png/webp extension), unique among `taken` ignoring case.
+ * "IMG 01 (copy).JPG" -> "IMG 01 copy.jpg".
+ */
+export function safeImageName(original: string, taken: Iterable<string> = []): string {
+  const dot = original.lastIndexOf('.');
+  const ext = (dot > 0 ? original.slice(dot + 1) : 'jpg').toLowerCase();
+  const stem = (dot > 0 ? original.slice(0, dot) : original)
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9 ._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[^A-Za-z0-9]+/, '')
+    .slice(0, 90) || 'image';
+  const used = new Set([...taken].map((n) => n.toLowerCase()));
+  let name = `${stem}.${ext}`;
+  for (let n = 2; used.has(name.toLowerCase()); n++) name = `${stem}-${n}.${ext}`;
+  return name;
+}

@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { ArrowsUpDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Shuffle } from 'lucide-react';
 
+const INTERVALS = [
+  { value: '15m', label: '15 min' },
+  { value: '30m', label: '30 min' },
+  { value: '1h', label: '1 hour' },
+  { value: '6h', label: '6 hours' },
+  { value: '1d', label: '1 day' },
+];
+
 export default function AlbumBuilder({ 
   scheduleConfig, 
   imageFiles, 
@@ -14,6 +22,12 @@ export default function AlbumBuilder({
   const albumImages = scheduleConfig?.album?.images || [];
 
   const updateConfig = (newConfig) => {
+    onConfigChange(newConfig);
+  };
+
+  // How long each image stays up (spec: 5 minutes to 7 days).
+  const setRotationInterval = (interval) => {
+    const newConfig = { ...scheduleConfig, album: { ...scheduleConfig.album, interval } };
     onConfigChange(newConfig);
   };
 
@@ -235,6 +249,23 @@ export default function AlbumBuilder({
                 <ArrowsUpDownIcon className="w-4 h-4" />
                 <span>Drag to reorder</span>
               </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-sm text-white/60 mr-1">Change image every</span>
+              {INTERVALS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setRotationInterval(option.value)}
+                  aria-pressed={(scheduleConfig.album.interval ?? '1h') === option.value}
+                  className={`px-3 py-1.5 rounded-lg border transition-colors text-sm font-medium ${
+                    (scheduleConfig.album.interval ?? '1h') === option.value
+                      ? 'bg-white text-black border-white'
+                      : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
             <hr className="my-4 border-white/10" />
             <div className="flex-1 overflow-y-auto scrollbar pr-2">

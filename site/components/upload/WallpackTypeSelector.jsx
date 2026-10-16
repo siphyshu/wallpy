@@ -56,8 +56,18 @@ export default function WallpackTypeSelector({ selectedType, onSelect }) {
         {wallpackTypes.map((type) => (
           <div
             key={type.id}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selectedType === type.id}
+            aria-label={type.name}
             onClick={() => onSelect(type.id)}
-            className={`relative cursor-pointer rounded-lg border-2 p-6 transition-all duration-200 hover:scale-105 ${
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(type.id);
+              }
+            }}
+            className={`relative cursor-pointer rounded-lg border-2 p-6 transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               selectedType === type.id
                 ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
                 : 'border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/10'

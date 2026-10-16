@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon, CalendarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import DaypackBuilder from './DaypackBuilder';
 import WeekpackBuilder from './WeekpackBuilder';
@@ -8,6 +8,8 @@ import DayPreview from './DayPreview';
 import WeekPreview from './WeekPreview';
 import AlbumPreview from './AlbumPreview';
 import toml from '@iarna/toml';
+import { builderToSchedule, scheduleToBuilder } from '@/lib/spec/builder';
+import { validateSchedule } from '@/lib/spec/validate';
 
 const daysOfWeek = [
   { id: 'monday', name: 'Monday', icon: '📅' },
@@ -19,79 +21,56 @@ const daysOfWeek = [
   { id: 'sunday', name: 'Sunday', icon: '😴' }
 ];
  
+/** Starting point for each builder (the wizard creates it on entering the schedule step). */
+export function defaultScheduleConfig(wallpackType, imageFiles) {
+  const defaultConfig = {};
+    if (wallpackType === 'daypack') {
+      defaultConfig.timeblocks = {
+        sunrise: {
+          start: 'dawn',
+          images: [],
+          shuffle: false
+        },
+        day: {
+          start: 'sunrise+30m',
+          images: [],
+          shuffle: false
+        },
+        sunset: {
+          start: 'sunset-30m',
+          images: [],
+          shuffle: false
+        },
+        night: {
+          start: 'dusk+30m',
+          images: [],
+          shuffle: false
+        }
+      };
+    } else if (wallpackType === 'weekpack') {
+      defaultConfig.days = {};
+      daysOfWeek.forEach(day => {
+        defaultConfig.days[day.id] = {
+          images: [],
+          shuffle: false
+        };
+      });
+    } else if (wallpackType === 'album') {
+      defaultConfig.album = {
+        images: imageFiles.map(f => f.name),
+        shuffle: false,
+        interval: '1h'
+      };
+    }
+
+  return defaultConfig;
+}
+
 export default function ScheduleBuilder({ wallpackType, files, config, onConfigChange, metadata }) {
-  const [scheduleConfig, setScheduleConfig] = useState(config || {});
-  const [isInitialized, setIsInitialized] = useState(false);
+  const scheduleConfig = config;
   const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
-  useEffect(() => {
-    if (!isInitialized) {
-      if (!config) {
-        // Initialize default config based on wallpack type
-        let defaultConfig = {
-          meta: {
-            type: wallpackType === 'daypack' ? 'timeblocks' : wallpackType === 'weekpack' ? 'days' : 'album',
-            name: '',
-            author: '',
-            description: '',
-            version: '1.0'
-          }
-        };
-
-        if (wallpackType === 'daypack') {
-          defaultConfig.timeblocks = {
-            sunrise: {
-              start: 'dawn',
-              end: 'sunrise+30m',
-              images: [],
-              shuffle: false
-            },
-            day: {
-              start: 'sunrise+30m',
-              end: 'sunset-30m',
-              images: [],
-              shuffle: false
-            },
-            sunset: {
-              start: 'sunset-30m',
-              end: 'dusk+30m',
-              images: [],
-              shuffle: false
-            },
-            night: {
-              start: 'dusk+30m',
-              end: 'dawn',
-              images: [],
-              shuffle: false
-            }
-          };
-        } else if (wallpackType === 'weekpack') {
-          defaultConfig.days = {};
-          daysOfWeek.forEach(day => {
-            defaultConfig.days[day.id] = {
-              images: [],
-              shuffle: false
-            };
-          });
-        } else if (wallpackType === 'album') {
-          defaultConfig.album = {
-            images: imageFiles.map(f => f.name),
-            shuffle: false
-          };
-        }
-
-        setScheduleConfig(defaultConfig);
-        onConfigChange(defaultConfig);
-      } else {
-        setScheduleConfig(config);
-      }
-      setIsInitialized(true);
-    }
-    // eslint-disable-next-line
-  }, [wallpackType, files]);
-
   const updateConfig = (newConfig) => {
-    setScheduleConfig(newConfig);
     onConfigChange(newConfig);
   };
 
@@ -124,66 +103,26 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
     );
   };
 
-  // TOML preview (editable)
-  const [tomlString, setTomlString] = useState('');
-  const [tomlError, setTomlError] = useState('');
   const tomlRef = useRef(null);
   // Copied indication state
   const [copied, setCopied] = useState(false);
 
-  // Update meta section when metadata changes (only after initialization)
-  useEffect(() => {
-    if (metadata && scheduleConfig && isInitialized && scheduleConfig.meta) {
-      // Only update if meta actually changed to avoid loops
-      const newMeta = {
-        name: metadata.title || '',
-        type: wallpackType === 'daypack' ? 'timeblocks' : wallpackType === 'weekpack' ? 'days' : 'album',
-        author: metadata.isOriginal ? '' : (metadata.authorName || ''),
-        description: metadata.description || '',
-        version: '1.0'
-      };
-      
-      // Check if meta actually changed
-      const metaChanged = 
-        scheduleConfig.meta.name !== newMeta.name ||
-        scheduleConfig.meta.author !== newMeta.author ||
-        scheduleConfig.meta.description !== newMeta.description;
-      
-      if (metaChanged) {
-        const updatedConfig = {
-          ...scheduleConfig,
-          meta: newMeta
-        };
-        setScheduleConfig(updatedConfig);
-        onConfigChange(updatedConfig);
-      }
-    }
-    // eslint-disable-next-line
-  }, [metadata?.title, metadata?.description, metadata?.authorName, metadata?.isOriginal, isInitialized]);
 
-  useEffect(() => {
+  // The schedule.toml the CLI will actually receive (pack spec 2), derived
+  // from the builder state, plus the first problem the validator finds.
+  const { tomlString, tomlError } = useMemo(() => {
+    if (!scheduleConfig) return { tomlString: '', tomlError: '' };
     try {
-      setTomlString(toml.stringify(scheduleConfig));
-      setTomlError('');
-    } catch (e) {
-      setTomlString('# Error converting to TOML');
-      setTomlError('');
+      const schedule = builderToSchedule(wallpackType, scheduleConfig, {
+        name: metadata?.title || 'Untitled',
+        author: metadata?.isOriginal ? undefined : metadata?.authorName,
+      });
+      const problems = validateSchedule(schedule, imageFiles.map((f) => f.name));
+      return { tomlString: toml.stringify(schedule), tomlError: problems[0] ?? '' };
+    } catch {
+      return { tomlString: '# Error converting to TOML', tomlError: '' };
     }
-    // eslint-disable-next-line
-  }, [scheduleConfig]);
-
-  const handleTomlChange = (e) => {
-    const value = e.target.value;
-    setTomlString(value);
-    try {
-      const parsed = toml.parse(value);
-      setTomlError('');
-      setScheduleConfig(parsed);
-      onConfigChange(parsed);
-    } catch (err) {
-      setTomlError('Invalid TOML: ' + err.message);
-    }
-  };
+  }, [scheduleConfig, wallpackType, metadata, imageFiles]);
 
   const handleCopy = () => {
     if (tomlRef.current) {
@@ -208,7 +147,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
     URL.revokeObjectURL(url);
   };
 
-  if (!isInitialized) {
+  if (!scheduleConfig) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
@@ -376,7 +315,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Use "Add All" to quickly include all uploaded images</p>
+                        <p>Use &quot;Add All&quot; to quickly include all uploaded images</p>
                       </div>
                     </>
                   )}
@@ -477,7 +416,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <p>Set your preferred rotation interval in the Wallpy CLI</p>
+                        <p>Choose how often the image changes, from 15 minutes to a day</p>
                       </div>
                     </>
                   )}

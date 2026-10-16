@@ -38,11 +38,6 @@ export default function WeekPreview({ scheduleConfig, imageFiles }) {
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed]);
 
-  // Reset image index when day changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [currentDayIndex]);
-
   const togglePlayback = () => setIsPlaying(!isPlaying);
   
   const resetToMonday = () => {
@@ -53,6 +48,7 @@ export default function WeekPreview({ scheduleConfig, imageFiles }) {
 
   const selectDay = (index) => {
     setCurrentDayIndex(index);
+    setCurrentImageIndex(0); // a new day starts at its first image
     setIsPlaying(false);
   };
 

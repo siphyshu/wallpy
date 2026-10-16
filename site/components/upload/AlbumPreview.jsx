@@ -7,7 +7,9 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
   const [playbackSpeed, setPlaybackSpeed] = useState(2); // seconds per image
 
   const albumImages = scheduleConfig?.album?.images || [];
-  const currentImageName = albumImages[currentIndex];
+  // Images can be removed while previewing: fall back to the first.
+  const index = currentIndex < albumImages.length ? currentIndex : 0;
+  const currentImageName = albumImages[index];
   const currentImageFile = imageFiles.find(f => f.name === currentImageName);
 
   // Playback effect
@@ -27,13 +29,6 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
     }
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed, albumImages.length, scheduleConfig?.album?.shuffle]);
-
-  // Reset index when album changes
-  useEffect(() => {
-    if (currentIndex >= albumImages.length) {
-      setCurrentIndex(0);
-    }
-  }, [albumImages.length, currentIndex]);
 
   const togglePlayback = () => setIsPlaying(!isPlaying);
   
@@ -119,7 +114,7 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
       {/* Progress Indicator */}
       <div className="text-center mb-4">
         <div className="text-2xl font-bold text-white mb-1">
-          {albumImages.length > 0 ? `${currentIndex + 1} / ${albumImages.length}` : '0 / 0'}
+          {albumImages.length > 0 ? `${index + 1} / ${albumImages.length}` : '0 / 0'}
         </div>
         <div className="text-sm text-white/60">
           {scheduleConfig?.album?.shuffle ? 'Shuffle enabled' : 'Sequential order'}
@@ -131,7 +126,7 @@ export default function AlbumPreview({ scheduleConfig, imageFiles }) {
         <div className="w-full bg-white/10 rounded-full h-1.5 mb-4">
           <div 
             className="bg-white h-1.5 rounded-full transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / albumImages.length) * 100}%` }}
+            style={{ width: `${((index + 1) / albumImages.length) * 100}%` }}
           />
         </div>
       )}

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { CloudArrowUpIcon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import toml from '@iarna/toml';
+import { scheduleToBuilder } from '@/lib/spec/builder';
 
 export default function ScheduleUploader({ onConfigChange, currentConfig, wallpackType = 'daypack' }) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -33,35 +34,12 @@ export default function ScheduleUploader({ onConfigChange, currentConfig, wallpa
       reader.onload = (e) => {
         try {
           const content = e.target.result;
-          const parsedConfig = toml.parse(content);
-          
-          // Validate the parsed config
-          if (!parsedConfig.meta || !parsedConfig.meta.type) {
-            throw new Error('Invalid schedule file: missing meta.type');
+          const parsed = toml.parse(content);
+          // Spec 1 files must match the chosen type; spec 2 files map onto any builder.
+          if (parsed.meta && parsed.meta.type !== getExpectedType()) {
+            throw new Error(`This schedule file is not a ${getTypeName()} configuration (expected type: ${getExpectedType()})`);
           }
-          
-          const expectedType = getExpectedType();
-          
-          // Check if it matches the expected type
-          if (parsedConfig.meta.type !== expectedType) {
-            throw new Error(`This schedule file is not a ${getTypeName()} configuration (expected type: ${expectedType})`);
-          }
-          
-          // Validate structure based on type
-          if (wallpackType === 'daypack') {
-            if (!parsedConfig.timeblocks || Object.keys(parsedConfig.timeblocks).length === 0) {
-              throw new Error('Invalid schedule file: no timeblocks found');
-            }
-          } else if (wallpackType === 'weekpack') {
-            if (!parsedConfig.days || Object.keys(parsedConfig.days).length === 0) {
-              throw new Error('Invalid schedule file: no days configuration found');
-            }
-          } else if (wallpackType === 'album') {
-            if (!parsedConfig.album) {
-              throw new Error('Invalid schedule file: no album configuration found');
-            }
-          }
-          
+          const parsedConfig = scheduleToBuilder(wallpackType, parsed);
           resolve(parsedConfig);
         } catch (error) {
           reject(error);

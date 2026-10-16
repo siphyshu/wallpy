@@ -1,7 +1,9 @@
+import { IMAGE_MIMES, PACK_LIMITS, safeImageName } from '@/lib/packs/limits';
 import { useState, useRef } from 'react';
 
 export default function FileUploader({ files, onFilesChange, wallpackType }) {
   const [dragActive, setDragActive] = useState(false);
+  const [skipped, setSkipped] = useState([]);
   const fileInputRef = useRef(null);
 
   const handleDrag = (e) => {
@@ -32,20 +34,32 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
   };
 
   const handleFiles = (newFiles) => {
-    const validFiles = Array.from(newFiles).filter(file => {
-      const isValidType = file.type.startsWith('image/') || file.name.endsWith('.zip');
-      const isValidSize = file.size <= 100 * 1024 * 1024; // 100MB limit
-      return isValidType && isValidSize;
+    const all = Array.from(newFiles);
+    const rejected = [];
+    const validFiles = all.filter(file => {
+      if (!IMAGE_MIMES.includes(file.type)) { rejected.push(`${file.name}: use JPG, PNG or WebP`); return false; }
+      if (file.size > PACK_LIMITS.maxFileBytes) { rejected.push(`${file.name}: larger than 30 MB`); return false; }
+      return true;
     });
+    const room = PACK_LIMITS.maxFiles - files.length;
+    if (validFiles.length > room) rejected.push(`Only ${PACK_LIMITS.maxFiles} images per pack`);
+    setSkipped(rejected);
 
-    const processedFiles = validFiles.map(file => ({
-      file,
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
-    }));
+    // Names the pack format accepts (lowercase extension, safe characters),
+    // unique ignoring case; schedules refer to images by these names.
+    const taken = files.map(f => f.name);
+    const processedFiles = validFiles.slice(0, Math.max(room, 0)).map(file => {
+      const name = safeImageName(file.name, taken);
+      taken.push(name);
+      return {
+        file,
+        id: Math.random().toString(36).substr(2, 9),
+        name,
+        size: file.size,
+        type: file.type,
+        preview: URL.createObjectURL(file)
+      };
+    });
 
     onFilesChange(prev => [...prev, ...processedFiles]);
   };
@@ -72,28 +86,28 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
         return {
           title: 'Upload Images for Daypack',
           description: 'Upload images that will be used throughout the day. You can organize them into time blocks later.',
-          accept: 'image/*',
+          accept: 'image/jpeg,image/png,image/webp',
           maxFiles: 20
         };
       case 'weekpack':
         return {
           title: 'Upload Images for Weekpack',
           description: 'Upload images for different days of the week. You can assign them to specific days later.',
-          accept: 'image/*',
+          accept: 'image/jpeg,image/png,image/webp',
           maxFiles: 35
         };
       case 'album':
         return {
           title: 'Upload Images for Album',
           description: 'Upload a collection of images that will rotate or shuffle.',
-          accept: 'image/*',
+          accept: 'image/jpeg,image/png,image/webp',
           maxFiles: 50
         };
       default:
         return {
           title: 'Upload Images',
           description: 'Upload your wallpaper images.',
-          accept: 'image/*',
+          accept: 'image/jpeg,image/png,image/webp',
           maxFiles: 20
         };
     }
@@ -150,11 +164,17 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
                   Drop your files here or click to browse
                 </p>
                 <p className="text-sm text-white/60">
-                  Supports: JPG, PNG, ZIP (max 100MB)
+                  JPG, PNG or WebP · up to 30 MB each · {PACK_LIMITS.maxFiles} images max
                 </p>
               </div>
             </div>
           </div>
+
+          {skipped.length > 0 && (
+            <ul className="mt-3 space-y-1 text-xs text-red-400">
+              {skipped.map((reason) => <li key={reason}>Skipped {reason}</li>)}
+            </ul>
+          )}
 
           {/* Upload Button */}
           <button

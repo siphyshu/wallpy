@@ -1,3 +1,17 @@
+const AI_OPTIONS = [
+  { id: 'none', label: 'No AI', help: 'Made without AI image tools.' },
+  { id: 'assisted', label: 'AI-assisted', help: 'AI tools helped, e.g. upscaling, touch-ups or parts of the image.' },
+  { id: 'generated', label: 'AI-generated', help: 'The images were generated with AI tools.' },
+];
+
+const LICENSE_OPTIONS = [
+  { id: 'personal-use', label: 'Personal use only' },
+  { id: 'cc-by-4.0', label: 'CC BY 4.0 (credit required)' },
+  { id: 'cc-by-nc-4.0', label: 'CC BY-NC 4.0 (credit, non-commercial)' },
+  { id: 'cc0', label: 'CC0 (public domain)' },
+  { id: 'other', label: 'Other' },
+];
+
 export default function PackMetadata({ metadata, onMetadataChange }) {
   const handleChange = (field, value) => {
     onMetadataChange({
@@ -97,7 +111,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
                     : 'bg-white/5 text-white/70 border-white/20 hover:bg-white/10'
                 }`}
               >
-                Someone else's work
+                Someone else&apos;s work
               </button>
             </div>
           </div>
@@ -131,6 +145,50 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
               </div>
             </div>
           )}
+
+          <hr className="border-white/10" />
+
+          {/* AI use (required) */}
+          <div>
+            <label className="block text-sm font-medium mb-3">
+              Was AI used to make these images? <span className="text-red-400">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {AI_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={metadata.aiUse === option.id}
+                  onClick={() => handleChange('aiUse', option.id)}
+                  className={`px-4 py-3 rounded-lg border transition-all text-sm font-medium ${
+                    metadata.aiUse === option.id
+                      ? 'bg-white text-black border-white'
+                      : 'bg-white/5 text-white/70 border-white/20 hover:bg-white/10'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-white/50 mt-2">
+              {AI_OPTIONS.find((o) => o.id === metadata.aiUse)?.help ??
+                'Shown as a label on the pack. The credit stays yours either way.'}
+            </p>
+          </div>
+
+          {/* License */}
+          <div>
+            <label className="block text-sm font-medium mb-2">License</label>
+            <select
+              value={metadata.license}
+              onChange={(e) => handleChange('license', e.target.value)}
+              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white transition-all"
+            >
+              {LICENSE_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id} className="bg-[#1d1d1d]">{option.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

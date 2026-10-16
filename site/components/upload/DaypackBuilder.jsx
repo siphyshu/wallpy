@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PlusIcon, TrashIcon, ArrowPathIcon, EyeIcon, EyeSlashIcon, ClockIcon, PhotoIcon, ArrowsUpDownIcon, SunIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Shuffle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TIME_PATTERN, fallbackMinutes } from '@/lib/spec/time';
 
 const solarEvents = [
   { value: 'midnight', label: 'Midnight' },
@@ -37,49 +38,38 @@ export default function DaypackBuilder({
     onConfigChange(newConfig);
   };
 
+  // Same rule as the pack spec (lib/spec/time.ts, from spec/schedule.schema.json).
   const validateTimeInput = (value) => {
     if (!value) return { isValid: false, error: 'Time is required' };
-    
-    // Check for absolute time format (24h)
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (timeRegex.test(value)) {
-      return { isValid: true, error: null };
-    }
-    
-    // Check for solar event with offset
-    const solarWithOffsetRegex = /^(midnight|dawn|sunrise|noon|sunset|dusk)([+-]\d+m)$/;
-    if (solarWithOffsetRegex.test(value)) {
-      return { isValid: true, error: null };
-    }
-    
-    // Check for solar event only
-    if (validSolarEvents.includes(value)) {
-      return { isValid: true, error: null };
-    }
-    
-    return { 
-      isValid: false, 
-      error: 'Invalid format. Use: solar event (dawn, sunrise, noon, sunset, dusk, midnight), solar event with offset (dawn+15m, sunset-30m), or 24h time (12:00, 14:30)' 
+    if (TIME_PATTERN.test(value)) return { isValid: true, error: null };
+    return {
+      isValid: false,
+      error: 'Use a solar event (dawn, sunrise, noon, sunset, dusk, midnight), optionally with an offset (dawn+15m, sunset-1h, dusk+1h30m), or a 24h time (06:30, 14:00)',
     };
   };
 
+  // In the pack format a block runs until the next block starts.
+  const startMinutes = (at) => {
+    try { return fallbackMinutes(at); } catch { return Number.POSITIVE_INFINITY; }
+  };
+  const blocksInTimeOrder = Object.entries(scheduleConfig.timeblocks)
+    .sort(([, a], [, b]) => startMinutes(a.start) - startMinutes(b.start));
+  const nextStartOf = (blockName) => {
+    const i = blocksInTimeOrder.findIndex(([name]) => name === blockName);
+    if (blocksInTimeOrder.length < 2) return 'the same time tomorrow';
+    const [nextName, next] = blocksInTimeOrder[(i + 1) % blocksInTimeOrder.length];
+    return `${next.start} (${nextName})`;
+  };
+
   // Debounced validation
-  const debouncedValidation = useCallback(
-    (() => {
-      let timeoutId;
-      return (blockName, field, value) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          const validation = validateTimeInput(value);
-          setTimeErrors(prev => ({
-            ...prev,
-            [`${blockName}-${field}`]: validation.error
-          }));
-        }, 500);
-      };
-    })(),
-    []
-  );
+  const validationTimer = useRef(null);
+  const debouncedValidation = (blockName, field, value) => {
+    clearTimeout(validationTimer.current);
+    validationTimer.current = setTimeout(() => {
+      const validation = validateTimeInput(value);
+      setTimeErrors(prev => ({ ...prev, [`${blockName}-${field}`]: validation.error }));
+    }, 500);
+  };
 
   const addTimeBlock = () => {
     const name = newBlockName.trim() || `Block ${Object.keys(scheduleConfig.timeblocks).length + 1}`;
@@ -87,7 +77,6 @@ export default function DaypackBuilder({
     const newConfig = { ...scheduleConfig };
     newConfig.timeblocks[safeName] = {
       start: 'sunrise',
-      end: 'sunset',
       images: [],
       shuffle: false
     };
@@ -494,17 +483,13 @@ export default function DaypackBuilder({
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1 text-white/60">End Time</label>
-                        <input
-                          type="text"
-                          value={timeInputs[`${blockName}-end`] !== undefined ? timeInputs[`${blockName}-end`] : block.end}
-                          onChange={e => updateTimeBlock(blockName, 'end', e.target.value)}
-                          placeholder="e.g., noon, sunset-30m, 14:00"
-                          className={`w-full px-2 py-1.5 bg-white/10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xs ${timeErrors[`${blockName}-end`] ? 'border-red-400' : 'border-white/20'}`}
-                        />
-                        {timeErrors[`${blockName}-end`] && (
-                          <p className="text-xs text-red-400 mt-1">{timeErrors[`${blockName}-end`]}</p>
-                        )}
+                        <label className="block text-xs font-medium mb-1 text-white/60">Until</label>
+                        <div
+                          className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/60 text-xs truncate"
+                          title="A block runs until the next block starts"
+                        >
+                          {nextStartOf(blockName)}
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">

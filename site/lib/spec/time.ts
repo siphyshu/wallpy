@@ -3,6 +3,7 @@
 // a UTC clock would show at the same wall-clock reading. Arithmetic on walls
 // is wall-clock arithmetic, exactly as the spec requires.
 import { getTimes } from 'suncalc';
+import schema from '@/lib/spec/schedule.schema.json';
 
 export type Location = { latitude: number; longitude: number; timezone: string };
 export type SolarEvent = 'midnight' | 'dawn' | 'sunrise' | 'noon' | 'sunset' | 'dusk';
@@ -11,6 +12,9 @@ export type ParsedAt =
   | { kind: 'solar'; event: SolarEvent; offsetMinutes: number };
 
 export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+
+/** The spec's own pattern for `at` (spec/schedule.schema.json), for live form validation. */
+export const TIME_PATTERN = new RegExp(schema.$defs.time.pattern);
 
 /** Used without a location, or when an event doesn't happen (polar day/night). */
 export const FALLBACKS: Record<SolarEvent, [number, number]> = {

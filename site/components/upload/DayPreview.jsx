@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { builderToSchedule } from '@/lib/spec/builder';
+import { active } from '@/lib/spec/scheduler';
+import { fallbackMinutes } from '@/lib/spec/time';
 import { PlayIcon, PauseIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 export default function DayPreview({ scheduleConfig, imageFiles }) {
@@ -10,82 +13,20 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
   const [currentBlock, setCurrentBlock] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
 
-  // Parse time string to minutes (0-1439)
-  const parseTime = (timeStr) => {
-    // Handle absolute time format (e.g., "12:00", "14:30")
-    if (timeStr.includes(':')) {
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      return hours * 60 + minutes;
-    }
-    
-    // Handle solar events with offsets
-    const solarWithOffset = timeStr.match(/^(midnight|dawn|sunrise|noon|sunset|dusk)([+-]\d+m)$/);
-    if (solarWithOffset) {
-      const [, event, offset] = solarWithOffset;
-      const baseTime = getSolarEventTime(event);
-      const offsetMinutes = parseInt(offset);
-      return baseTime + offsetMinutes;
-    }
-    
-    // Handle solar events only
-    return getSolarEventTime(timeStr);
-  };
-
-  // Get approximate time for solar events (in minutes)
-  const getSolarEventTime = (event) => {
-    const solarTimes = {
-      midnight: 0,
-      dawn: 330,      // 5.5 * 60
-      sunrise: 390,   // 6.5 * 60
-      noon: 720,      // 12 * 60
-      sunset: 1110,   // 18.5 * 60
-      dusk: 1170      // 19.5 * 60
-    };
-    return solarTimes[event] || 720;
-  };
-
-  // Get current time block and image
-  const getCurrentState = (minute) => {
-    if (!scheduleConfig.timeblocks) return { block: null, image: null };
-    
-    const blocks = Object.entries(scheduleConfig.timeblocks);
-    
-    for (const [blockName, block] of blocks) {
-      const startTime = parseTime(block.start);
-      const endTime = parseTime(block.end);
-      // Handle overnight blocks (e.g., sunset to sunrise)
-      let isActive = false;
-      if (endTime < startTime) {
-        // Overnight block
-        isActive = minute >= startTime || minute < endTime;
-      } else {
-        // Normal block
-        isActive = minute >= startTime && minute < endTime;
-      }
-      if (isActive && block.images.length > 0) {
-        // Determine which image to show
-        let imageIndex = 0;
-        if (block.shuffle) {
-          // For shuffle, use time-based pseudo-random selection
-          const seed = minute + blockName.length;
-          imageIndex = seed % block.images.length;
-        } else {
-          // For sequential, cycle through images based on time
-          const timeInBlock = endTime < startTime 
-            ? (minute >= startTime ? minute - startTime : minute + (1440 - startTime))
-            : minute - startTime;
-          const cycleDuration = (endTime < startTime ? (1440 - startTime) + endTime : endTime - startTime) / block.images.length;
-          imageIndex = Math.floor(timeInBlock / cycleDuration) % block.images.length;
-        }
-        return {
-          block: blockName,
-          image: block.images[imageIndex]
-        };
-      }
-    }
-    
-    return { block: null, image: null };
-  };
+  // The preview runs the real scheduler (lib/spec, the same rules as the CLI)
+  // on today's date at the fallback solar times.
+  const schedule = useMemo(
+    () => builderToSchedule('daypack', scheduleConfig, { name: 'Preview' }),
+    [scheduleConfig],
+  );
+  const timeline = useMemo(() => schedule.slot.map((slot, i) => {
+    const next = schedule.slot[(i + 1) % schedule.slot.length];
+    let start = null;
+    let end = null;
+    try { start = fallbackMinutes(slot.at ?? '00:00'); } catch {}
+    try { end = fallbackMinutes(next.at ?? '00:00'); } catch {}
+    return { name: slot.label ?? `Block ${i + 1}`, at: slot.at ?? '00:00', nextAt: next.at ?? '00:00', start, end, slot };
+  }), [schedule]);
 
   // Format time for display
   const formatTime = (minutes) => {
@@ -102,18 +43,7 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
     return false;
   };
 
-  // Get time block info
-  const getTimeBlockInfo = (blockName) => {
-    if (!blockName || !scheduleConfig.timeblocks[blockName]) return null;
-    const block = scheduleConfig.timeblocks[blockName];
-    return {
-      name: blockName,
-      start: block.start,
-      end: block.end,
-      imageCount: block.images.length,
-      shuffle: block.shuffle
-    };
-  };
+  const blockInfo = timeline.find((b) => b.name === currentBlock) ?? null;
 
   // Playback controls
   useEffect(() => {
@@ -132,12 +62,26 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed]);
 
-  // Update current state when time changes
+  // Every block needs an image before there's anything to preview.
+  const usable = schedule.slot.length > 0 && schedule.slot.every((s) => s.images.length > 0);
+
+  // Ask the scheduler which image shows at the chosen minute.
   useEffect(() => {
-    const state = getCurrentState(currentMinute);
-    setCurrentBlock(state.block);
-    setCurrentImage(state.image);
-  }, [currentMinute, scheduleConfig]);
+    let cancelled = false;
+    const now = new Date();
+    const instant = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) + currentMinute * 60_000;
+    if (!usable) return;
+    active(schedule, instant, 'UTC', null)
+      .then((a) => {
+        if (cancelled) return;
+        setCurrentBlock(timeline[a.slot]?.name ?? null);
+        setCurrentImage(a.image);
+      })
+      .catch(() => {
+        if (!cancelled) { setCurrentBlock(null); setCurrentImage(null); }
+      });
+    return () => { cancelled = true; };
+  }, [currentMinute, schedule, timeline, usable]);
 
   const togglePlayback = () => setIsPlaying(!isPlaying);
   const resetTime = () => setCurrentMinute(360);
@@ -164,8 +108,7 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
     animate();
   };
 
-  const blockInfo = getTimeBlockInfo(currentBlock);
-  const currentImageFile = imageFiles.find(f => f.name === currentImage);
+  const currentImageFile = usable ? imageFiles.find(f => f.name === currentImage) : null;
 
   return (
     <div className="bg-white/5 rounded-xl shadow-lg p-6 border border-white/10">
@@ -260,33 +203,31 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
       <div className="mt-6">
         <h4 className="text-sm font-medium text-white/80 mb-3">Time Block Timeline</h4>
         <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2 scrollbar">
-          {Object.entries(scheduleConfig.timeblocks || {}).map(([blockName, block]) => {
-            const startTime = parseTime(block.start);
-            const endTime = parseTime(block.end);
-            const isActive = currentBlock === blockName;
+          {timeline.map((block) => {
+            const isActive = currentBlock === block.name;
             return (
-              <div key={blockName} className={`grid grid-cols-3 items-center gap-3 p-4 rounded-lg transition-colors ${
+              <div key={block.name} className={`grid grid-cols-3 items-center gap-3 p-4 rounded-lg transition-colors ${
                   isActive ? 'bg-white/10 border border-white/20' : 'bg-white/5'
                 }`}>
                   {/* Start Time */}
                   <div className="text-xs text-white/60 flex flex-col items-start gap-0">
-                    <span>{formatTime(startTime)}</span>
-                    {isSolarEvent(block.start) && (
-                      <span key={blockName + '-start'} className="text-[10px] text-white/40 mt-0.5">({block.start})</span>
+                    <span>{block.start === null ? '--:--' : formatTime(((block.start % 1440) + 1440) % 1440)}</span>
+                    {isSolarEvent(block.at) && (
+                      <span className="text-[10px] text-white/40 mt-0.5">({block.at})</span>
                     )}
                   </div>
                   {/* Block Name and Details */}
                   <div className="flex flex-col items-center min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{blockName}</div>
+                    <div className="text-sm font-medium text-white truncate">{block.name}</div>
                     <div className="text-xs text-white/60 truncate">
-                      {block.images.length} images • {block.shuffle ? 'Shuffle' : 'Sequential'}
+                      {block.slot.images.length} images • {block.slot.shuffle ? 'Shuffle' : 'Sequential'}
                     </div>
                   </div>
-                  {/* End Time */}
+                  {/* Ends when the next block starts */}
                   <div className="text-xs text-white/60 flex flex-col items-end gap-0">
-                    <span>{formatTime(endTime)}</span>
-                    {isSolarEvent(block.end) && (
-                      <span key={blockName + '-end'} className="text-[10px] text-white/40 mt-0.5">({block.end})</span>
+                    <span>{block.end === null ? '--:--' : formatTime(((block.end % 1440) + 1440) % 1440)}</span>
+                    {isSolarEvent(block.nextAt) && (
+                      <span className="text-[10px] text-white/40 mt-0.5">({block.nextAt})</span>
                     )}
                   </div>
                 </div>
@@ -294,7 +235,7 @@ export default function DayPreview({ scheduleConfig, imageFiles }) {
           })}
         </div>
         <div className="text-xs text-white/50 mt-4 text-center">
-          Note: Solar event times will vary based on your location.
+          Times shown at typical solar times; on your computer they follow your location&apos;s real sunrise and sunset.
         </div>
       </div>
     </div>
