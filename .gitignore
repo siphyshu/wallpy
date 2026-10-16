@@ -8,3 +8,4 @@ playground.py
 playground.ipynb
 tree.txt
 dist/
+.DS_Store

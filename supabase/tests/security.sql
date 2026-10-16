@@ -357,5 +357,16 @@ select pg_temp.expect_error('a closed pack takes no new versions',
   $q$select public.create_version((select r ->> 'slug' from spam), pg_temp.payload('Spam again', '{c.jpg}', jsonb_build_array(jsonb_build_object('path', 'c.jpg', 'sha256', repeat('c', 64)))))$q$,
   '{42501}');
 
+-- Owners can delete a declined pack (versions, files and events go with it).
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+delete from public.packs where slug = (select r ->> 'slug' from spam);
+select pg_temp.as_admin();
+select pg_temp.expect('others cannot delete someone''s pack',
+  exists (select 1 from public.packs where slug = (select r ->> 'slug' from spam)));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+delete from public.packs where slug = (select r ->> 'slug' from spam);
+select pg_temp.expect('the owner can delete a declined pack',
+  not exists (select 1 from public.pack_versions where id = (select (r ->> 'version_id')::uuid from spam)));
+
 select pg_temp.as_admin();
 rollback;

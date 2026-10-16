@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PackCard } from '@/lib/types';
+import DeletePackButton from '@/components/profile/DeletePackButton';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   public: { label: 'Published', className: 'bg-green-500/20 text-green-300 border-green-500/30' },
@@ -26,7 +27,7 @@ function statusOf(pack: PackCard) {
   return STATUS[pack.review ?? pack.status ?? 'draft'] ?? STATUS.draft;
 }
 
-export default function PacksSection({ type, packs = [] }: { type: 'uploaded' | 'favourited'; packs: PackCard[] }) {
+export default function PacksSection({ type, packs = [], canManage = false }: { type: 'uploaded' | 'favourited'; packs: PackCard[]; canManage?: boolean }) {
   const title = type === 'uploaded' ? 'Uploaded Packs' : 'Favourited Packs';
   
   return (
@@ -60,30 +61,36 @@ export default function PacksSection({ type, packs = [] }: { type: 'uploaded' | 
           {packs.map(pack => {
             const status = statusOf(pack);
             return (
-              <Link
+              <div
                 key={pack.id}
-                href={pack.url}
                 className="group block bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-4 hover:bg-white/10 transition-all duration-300 hover:shadow-lg hover:shadow-white/5 hover:-translate-y-1"
               >
-                <div className="relative aspect-video mb-4 rounded-lg overflow-hidden bg-white/5">
-                  <Image
-                    src={pack.preview}
-                    alt={pack.name}
-                    fill
-                    sizes="(min-width: 1024px) 20vw, 50vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-                <h3 className="font-semibold text-white text-sm truncate">{pack.name}</h3>
+                <Link href={pack.url} className="block">
+                  <div className="relative aspect-video mb-4 rounded-lg overflow-hidden bg-white/5">
+                    <Image
+                      src={pack.preview}
+                      alt={pack.name}
+                      fill
+                      sizes="(min-width: 1024px) 20vw, 50vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <h3 className="font-semibold text-white text-sm truncate">{pack.name}</h3>
+                </Link>
                 <div className="flex items-center justify-between mt-3">
                   {type === 'uploaded' ? (
                     <span className={`text-xs px-2 py-1 rounded-full border ${status.className}`}>{status.label}</span>
                   ) : (
                     <span className="text-xs text-white/60">{pack.author}</span>
                   )}
-                  <span className="text-xs text-white/60">{pack.downloads} downloads</span>
+                  {/* A declined pack can't come back: let its owner clear it away. */}
+                  {canManage && pack.review === 'declined' ? (
+                    <DeletePackButton packId={pack.id} />
+                  ) : (
+                    <span className="text-xs text-white/60">{pack.downloads} downloads</span>
+                  )}
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>

@@ -1,0 +1,38 @@
+spec = 2
+name = "Colour Week"
+description = "A different colour for each day of the week."
+
+[[slot]]
+label = "mon"
+days = ["mon"]
+images = ["mon.jpg"]
+
+[[slot]]
+label = "tue"
+days = ["tue"]
+images = ["tue.jpg"]
+
+[[slot]]
+label = "wed"
+days = ["wed"]
+images = ["wed.jpg"]
+
+[[slot]]
+label = "thu"
+days = ["thu"]
+images = ["thu.jpg"]
+
+[[slot]]
+label = "fri"
+days = ["fri"]
+images = ["fri.jpg"]
+
+[[slot]]
+label = "sat"
+days = ["sat"]
+images = ["sat.jpg"]
+
+[[slot]]
+label = "sun"
+days = ["sun"]
+images = ["sun.jpg"]

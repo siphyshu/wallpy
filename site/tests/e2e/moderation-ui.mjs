@@ -53,6 +53,7 @@ try {
   const cardFor = (title) => mod.locator('article', { hasText: title });
   check('both test packs are in the queue', await cardFor(`Reject Me ${runId}`).isVisible() && await cardFor(`Approve Me ${runId}`).isVisible());
   await shot(mod, 'mod-1-queue');
+  await mod.locator('article').first().screenshot({ path: `${process.env.SHOTS || '/tmp'}/mod-1-card.png` }).catch(() => {});
 
   // Reject with a note.
   const rejectCard = cardFor(`Reject Me ${runId}`);
@@ -96,6 +97,18 @@ try {
   await up.goto(`${BASE}/packs/${slugs['Decline Me']}/edit`, { waitUntil: 'networkidle' });
   check('the edit page sends a declined pack back to its page', up.url().endsWith(`/packs/${slugs['Decline Me']}`));
   await shot(up, 'mod-4-declined');
+
+  // The uploader can delete a declined pack from their profile.
+  await up.goto(`${BASE}/profile/${uploader.username}`, { waitUntil: 'networkidle' });
+  const declinedCard = up.locator('div.group', { hasText: `Decline Me ${runId}` });
+  check('profile marks the pack as declined', await declinedCard.getByText('Declined', { exact: true }).isVisible());
+  check('only the declined pack offers Delete', await up.getByRole('button', { name: 'Delete', exact: true }).count() === 1);
+  await declinedCard.getByRole('button', { name: 'Delete', exact: true }).click();
+  await shot(up, 'mod-5-delete-confirm');
+  await declinedCard.getByRole('button', { name: 'Confirm' }).click();
+  await declinedCard.waitFor({ state: 'detached', timeout: 30_000 });
+  const gone = await up.goto(`${BASE}/packs/${slugs['Decline Me']}`);
+  check('a deleted pack is gone', gone.status() === 404);
 
   // The approved pack is public.
   const manifest = await fetch(`${BASE}/api/packs/${slugs['Approve Me']}/manifest`);

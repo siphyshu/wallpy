@@ -91,7 +91,7 @@ export default function ReviewActions({ versionId, slug, isUpdate = false }: { v
               <button
                 onClick={() => setMode('decline')}
                 disabled={pending}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-red-300/80 border border-transparent hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 sm:ml-auto"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20 transition-colors disabled:opacity-50"
               >
                 Decline
               </button>

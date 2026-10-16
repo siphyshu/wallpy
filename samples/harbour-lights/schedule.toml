@@ -1,0 +1,28 @@
+spec = 2
+name = "Harbour Lights"
+description = "A small harbour through the day: dawn, morning, afternoon, sunset and night."
+
+[[slot]]
+label = "dawn"
+at = "dawn"
+images = ["dawn.jpg"]
+
+[[slot]]
+label = "morning"
+at = "sunrise+1h"
+images = ["morning.jpg"]
+
+[[slot]]
+label = "afternoon"
+at = "noon"
+images = ["afternoon.jpg"]
+
+[[slot]]
+label = "sunset"
+at = "sunset-45m"
+images = ["sunset.jpg"]
+
+[[slot]]
+label = "night"
+at = "dusk+30m"
+images = ["night.jpg"]

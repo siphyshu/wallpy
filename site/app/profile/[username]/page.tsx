@@ -33,7 +33,7 @@ export default async function ProfilePage({ params }: PageProps<'/profile/[usern
               <ProfileCard user={profile} isCurrentUser={isCurrentUser} />
             </div>
             <div className="w-full lg:w-2/3 flex flex-col gap-8">
-              <PacksSection type="uploaded" packs={packs} />
+              <PacksSection type="uploaded" packs={packs} canManage={isCurrentUser} />
               {isCurrentUser && <PacksSection type="favourited" packs={favourites} />}
             </div>
           </div>
