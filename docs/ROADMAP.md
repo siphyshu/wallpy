@@ -42,7 +42,7 @@ Ship the site (wallpy.siphyshu.me), tested end to end, and a Go CLI
 - [ ] Swap the temporary admin R2 token `wallpy-admin-setup` for a bucket-scoped `wallpy-site-prod`
 - [ ] DNS: `wallpy.siphyshu.me` points at a dead IP; stale `*.siphyshu.me` wildcard
 - [ ] Deploy the site (host TBD) with production env vars
-- [ ] Footer says "© 2025"
+- [x] Footer year updated to 2026 (2026-10-17)
 - [ ] Replace trial / unlicensed fonts (Thunder, Megna trial)
 - [ ] Push the `monorepo` branch (only when asked)
 
