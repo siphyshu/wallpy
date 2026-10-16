@@ -110,6 +110,12 @@ func DetectDark() bool {
 	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
 }
 
+// Interactive reports whether someone can answer questions: input and
+// output are both a terminal.
+func Interactive() bool {
+	return term.IsTerminal(os.Stdin.Fd()) && term.IsTerminal(os.Stdout.Fd())
+}
+
 // Look is everything a screen needs to draw: a palette and the time it is.
 type Look struct {
 	Theme

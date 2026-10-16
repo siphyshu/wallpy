@@ -28,51 +28,55 @@ func newBrowse(version string) *cobra.Command {
 		Long: "Browse the gallery with previews of each pack's wallpapers. Enter makes\n" +
 			"the selected pack your wallpaper.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := remote.New(version)
-			search := strings.Join(args, " ")
-			packs, total, err := c.Gallery(cmd.Context(), search)
-			if err != nil {
-				return explainNetwork(c, "", err)
-			}
-			st, _ := state.Load()
-			p := printerAt(time.Now(), st.Location())
-			if len(packs) == 0 {
-				p.Blank()
-				if search != "" {
-					p.Raw(p.Muted(fmt.Sprintf("No packs match %q.", search)))
-				} else {
-					p.Raw(p.Muted("The gallery is empty."))
-				}
-				p.Blank()
-				return nil
-			}
-			if !p.Styled() { // piped: a plain list
-				for _, pk := range packs {
-					fmt.Printf("%s\t%s\t%s\tby %s\n", pk.Slug, pk.Name, pk.Kind, pk.Author)
-				}
-				return nil
-			}
-			lib, _ := library.Open()
-			m := &browser{ctx: cmd.Context(), c: c, p: p, packs: packs, total: total, search: search,
-				pictures: map[string]image.Image{}, loading: map[string]bool{}, active: st.Active}
-			if lib != nil {
-				m.installed = map[string]bool{}
-				if list, err := lib.List(); err == nil {
-					for _, pk := range list {
-						m.installed[pk.Slug] = true
-					}
-				}
-			}
-			final, err := tea.NewProgram(m, tea.WithContext(cmd.Context())).Run()
-			if err != nil {
-				return err
-			}
-			if pick := final.(*browser).picked; pick != "" {
-				return use(cmd.Context(), version, pick)
-			}
-			return nil
+			return browse(cmd.Context(), version, strings.Join(args, " "))
 		},
 	}
+}
+
+// browse shows the gallery and, when a pack is picked, uses it.
+func browse(ctx context.Context, version, search string) error {
+	c := remote.New(version)
+	packs, total, err := c.Gallery(ctx, search)
+	if err != nil {
+		return explainNetwork(c, "", err)
+	}
+	st, _ := state.Load()
+	p := printerAt(time.Now(), st.Location())
+	if len(packs) == 0 {
+		p.Blank()
+		if search != "" {
+			p.Raw(p.Muted(fmt.Sprintf("No packs match %q.", search)))
+		} else {
+			p.Raw(p.Muted("The gallery is empty."))
+		}
+		p.Blank()
+		return nil
+	}
+	if !p.Styled() { // piped: a plain list
+		for _, pk := range packs {
+			fmt.Printf("%s\t%s\t%s\tby %s\n", pk.Slug, pk.Name, pk.Kind, pk.Author)
+		}
+		return nil
+	}
+	lib, _ := library.Open()
+	m := &browser{ctx: ctx, c: c, p: p, packs: packs, total: total, search: search,
+		pictures: map[string]image.Image{}, loading: map[string]bool{}, active: st.Active}
+	if lib != nil {
+		m.installed = map[string]bool{}
+		if list, err := lib.List(); err == nil {
+			for _, pk := range list {
+				m.installed[pk.Slug] = true
+			}
+		}
+	}
+	final, err := tea.NewProgram(m, tea.WithContext(ctx)).Run()
+	if err != nil {
+		return err
+	}
+	if pick := final.(*browser).picked; pick != "" {
+		return use(ctx, version, pick)
+	}
+	return nil
 }
 
 // browser is the gallery screen: a list on the left, the selected pack's

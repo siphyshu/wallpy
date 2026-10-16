@@ -20,7 +20,7 @@ import (
 func newLocation() *cobra.Command {
 	var clear bool
 	cmd := &cobra.Command{
-		Use:   "location [city | auto | lat,lon]",
+		Use:   "location [place]",
 		Short: "Set where you are, for real sunrise and sunset",
 		Long: "Set where you are, so packs follow your real sunrise and sunset.\n\n" +
 			"  auto       guess from your time zone (offline, approximate)\n" +
@@ -76,13 +76,14 @@ func newLocation() *cobra.Command {
 					return &problem{msg: sentence(err.Error()), fix: run("Without a connection, try ", "wallpy location auto", "."), err: err}
 				}
 				place = &results[0]
-				if len(results) > 1 && ui.Stdout().Styled() {
+				if ask := printerAt(time.Now(), st.Location()); len(results) > 1 && ask.Styled() && ui.Interactive() {
+					p := ask
 					options := make([]huh.Option[int], len(results))
 					for i, r := range results {
 						options[i] = huh.NewOption(r.Name, i)
 					}
 					choice := 0
-					if err := huh.NewSelect[int]().Title("Which " + query + "?").Options(options...).Value(&choice).Run(); err != nil {
+					if err := p.Ask(huh.NewSelect[int]().Title("Which " + query + "?").Options(options...).Value(&choice)); err != nil {
 						return errQuiet
 					}
 					place = &results[choice]

@@ -38,15 +38,34 @@ func Execute(ctx context.Context, version string) error {
 }
 
 func newRoot(version string) *cobra.Command {
+	cobra.EnableCommandSorting = false // help lists commands in the order below
 	root := &cobra.Command{
 		Use:   "wallpy",
 		Short: tagline,
 		Long:  tagline + "\n\nWallpaper packs that follow the sun, the week, or a schedule of their own.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return home(version)
+			return home(cmd.Context(), version)
 		},
 	}
-	root.AddCommand(newUse(version), newBrowse(version), newList(), newShow(version), newGet(version), newRemove(), newUpdate(version), newLocation(), newCheck(), newDoctor(version), newPause(), newResume(), newStop(), newRun())
+	root.AddGroup(
+		&cobra.Group{ID: "everyday", Title: "Everyday"},
+		&cobra.Group{ID: "packs", Title: "Your packs"},
+		&cobra.Group{ID: "settings", Title: "Settings and care"},
+		&cobra.Group{ID: "create", Title: "For pack creators"},
+	)
+	add := func(group string, cmds ...*cobra.Command) {
+		for _, c := range cmds {
+			c.GroupID = group
+			root.AddCommand(c)
+		}
+	}
+	add("everyday", newUse(version), newBrowse(version), newShow(version))
+	add("packs", newList(), newGet(version), newUpdate(version), newRemove())
+	add("settings", newLocation(), newPause(), newResume(), newStop(), newDoctor(version))
+	add("create", newCheck())
+	root.AddCommand(newRun())
+	root.SetHelpCommandGroupID("settings")
+	root.SetCompletionCommandGroupID("settings")
 	return root
 }
 

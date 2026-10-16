@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/siphyshu/wallpy/cli/internal/engine"
 	"github.com/siphyshu/wallpy/cli/internal/library"
+	"github.com/siphyshu/wallpy/cli/internal/service"
 	"github.com/siphyshu/wallpy/cli/internal/spec"
 	"github.com/siphyshu/wallpy/cli/internal/state"
 	"github.com/siphyshu/wallpy/cli/internal/ui"
@@ -24,7 +26,7 @@ func printerAt(now time.Time, loc *spec.Location) *ui.Printer {
 }
 
 // home is `wallpy` on its own: what's showing, today's slots, what's next.
-func home(version string) error {
+func home(ctx context.Context, version string) error {
 	lib, err := library.Open()
 	if err != nil {
 		return err
@@ -38,6 +40,9 @@ func home(version string) error {
 
 	cur, err := engine.Current(lib, st, now)
 	if errors.Is(err, engine.ErrNoActive) {
+		if packs, _ := lib.List(); len(packs) == 0 && !st.Welcomed && p.Styled() && ui.Interactive() {
+			return firstRun(ctx, p, version)
+		}
 		welcome(p, version, lib)
 		return nil
 	}
@@ -65,7 +70,11 @@ func home(version string) error {
 		return err
 	}
 	p.Blank()
+	agent, _ := service.Get()
 	switch {
+	case !agent.Running:
+		p.Notice("Background changes are off, so the wallpaper won't change on its own.")
+		p.Hints([2]string{"wallpy resume", "turn them on"})
 	case st.Paused:
 		p.Notice("Paused. Your wallpaper stays as it is.")
 		p.Hints([2]string{"wallpy resume", "start changing again"})

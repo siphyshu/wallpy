@@ -23,7 +23,8 @@ func newUse(version string) *cobra.Command {
 		Long: "Make a pack your wallpaper. Downloads it first if needed, sets the right\n" +
 			"image now, and keeps it changing in the background.\n\n" +
 			"<pack> is a pack name, a link from the gallery, or a pack folder.",
-		Example: "wallpy use zelda-wind-waker\nwallpy use https://wallpy.siphyshu.me/packs/ocean-hours\nwallpy use ./my-pack",
+		ValidArgsFunction: completeInstalledOrFolder,
+		Example:           "wallpy use zelda-wind-waker\nwallpy use https://wallpy.siphyshu.me/packs/ocean-hours\nwallpy use ./my-pack",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return &problem{msg: "Which pack?", fix: run("For example: ", "wallpy use zelda-wind-waker", ". Or find one with wallpy browse.")}

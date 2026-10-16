@@ -92,7 +92,8 @@ func newShow(version string) *cobra.Command {
 		Long: "Show a pack's credit, licence and schedule. Works for installed packs and,\n" +
 			"without installing anything, for packs in the gallery. --at shows what\n" +
 			"would be on screen at another time.",
-		Example: "wallpy show zelda-wind-waker\nwallpy show zelda-wind-waker --at 18:45\nwallpy show ocean-hours --at \"2026-12-24 08:00\"",
+		ValidArgsFunction: completeInstalled,
+		Example:           "wallpy show zelda-wind-waker\nwallpy show zelda-wind-waker --at 18:45\nwallpy show ocean-hours --at \"2026-12-24 08:00\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return &problem{msg: "Which pack?", fix: run("For example: ", "wallpy show zelda-wind-waker", "")}
@@ -226,9 +227,10 @@ func wrap(s string, width int) string {
 func newRemove() *cobra.Command {
 	var yes bool
 	cmd := &cobra.Command{
-		Use:     "remove <pack>",
-		Aliases: []string{"rm"},
-		Short:   "Delete an installed pack",
+		Use:               "remove <pack>",
+		ValidArgsFunction: completeInstalled,
+		Aliases:           []string{"rm"},
+		Short:             "Delete an installed pack",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return &problem{msg: "Which pack?", fix: run("See what's installed with ", "wallpy list", ".")}
@@ -255,7 +257,7 @@ func newRemove() *cobra.Command {
 				}
 				confirm := false
 				question := fmt.Sprintf("Delete %s (%s)?", pack.Title(), ui.Bytes(pack.Size()))
-				if err := huh.NewConfirm().Title(question).Affirmative("Delete").Negative("Keep").Value(&confirm).Run(); err != nil || !confirm {
+				if err := p.Ask(huh.NewConfirm().Title(question).Affirmative("Delete").Negative("Keep").Value(&confirm)); err != nil || !confirm {
 					p.Blank()
 					p.Raw(p.Muted("Kept."))
 					p.Blank()
@@ -283,7 +285,10 @@ func newRemove() *cobra.Command {
 
 func newCheck() *cobra.Command {
 	return &cobra.Command{
-		Use:   "check <folder>",
+		Use: "check <folder>",
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveFilterDirs
+		},
 		Short: "Check a pack folder against the pack spec",
 		Long: "Check a pack folder (schedule.toml and images/) against the pack spec,\n" +
 			"the same checks the site runs when you upload.",

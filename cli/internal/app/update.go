@@ -15,8 +15,9 @@ import (
 
 func newUpdate(version string) *cobra.Command {
 	return &cobra.Command{
-		Use:   "update [pack...]",
-		Short: "Get new versions of installed packs",
+		Use:               "update [pack...]",
+		ValidArgsFunction: completeInstalled,
+		Short:             "Get new versions of installed packs",
 		Long: "Check the gallery for new versions of your packs and install them. Images\n" +
 			"that didn't change are reused, not downloaded again.",
 		RunE: func(cmd *cobra.Command, args []string) error {
