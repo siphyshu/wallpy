@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-17 (Go CLI: all commands)
+Last updated: 2026-10-17 (CLI feature-complete; site next)
 
 ## Goal
 
@@ -26,7 +26,21 @@ Ship the site (wallpy.siphyshu.me), tested end to end, and a Go CLI
 - [x] Production cleaned of test data (2026-10-18); sample packs in [../samples](../samples)
 - [x] Builders on the v2 slot model (2026-10-18): state is spec 2 slots; v1 removed from the site; Daypack start-time picker + per-block "change images"; Weekpack day groups with presets; Album custom interval; "Edit as text" for anything the builders can't show; e2e for Daypack + Weekpack (`test:e2e:builders`)
 
-## Now: Go CLI
+## Now: the site
+
+The CLI is feature-complete; it gets published once the site is
+feature-complete too (the CLI downloads from wallpy.siphyshu.me, which isn't
+live yet). Next: walk the site's user flows end to end with Jaiyank, then
+design and feature work. Collected so far:
+
+- [ ] Walk every user flow end to end (visitor, creator, moderator) and list what's missing or rough
+- [ ] CLI docs on the site (install, commands, how the agent works; cli/README.md has the content)
+- [ ] Install section on the homepage: it's only a heading ("Install Wallpy in 3 steps") with no steps
+- [ ] Pack pages say `wallpy download <slug>` (components/packs/InstallCommand.tsx): use `wallpy use <slug>`
+- [ ] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders
+- [ ] Design pass across the site
+
+## Go CLI: feature-complete (publish after the site)
 
 Goal: the CLI should feel delightful, crafted at every touchpoint from install
 to everyday use. Stack: Cobra + Fang (commands, help, errors), Lip Gloss (all
@@ -60,7 +74,7 @@ hidden `run` for the service.
 - [ ] Sign and notarize macOS binaries (Apple Developer ID); sign Windows binaries (SmartScreen)
 - [ ] Run on a real Linux desktop (GNOME, KDE, sway) and a real Windows machine: setters and agent are compile-checked and unit-tested only
 - [ ] Final PyPI release of the Python CLI pointing at the new installers
-- [ ] E2E: upload on the site → approve → `wallpy download` on a clean machine → wallpaper changes
+- [x] E2E (2026-10-17, by Jaiyank): upload on the site → approve → install with the CLI → wallpaper changes
 
 ## Before launch
 
