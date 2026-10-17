@@ -5,6 +5,15 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | Install instructions live in two places: 3 steps on the homepage (`#install`) and a full `/docs` page, both from `site/lib/install.ts`. Site and first CLI release go live together | First-timers get the short path, everyone else the reference; one data file so they can't drift. The commands only work once the release exists |
+| 2026-10-17 | Pack pages show `wallpy use <slug>` (not `download`/`get`) | `use` installs, sets it now and starts the agent: the one command a visitor wants |
+| 2026-10-17 | Gallery categories: a curated list (each pack picks 1–2, required) for browsing, plus free tags (normalised lowercase-hyphenated, autocompleted from tags in use) for detail | Taxonomy keeps the chips reliable; folksonomy keeps nuance. Autocomplete makes tags converge instead of splitting on spellings |
+| 2026-10-17 | Creators hear about review outcomes in the site only (a dot on the avatar + notices), no email for launch | No mail setup; good enough while the community is small |
+| 2026-10-17 | Upload wizard gets a polish, not a rethink. The builders' grid layout and the full `schedule.toml` preview stay visible; any layout idea is built at a separate URL for review first | Creators are meant to see the whole schedule file |
+| 2026-10-17 | Owners can unlist a published pack (link and CLI installs keep working) or delete it (gone from the site; installed copies keep working, `wallpy update` says it's gone) | People may already have it installed; unlist is the gentle option |
+| 2026-10-17 | For launch: signed-in visitors can report a pack (reason + note) into a Reports tab in moderation; moderators can take down and restore published packs | Moderation needs a way in from the public and a way to act on live packs |
+| 2026-10-17 | Account deletion for launch: confirm by typing the username; unpublished packs and favourites go; the user chooses whether published packs are deleted or stay credited to "deleted user" | Expected (and required in places); keeping packs avoids breaking installs |
+| 2026-10-17 | Creators can drop a ready-made pack folder or zip (schedule.toml + images) on the wizard; it fills images and schedule, validated by the spec | Hand-made packs (and `wallpy check`-ed folders) shouldn't need rebuilding in the builder |
 | 2026-10-17 | CLI releases are tagged `v*` from the monorepo and built from `cli/` (GoReleaser OSS has no monorepo tag prefixes) | The site isn't versioned, so `v*` can mean the CLI |
 | 2026-10-17 | Background agent is resident (`wallpy run`), sleeping until the next change, not a 5-minute tick | Changes land on time (e.g. right at sunset); it re-checks at least every minute for sleep and clock changes |
 | 2026-10-17 | Linux agent starts through XDG autostart, not a systemd user unit | Autostart runs inside the graphical session, so the agent sees DISPLAY/WAYLAND_DISPLAY/XDG_CURRENT_DESKTOP; systemd user units often don't |

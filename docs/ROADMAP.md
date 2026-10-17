@@ -61,6 +61,7 @@ Visitor (home, gallery, pack page, profile)
 Accounts (sign-up, login, reset; read through, not submitted: they hit production)
 - [ ] Sign-up doesn't check the username: the DB requires `^[a-z0-9_]{3,30}$` and uniqueness (`handle_new_user` trigger), so "John Doe", "jd" or a taken name fail with Supabase's generic "Database error saving new user". Validate inline, check availability, and show the rule
 - [ ] After the email code, sign-up goes to `/gallery`, dropping any `?redirect=` (e.g. a visitor who hit Upload); a new creator also lands with an empty profile and no nudge to fill it in
+- Fine: password reset (tested by Jaiyank)
 - [ ] Auth pages all have the generic site title ("Wallpy - Dynamic Wallpapers for your desktop")
 
 Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks passed)
