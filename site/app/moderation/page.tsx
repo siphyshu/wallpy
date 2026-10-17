@@ -70,7 +70,7 @@ export default async function ModerationPage() {
                     <div className="flex gap-2 overflow-x-auto no-scrollbar">
                       {v.images.slice(0, 8).map((img) => (
                         <div key={img.path} className="relative h-14 aspect-video rounded overflow-hidden bg-white/5 shrink-0" title={img.path}>
-                          <Image src={img.url} alt={img.path} fill sizes="100px" className="object-cover" />
+                          <Image src={img.url} alt={img.path} fill sizes="100px" unoptimized={img.small} className="object-cover" />
                         </div>
                       ))}
                       {v.images.length > 8 && (

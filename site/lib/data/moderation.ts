@@ -19,7 +19,8 @@ export type PendingVersion = {
   uploader: { username: string; name: string; avatar: string };
   credit: string;
   thumbUrl: string | null;
-  images: { path: string; url: string }[];
+  /** `url` is the thumbnail when the file has one (`small`), else the original */
+  images: { path: string; url: string; small: boolean }[];
   slotCount: number;
 };
 
@@ -31,7 +32,7 @@ export async function listPendingVersions(): Promise<PendingVersion[]> {
     .select(`id, number, title, description, kind, ai_use, license, submitted_at, uploader_is_artist, schedule,
              artist:artists(name),
              thumb:blobs!pack_versions_thumb_sha256_fkey(sha256),
-             files:version_files!version_files_version_id_fkey(path, sort_order, sha256),
+             files:version_files!version_files_version_id_fkey(path, sort_order, sha256, thumb_sha256),
              pack:packs!pack_versions_pack_id_fkey(slug, current_version_id,
                owner:profiles!packs_owner_id_fkey(username, display_name, avatar_key))`)
     .eq('status', 'pending')
@@ -44,7 +45,12 @@ export async function listPendingVersions(): Promise<PendingVersion[]> {
     const owner = v.pack?.owner;
     const ownerName = owner?.display_name || owner?.username || 'unknown';
     const schedule = v.schedule as { slot?: unknown[] } | null;
-    const images = [...v.files].sort((a, b) => a.sort_order - b.sort_order).map((f) => ({ path: f.path, url: blobUrl(f.sha256)! }));
+    const images = [...v.files].sort((a, b) => a.sort_order - b.sort_order).map((f) => ({
+      path: f.path,
+      url: blobUrl(f.thumb_sha256 ?? f.sha256)!,
+      // Renditions are small WebPs: shown as they are, not through the image optimizer.
+      small: Boolean(f.thumb_sha256),
+    }));
     return {
       versionId: v.id,
       number: v.number,

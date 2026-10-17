@@ -1,6 +1,8 @@
 // Upload limits, shared by the browser (early feedback) and the server (enforced).
 export const PACK_LIMITS = {
   maxFiles: 100,
+  /** blobs in one upload: every image plus its thumbnail and preview, plus the cover's if it lacks them */
+  maxUploadBlobs: 100 * 3 + 2,
   maxFileBytes: 30 * 1024 * 1024, // matches the blobs.size check constraint
   maxTags: 10,
   titleMax: 80,

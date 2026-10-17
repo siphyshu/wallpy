@@ -192,8 +192,8 @@ export async function getPackBySlug(slug: string): Promise<PackDetail | null> {
     .from('pack_versions')
     .select(`${VERSION_SUMMARY}, description, schedule, license, license_notes, created_at, cover_file_id,
              preview:blobs!pack_versions_preview_sha256_fkey(sha256, blurhash),
-             files:version_files!version_files_version_id_fkey(id, path, sort_order,
-               blob:blobs(sha256, size, width, height, blurhash))`)
+             files:version_files!version_files_version_id_fkey(id, path, sort_order, thumb_sha256, preview_sha256,
+               blob:blobs!version_files_sha256_fkey(sha256, size, width, height, blurhash))`)
     .eq('pack_id', pack.id);
   versionQuery = pack.current_version_id
     ? versionQuery.eq('id', pack.current_version_id)
@@ -217,6 +217,8 @@ export async function getPackBySlug(slug: string): Promise<PackDetail | null> {
             height: f.blob.height,
             blurhash: f.blob.blurhash,
             url: blobUrl(f.blob.sha256)!,
+            thumbUrl: blobUrl(f.thumb_sha256) ?? blobUrl(f.blob.sha256)!,
+            previewUrl: blobUrl(f.preview_sha256) ?? blobUrl(f.blob.sha256)!,
           }]
         : [],
     );

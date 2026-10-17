@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import toml from '@iarna/toml';
 import { describe, expect, it } from 'vitest';
-import { active } from '@/lib/spec/scheduler';
+import { active, daySegments, slotTimes } from '@/lib/spec/scheduler';
 import { fromWall } from '@/lib/spec/time';
 import { validateSchedule } from '@/lib/spec/validate';
 import type { Schedule } from '@/lib/types';
@@ -70,5 +70,29 @@ describe('validator', () => {
     expect(validateSchedule(album, ['a.jpg', 'b.jpg'])).toEqual([]);
     expect(validateSchedule(album, ['a.jpg'])).toContain('image "b.jpg" is not in the pack');
     expect(validateSchedule(album, ['a.jpg', 'b.jpg', 'c.jpg'])).toContain('image "c.jpg" is in the pack but not used');
+  });
+});
+
+describe('day timelines (pack page) agree with the scheduler', () => {
+  const schedules = [
+    ...readdirSync(join(SPEC, 'examples')).filter((f) => f.endsWith('.toml'))
+      .map((f) => [f, toml.parse(readFileSync(join(SPEC, 'examples', f), 'utf8')) as unknown as Schedule] as const),
+    ...vectors.map((v) => [v.name, v.schedule] as const),
+  ];
+  // A Monday and a Sunday (wall days), every 20 minutes, at the fallback times.
+  const days = [Date.UTC(2026, 9, 12), Date.UTC(2026, 9, 18)];
+  it.each(schedules)('%s', async (_name, schedule) => {
+    for (const day of days) {
+      const runs = daySegments(schedule, day);
+      expect(runs[0].from).toBe(day);
+      expect(runs.at(-1)!.to).toBe(day + 86_400_000);
+      runs.slice(1).forEach((r, i) => expect(r.from).toBe(runs[i].to));
+      for (let t = day; t < day + 86_400_000; t += 20 * 60_000) {
+        const a = await active(schedule, t, 'UTC', null);
+        expect(runs.find((r) => r.from <= t && t < r.to)!.slot).toBe(a.slot);
+        const listed = slotTimes(schedule, day).find((s) => s.slot === a.slot && s.from === a.slotStart);
+        if (listed) expect(listed.to).toBe(a.slotEnd);
+      }
+    }
   });
 });

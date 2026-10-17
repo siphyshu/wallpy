@@ -68,7 +68,12 @@ export type PackFile = {
   width: number | null;
   height: number | null;
   blurhash: string | null;
+  /** the original: what the CLI downloads */
   url: string;
+  /** 640px WebP rendition, or the original for files uploaded without one */
+  thumbUrl: string;
+  /** 1920px WebP rendition, or the original */
+  previewUrl: string;
 };
 
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

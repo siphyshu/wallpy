@@ -28,7 +28,9 @@ export type EditablePack = {
     coverSha256: string | null;
     thumbSha256: string | null;
     previewSha256: string | null;
-    files: { path: string; sha256: string; size: number; mime: string; url: string }[];
+    /** `previewUrl` is the 1920px rendition when the file has one, else the original */
+    files: { path: string; sha256: string; size: number; mime: string; url: string; previewUrl: string;
+             thumbSha256: string | null; previewSha256: string | null }[];
   };
 };
 
@@ -73,7 +75,8 @@ export async function getPackForEditing(slug: string): Promise<EditablePack | nu
     .select(`number, title, description, tags, kind, schedule, license, ai_use, uploader_is_artist,
              thumb_sha256, preview_sha256, cover_file_id,
              artist:artists(name, url),
-             files:version_files!version_files_version_id_fkey(id, path, sort_order, blob:blobs(sha256, size, mime))`)
+             files:version_files!version_files_version_id_fkey(id, path, sort_order, thumb_sha256, preview_sha256,
+               blob:blobs!version_files_sha256_fkey(sha256, size, mime))`)
     .eq('id', baseId)
     .single();
   if (error || !v) {
@@ -102,7 +105,11 @@ export async function getPackForEditing(slug: string): Promise<EditablePack | nu
       thumbSha256: v.thumb_sha256,
       previewSha256: v.preview_sha256,
       files: files.flatMap((f) => (f.blob
-        ? [{ path: f.path, sha256: f.blob.sha256, size: f.blob.size, mime: f.blob.mime, url: blobUrl(f.blob.sha256)! }]
+        ? [{
+            path: f.path, sha256: f.blob.sha256, size: f.blob.size, mime: f.blob.mime, url: blobUrl(f.blob.sha256)!,
+            previewUrl: blobUrl(f.preview_sha256) ?? blobUrl(f.blob.sha256)!,
+            thumbSha256: f.thumb_sha256, previewSha256: f.preview_sha256,
+          }]
         : [])),
     },
   };

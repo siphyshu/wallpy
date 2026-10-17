@@ -67,11 +67,13 @@ select pg_temp.as_server();
 insert into public.blobs (sha256, size, mime, uploaded_by) values
   (repeat('a', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000a'),
   (repeat('b', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000a'),
-  (repeat('c', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000b');
+  (repeat('c', 64), 1000, 'image/jpeg', '00000000-0000-0000-0000-00000000000b'),
+  (repeat('d', 64), 1000, 'image/webp', '00000000-0000-0000-0000-00000000000a');
 insert into public.blob_uploads (sha256, profile_id) values
   (repeat('a', 64), '00000000-0000-0000-0000-00000000000a'),
   (repeat('b', 64), '00000000-0000-0000-0000-00000000000a'),
-  (repeat('c', 64), '00000000-0000-0000-0000-00000000000b');
+  (repeat('c', 64), '00000000-0000-0000-0000-00000000000b'),
+  (repeat('d', 64), '00000000-0000-0000-0000-00000000000a');
 select pg_temp.as_admin();
 
 select pg_temp.expect('signup creates a lowercased profile',
@@ -319,6 +321,16 @@ select pg_temp.expect_error('cannot use someone else''s private blob as a thumbn
      || jsonb_build_object('thumb_sha256', repeat('b', 64)))$q$,
   '{42501}');
 
+-- So do each file's renditions (thumbnail and preview).
+select pg_temp.expect_error('cannot use someone else''s private blob as a file thumbnail',
+  $q$select public.create_pack(pg_temp.payload('File Thumb Thief', '{a.jpg}',
+     jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64), 'thumb_sha256', repeat('b', 64)))))$q$,
+  '{42501}');
+select pg_temp.expect_error('cannot use someone else''s private blob as a file preview',
+  $q$select public.create_pack(pg_temp.payload('File Preview Thief', '{a.jpg}',
+     jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64), 'preview_sha256', repeat('d', 64)))))$q$,
+  '{42501}');
+
 -- New versions: one open version at a time; after a rejection, the owner resubmits.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
 select pg_temp.expect_error('cannot submit a new version while one is in review',
@@ -329,12 +341,41 @@ select public.moderate((select v.id from public.pack_versions v join public.pack
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
 create temp table resubmitted as
   select public.create_version('beach-2', pg_temp.payload('Beach at night', '{a.jpg,b.jpg}',
-    jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)),
+    jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64),
+                                         'thumb_sha256', repeat('d', 64), 'preview_sha256', repeat('d', 64)),
                       jsonb_build_object('path', 'b.jpg', 'sha256', repeat('b', 64))))
     || jsonb_build_object('thumb_sha256', repeat('a', 64))) as r;
+grant select on resubmitted to anon, service_role;
 select pg_temp.expect('after a rejection the owner can submit version 2',
   (select v.number = 2 and v.status = 'pending' and v.thumb_sha256 = repeat('a', 64)
    from resubmitted join public.pack_versions v on v.id = (r ->> 'version_id')::uuid));
+select pg_temp.expect('file renditions are saved with the file',
+  (select f.thumb_sha256 = repeat('d', 64) and f.preview_sha256 = repeat('d', 64)
+   from resubmitted join public.version_files f on f.version_id = (r ->> 'version_id')::uuid and f.path = 'a.jpg'));
+select pg_temp.expect_error('file renditions cannot be changed directly',
+  $q$update public.version_files set thumb_sha256 = repeat('c', 64) where path = 'a.jpg'$q$);
+select pg_temp.expect_error('cannot attach someone else''s private blob as a rendition directly',
+  $q$insert into public.version_files (version_id, path, sha256, thumb_sha256)
+     select v.id, 'z.jpg', repeat('a', 64), repeat('c', 64) from public.pack_versions v join public.packs p on p.id = v.pack_id
+     where p.slug = 'sunset' and v.number = 2$q$);
+select pg_temp.as_user(null);
+select pg_temp.expect('renditions of an unpublished file stay private',
+  not exists (select 1 from public.blobs where sha256 = repeat('d', 64)));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select public.moderate((select (r ->> 'version_id')::uuid from resubmitted), 'approve');
+select pg_temp.as_user(null);
+select pg_temp.expect('a published file''s renditions are public',
+  exists (select 1 from public.blobs where sha256 = repeat('d', 64))
+  and (select thumb_sha256 from public.version_files where version_id = (select (r ->> 'version_id')::uuid from resubmitted) and path = 'a.jpg') = repeat('d', 64));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect('anyone may reuse a public rendition', public.can_use_blob(repeat('d', 64)));
+select pg_temp.as_server();
+select pg_temp.expect_error('a rendition must be a stored blob',
+  $q$update public.version_files set preview_sha256 = repeat('e', 64)
+     where version_id = (select (r ->> 'version_id')::uuid from resubmitted) and path = 'a.jpg'$q$, '{23503}');
+select pg_temp.expect_error('a blob in use as a rendition cannot be deleted',
+  $q$delete from public.blobs where sha256 = repeat('d', 64)$q$, '{23503}');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
 select pg_temp.expect('the rejected version stays as it was',
   (select status = 'rejected' and title = 'Beach' from public.pack_versions v join public.packs p on p.id = v.pack_id
    where p.slug = 'beach-2' and v.number = 1));

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import Footer from '@/components/footer';
-import PackImageGallery from '@/components/packs/PackImageGallery';
+import PackView from '@/components/packs/PackView';
 import DownloadZipButton from '@/components/packs/DownloadZipButton';
 import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
@@ -104,9 +104,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
             )}
           </div>
         )}
-        <div className="flex flex-col md:flex-row gap-8">
-          <PackImageGallery files={pack.files} />
-
+        <PackView files={pack.files} schedule={version.schedule} kind={version.kind} details={
           <div className="md:w-1/3">
             <div className="flex items-center gap-2 mb-2">
               <h1 className="text-4xl font-serif">{version.title}</h1>
@@ -194,7 +192,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
               </div>
             )}
           </div>
-        </div>
+        } />
       </div>
       <Footer />
     </div>

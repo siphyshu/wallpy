@@ -123,8 +123,11 @@ Which blobs make up a version, under which filename.
 | sort_order | int | |
 | unique (version_id, path) | | |
 
-Plus derived renditions (`thumb_sha256`, `preview_sha256` for 400px / 1600px
-WebP) so the gallery never ships 4K originals.
+| thumb_sha256, preview_sha256 | text null | this file's 640px / 1920px WebP renditions (blobs; no FK, trigger-checked, see decisions) |
+
+The version itself also has `thumb_sha256`/`preview_sha256`: its cover's
+renditions, for gallery cards. So neither the gallery nor the pack page ships
+4K originals; the CLI and ZIP still get the originals.
 
 ### `moderation_events` (append-only)
 `id, version_id, actor_id, action (submit|approve|reject|takedown|restore), notes, created_at`.

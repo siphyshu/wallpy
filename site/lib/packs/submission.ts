@@ -22,7 +22,9 @@ export const Submission = z
       .default(null),
     /** spec 2 schedule; fully validated by lib/spec/validate.ts on the server */
     schedule: z.unknown(),
-    files: z.array(z.object({ path: imageName, sha256 })).min(1).max(PACK_LIMITS.maxFiles),
+    /** each image, with its thumbnail and preview renditions (WebP blobs) when it has them */
+    files: z.array(z.object({ path: imageName, sha256, thumb_sha256: sha256.optional(), preview_sha256: sha256.optional() }))
+      .min(1).max(PACK_LIMITS.maxFiles),
     cover: imageName.optional(),
     thumb_sha256: sha256.optional(),
     preview_sha256: sha256.optional(),

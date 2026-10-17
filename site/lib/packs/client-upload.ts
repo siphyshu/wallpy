@@ -12,8 +12,13 @@ type Measured = Upload & { sha256: string; width: number; height: number; blurha
 type Presigned =
   | { sha256: string; exists: true }
   | { sha256: string; exists: false; url: string; headers: Record<string, string>; ticket: string };
+type Renditions = { thumb: string; preview: string };
 
 export type Progress = { status: string; percent: number };
+
+/** Rendition widths: thumbnails (gallery, filmstrip, schedule) and previews (the pack page's main viewer). */
+const THUMB_WIDTH = 640;
+const PREVIEW_WIDTH = 1920;
 
 async function readJson<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
@@ -21,37 +26,46 @@ async function readJson<T>(res: Response): Promise<T> {
   return body as T;
 }
 
-async function decode(blob: Blob): Promise<ImageBitmap> {
-  return createImageBitmap(blob);
-}
-
-/** Downscaled WebP copy, for gallery thumbnails and the pack page. */
-async function rendition(source: Blob, maxWidth: number): Promise<Blob> {
-  const bitmap = await decode(source);
+/** Downscaled WebP copy of a decoded image (the bitmap stays open). */
+function rendition(bitmap: ImageBitmap, maxWidth: number): Promise<Blob> {
   const width = Math.min(maxWidth, bitmap.width);
   const height = Math.round((bitmap.height * width) / bitmap.width);
   const canvas = new OffscreenCanvas(width, height);
   canvas.getContext('2d')!.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
   return canvas.convertToBlob({ type: 'image/webp', quality: 0.82 });
 }
 
-async function measure(upload: Upload, withBlurhash: boolean): Promise<Measured> {
-  const bitmap = await decode(upload.blob);
-  let blurhash: string | null = null;
-  if (withBlurhash) {
-    const canvas = new OffscreenCanvas(32, 32);
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(bitmap, 0, 0, 32, 32);
-    blurhash = encodeBlurhash(ctx.getImageData(0, 0, 32, 32).data, 32, 32, 4, 3);
-  }
-  const measured = { ...upload, sha256: await sha256Hex(upload.blob), width: bitmap.width, height: bitmap.height, blurhash };
-  bitmap.close();
+/** Hash, size and blurhash of an upload. Decodes it unless `bitmap` is given. */
+async function measure(upload: Upload, bitmap?: ImageBitmap): Promise<Measured> {
+  const image = bitmap ?? await createImageBitmap(upload.blob);
+  const canvas = new OffscreenCanvas(32, 32);
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(image, 0, 0, 32, 32);
+  const blurhash = encodeBlurhash(ctx.getImageData(0, 0, 32, 32).data, 32, 32, 4, 3);
+  const measured = { ...upload, sha256: await sha256Hex(upload.blob), width: image.width, height: image.height, blurhash };
+  if (!bitmap) image.close();
   return measured;
 }
 
-/** An image in the draft: a new file, or one already in the pack (editing). */
-export type DraftImage = { name: string; file: File } | { name: string; existing: { sha256: string; url: string } };
+/** An image and its two renditions, measured and hashed, from one decode. */
+async function prepare(upload: Upload): Promise<{ original: Measured; thumb: Measured; preview: Measured }> {
+  const bitmap = await createImageBitmap(upload.blob);
+  try {
+    const [thumb, preview] = await Promise.all([rendition(bitmap, THUMB_WIDTH), rendition(bitmap, PREVIEW_WIDTH)]);
+    return {
+      original: await measure(upload, bitmap),
+      thumb: await measure({ name: `${upload.name} (thumbnail)`, blob: thumb, mime: 'image/webp' }),
+      preview: await measure({ name: `${upload.name} (preview)`, blob: preview, mime: 'image/webp' }),
+    };
+  } finally {
+    bitmap.close();
+  }
+}
+
+/** An image in the draft: a new file, or one already in the pack (editing), with its renditions if it has them. */
+export type DraftImage =
+  | { name: string; file: File }
+  | { name: string; existing: { sha256: string; url: string; thumbSha256?: string | null; previewSha256?: string | null } };
 
 export type PackDraft = Omit<SubmissionInput, 'files' | 'schedule' | 'thumb_sha256' | 'preview_sha256'> & {
   schedule: Schedule;
@@ -69,7 +83,8 @@ export type VersionTarget = {
 
 /**
  * Upload everything and submit: a new pack, or (with `target`) a new version
- * of one. Images already in the pack aren't uploaded again. Resolves to the slug.
+ * of one. Images already in the pack aren't uploaded again, and keep their
+ * renditions. Resolves to the slug.
  */
 export async function submitPack(
   draft: PackDraft,
@@ -84,24 +99,40 @@ export async function submitPack(
   const prev = target?.previous;
   const keepRenditions = 'existing' in cover && prev?.thumbSha256 && prev.previewSha256
     && cover.existing.sha256 === prev.coverSha256;
-  const uploads: Upload[] = draft.images.flatMap((i) =>
-    'file' in i ? [{ name: i.name, blob: i.file as Blob, mime: i.file.type as ImageMime }] : []);
-  if (!keepRenditions) {
-    // A new cover: make its renditions. An existing cover is fetched from the CDN,
+
+  // Every new image gets a thumbnail and a preview.
+  const measured: Measured[] = [];
+  const renditions = new Map<string, Renditions>();
+  const fresh = draft.images.filter((i): i is Extract<DraftImage, { file: File }> => 'file' in i);
+  for (const [n, i] of fresh.entries()) {
+    const { original, thumb, preview } = await prepare({ name: i.name, blob: i.file, mime: i.file.type as ImageMime });
+    measured.push(original, thumb, preview);
+    renditions.set(i.name, { thumb: thumb.sha256, preview: preview.sha256 });
+    onProgress({ status: `Preparing images (${n + 1}/${fresh.length})…`, percent: 5 + Math.round((15 * (n + 1)) / fresh.length) });
+  }
+  for (const i of draft.images) {
+    if ('existing' in i && i.existing.thumbSha256 && i.existing.previewSha256) {
+      renditions.set(i.name, { thumb: i.existing.thumbSha256, preview: i.existing.previewSha256 });
+    }
+  }
+
+  // The pack's own thumbnail and preview are its cover's renditions.
+  let coverRenditions: Renditions | undefined = keepRenditions
+    ? { thumb: prev!.thumbSha256!, preview: prev!.previewSha256! }
+    : renditions.get(cover.name);
+  if (!coverRenditions && 'existing' in cover) {
+    // An existing cover without renditions: make them. Fetched from the CDN,
     // bypassing the browser cache: <img> tags may have cached it without CORS headers.
-    const source = 'file' in cover ? cover.file : await fetch(cover.existing.url, { cache: 'reload' }).then((r) => {
+    const source = await fetch(cover.existing.url, { cache: 'reload' }).then((r) => {
       if (!r.ok) throw new Error(`Could not load ${cover.name} (${r.status})`);
       return r.blob();
     });
-    const [thumb, preview] = await Promise.all([rendition(source, 640), rendition(source, 1920)]);
-    uploads.push({ name: '(thumbnail)', blob: thumb, mime: 'image/webp' }, { name: '(preview)', blob: preview, mime: 'image/webp' });
+    const { thumb, preview } = await prepare({ name: cover.name, blob: source, mime: 'image/jpeg' });
+    measured.push(thumb, preview);
+    coverRenditions = { thumb: thumb.sha256, preview: preview.sha256 };
   }
-  const measured: Measured[] = [];
-  for (const [n, u] of uploads.entries()) {
-    measured.push(await measure(u, u.name === '(thumbnail)' || u.name === '(preview)' || u.name === cover.name));
-    onProgress({ status: `Checking images (${n + 1}/${uploads.length})…`, percent: 5 + Math.round((15 * (n + 1)) / uploads.length) });
-  }
-  // The same image can appear twice (e.g. the cover as a rendition source): upload each hash once.
+
+  // The same bytes can appear twice (e.g. a small image's thumbnail and preview): upload each hash once.
   const unique = [...new Map(measured.map((m) => [m.sha256, m])).values()];
 
   if (unique.length) {
@@ -147,10 +178,17 @@ export async function submitPack(
       body: JSON.stringify({
         ...rest,
         schedule,
-        files: images.map((i) => ({ path: i.name, sha256: 'existing' in i ? i.existing.sha256 : byName.get(i.name)! })),
+        files: images.map((i) => {
+          const r = renditions.get(i.name);
+          return {
+            path: i.name,
+            sha256: 'existing' in i ? i.existing.sha256 : byName.get(i.name)!,
+            ...(r ? { thumb_sha256: r.thumb, preview_sha256: r.preview } : {}),
+          };
+        }),
         cover: cover.name,
-        thumb_sha256: keepRenditions ? prev!.thumbSha256! : byName.get('(thumbnail)')!,
-        preview_sha256: keepRenditions ? prev!.previewSha256! : byName.get('(preview)')!,
+        thumb_sha256: coverRenditions?.thumb,
+        preview_sha256: coverRenditions?.preview,
       } satisfies SubmissionInput),
     },
   ));
