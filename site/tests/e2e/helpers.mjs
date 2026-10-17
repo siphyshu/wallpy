@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { createHash, randomBytes } from 'node:crypto';
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { createClient } = require('@supabase/supabase-js');
-const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
 
 export const E = process.env;
@@ -74,12 +74,23 @@ export async function uploadImages(user, images) {
   if (conf.status !== 200) throw new Error(`confirm failed ${conf.status} ${JSON.stringify(conf.body)}`);
 }
 
-/** Delete every user created here, their packs (cascade), blobs and R2 objects. */
+const r2 = () => new S3Client({ region: 'auto', endpoint: E.R2_ENDPOINT, credentials: { accessKeyId: E.R2_ACCESS_KEY_ID, secretAccessKey: E.R2_SECRET_ACCESS_KEY } });
+
+/** Delete every user created here, their packs (cascade), blobs, avatars/covers and R2 objects. */
 export async function cleanup() {
   const shas = new Set();
   for (const id of created) {
     const { data } = await admin.from('blob_uploads').select('sha256').eq('profile_id', id);
     (data ?? []).forEach((u) => shas.add(u.sha256));
+  }
+  // Avatars and covers live under profiles/<id>/, outside the blobs table.
+  let profileFiles = 0;
+  for (const id of created) {
+    const listed = await r2().send(new ListObjectsV2Command({ Bucket: 'wallpy-public', Prefix: `profiles/${id}/` }));
+    for (const o of listed.Contents ?? []) {
+      await r2().send(new DeleteObjectCommand({ Bucket: 'wallpy-public', Key: o.Key }));
+      profileFiles++;
+    }
   }
   for (const id of created) await admin.auth.admin.deleteUser(id);
   if (shas.size) {
@@ -89,8 +100,8 @@ export async function cleanup() {
     const keep = new Set((inUse ?? []).map((r) => r.sha256));
     const doomed = list.filter((s) => !keep.has(s));
     await admin.from('blobs').delete().in('sha256', doomed);
-    const r2 = new S3Client({ region: 'auto', endpoint: E.R2_ENDPOINT, credentials: { accessKeyId: E.R2_ACCESS_KEY_ID, secretAccessKey: E.R2_SECRET_ACCESS_KEY } });
-    for (const s of doomed) await r2.send(new DeleteObjectCommand({ Bucket: 'wallpy-public', Key: `blobs/${s}` }));
+    const client = r2();
+    for (const s of doomed) await client.send(new DeleteObjectCommand({ Bucket: 'wallpy-public', Key: `blobs/${s}` }));
   }
-  console.log(`\ncleaned up ${created.length} users, ${shas.size} blobs`);
+  console.log(`\ncleaned up ${created.length} users, ${shas.size} blobs, ${profileFiles} profile images`);
 }

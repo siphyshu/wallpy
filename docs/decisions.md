@@ -5,6 +5,9 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | Sign-up checks usernames as they type: lowercased automatically, the rule shown under the field, availability looked up with a plain select on `profiles` (public anyway). Only a known-bad or taken name disables the button; a failed lookup falls back to a friendly message for the trigger's error | No schema change needed; the trigger stays the final check |
+| 2026-10-17 | Profile links typed without a scheme get `https://`; other schemes are refused before saving | Matches `is_http_url`; people type bare domains |
+| 2026-10-17 | Review status badges on a profile's packs show to the owner only | Visitors only see published packs; the badge is the owner's to-do |
 | 2026-10-17 | Install instructions live in two places: 3 steps on the homepage (`#install`) and a full `/docs` page, both from `site/lib/install.ts`. Site and first CLI release go live together | First-timers get the short path, everyone else the reference; one data file so they can't drift. The commands only work once the release exists |
 | 2026-10-17 | Pack pages show `wallpy use <slug>` (not `download`/`get`) | `use` installs, sets it now and starts the agent: the one command a visitor wants |
 | 2026-10-17 | Gallery categories: a curated list (each pack picks 1–2, required) for browsing, plus free tags (normalised lowercase-hyphenated, autocompleted from tags in use) for detail | Taxonomy keeps the chips reliable; folksonomy keeps nuance. Autocomplete makes tags converge instead of splitting on spellings |

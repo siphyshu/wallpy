@@ -1,6 +1,9 @@
 import MultiStepSignUp from '@/components/auth/multi-step-sign-up';
 import Image from 'next/image';
 import Footer from '@/components/footer';
+import { Suspense } from 'react';
+
+export const metadata = { title: 'Sign up | Wallpy' };
 
 export default function SignUpPage() {
   return (
@@ -9,7 +12,10 @@ export default function SignUpPage() {
         {/* Left: Multi-Step Sign Up Form */}
         <div className="flex items-center justify-center p-4">
           <div className="w-full max-w-md">
-            <MultiStepSignUp />
+            {/* Reads ?redirect via useSearchParams, which needs a Suspense boundary to prerender */}
+            <Suspense>
+              <MultiStepSignUp />
+            </Suspense>
           </div>
         </div>
         {/* Right: Visual Collage */}

@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const metadata = { title: 'Something went wrong | Wallpy' };
+
 export default async function Page({ searchParams }: PageProps<'/auth/error'>) {
   const params = await searchParams;
 

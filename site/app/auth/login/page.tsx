@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Footer from '@/components/footer';
 import { Suspense } from 'react';
 
+export const metadata = { title: 'Sign in | Wallpy' };
+
 export default function LoginPage() {
   return (
     <div className="min-h-screen overflow-x-hidden text-white bg-background/80">

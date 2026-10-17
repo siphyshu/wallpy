@@ -54,15 +54,15 @@ Visitor (home, gallery, pack page, profile)
 - [ ] Gallery cards don't say what kind of pack it is (Daypack / Weekpack / Album)
 - [ ] Download counts show 0 everywhere; consider hiding at 0
 - [ ] 404 page is Next's default (black, unstyled)
-- [ ] Profile "Contact Email" field is public but only labelled "(optional)"; say it's shown on the profile
-- [ ] Profile shows "Published" status badges to visitors (only the owner needs them)
+- [x] Profile "Contact Email" field is public but only labelled "(optional)"; say it's shown on the profile (2026-10-17: "Shown publicly on your profile.")
+- [x] Profile shows "Published" status badges to visitors (only the owner needs them) (2026-10-17; visitors with no packs also no longer see "Upload your first pack")
 - Fine: favourite while signed out → login with `?redirect=` back; `/upload` and `/edit` redirect to login; `/moderation` 404s for non-moderators; ZIP builds in the browser with hash checks and progress; CDN CORS allows localhost
 
 Accounts (sign-up, login, reset; read through, not submitted: they hit production)
-- [ ] Sign-up doesn't check the username: the DB requires `^[a-z0-9_]{3,30}$` and uniqueness (`handle_new_user` trigger), so "John Doe", "jd" or a taken name fail with Supabase's generic "Database error saving new user". Validate inline, check availability, and show the rule
-- [ ] After the email code, sign-up goes to `/gallery`, dropping any `?redirect=` (e.g. a visitor who hit Upload); a new creator also lands with an empty profile and no nudge to fill it in
+- [x] Sign-up doesn't check the username: the DB requires `^[a-z0-9_]{3,30}$` and uniqueness (`handle_new_user` trigger), so "John Doe", "jd" or a taken name fail with Supabase's generic "Database error saving new user". Validate inline, check availability, and show the rule (2026-10-17: `lib/username.ts`; lowercased as typed, rule/problem/"Available" under the field, availability via the public `profiles` select, the generic error mapped to a username message)
+- [x] After the email code, sign-up goes to `/gallery`, dropping any `?redirect=` (e.g. a visitor who hit Upload); a new creator also lands with an empty profile and no nudge to fill it in (2026-10-17: `?redirect=` honoured via `safeRedirectPath` and carried across the login ↔ sign-up links; an amber "Fill in your profile" notice on your own profile while avatar and bio are empty)
 - Fine: password reset (tested by Jaiyank)
-- [ ] Auth pages all have the generic site title ("Wallpy - Dynamic Wallpapers for your desktop")
+- [x] Auth pages all have the generic site title ("Wallpy - Dynamic Wallpapers for your desktop") (2026-10-17: sign in, sign up, reset/choose password, check your email, error. The homepage keeps the site title; `/auth/sign-out` renders nothing)
 
 Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks passed)
 - [ ] Wizard uses blue steps/Next and a green-ish "Upload Wallpack", not the design system (white primary, `bg-white/10` secondary)
@@ -85,7 +85,13 @@ Moderator (from the e2e screenshots)
 - [ ] No moderation history (who approved/declined what, when)
 - [ ] Cover on the queue card stretches past 16:9 (flex row overrides `aspect-video`) and crops the image
 - Fine: decline needs a reason; the uploader sees the note; declined packs can't be resubmitted and can be deleted; approve publishes and lists in the gallery; v1 stays live while v2 is in review; a second pending version is refused; unchanged images aren't re-uploaded
-- Not yet walked: profile editing (avatar, cover, links)
+Profile editing (walked 2026-10-17 with a throwaway user; now `npm run test:e2e:profile`, 28 checks)
+- Fine: name, bio, links, contact email, avatar and cover save, survive a reload and show to signed-out visitors; images land in `profiles/<id>/`
+- [x] Fixed: a link without `https://` or a malformed contact email failed the DB check with a raw constraint error; now checked first with a clear message (`lib/profile-fields.ts`), scheme added for bare domains. Link URLs were silently cut at 100 characters (DB allows 300), name at 50 (DB 60). Images over 5 MB only failed on Save; now on picking. "Add Link" was blue; now the `bg-white/10` secondary pill
+- [ ] Navbar avatar doesn't update after saving a new one until the page reloads (it loads the profile once on mount)
+- [ ] No way to remove an avatar or cover once set (only replace); replaced files stay in R2 under `profiles/<id>/`
+- [ ] `profiles.website` exists (filled for v1 users) but the profile neither shows nor edits it; links cover the same need
+- [ ] With no display name the profile shows an empty heading above `@username` (sign-up asks for a name, so mostly old/test accounts)
 
 ## Go CLI: feature-complete (publish after the site)
 

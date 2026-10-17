@@ -18,8 +18,8 @@ bucket. The e2e tests create throwaway users and delete everything they made.
 |---|---|---|
 | Types | `cd site && npm run typecheck` | |
 | Lint | `cd site && npm run lint` | 0 errors expected (warnings are `<img>` in the builders) |
-| Unit | `cd site && npm test` | Vitest: spec port vs vectors, storage, redirects |
-| E2E | `cd site && npm run test:e2e` | Needs `npm run dev` running; api, ui (album), moderation, versions, builders (Daypack + Weekpack, uses samples/) suites (each also runnable alone: `test:e2e:<name>`; `SHOTS=dir` saves screenshots) |
+| Unit | `cd site && npm test` | Vitest: spec port vs vectors, storage, redirects, username and profile-field checks |
+| E2E | `cd site && npm run test:e2e` | Needs `npm run dev` running; api, ui (album), moderation, versions, builders (Daypack + Weekpack, uses samples/), profile (sign-up username checks without submitting, profile editing with avatar/cover, visitor view) suites (each also runnable alone: `test:e2e:<name>`; `SHOTS=dir` saves screenshots; `BASE=http://localhost:<port>` for another dev server). R2's CORS allows only port 3000, so browser uploads from other ports fail; the profile suite answers those PUTs itself. Cleanup also deletes `profiles/<id>/` images |
 | DB security | `supabase/scripts/test_security.sh` | Every migration on a scratch local Postgres, then the attack checks in `supabase/tests/security.sql` |
 | Spec | `pytest spec/tests` | Needs `pip install -r spec/requirements.txt` |
 | CLI | `cd cli && go vet ./... && go test ./...` | Runs `spec/vectors/vectors.json`; after changing `spec/schedule.schema.json`, copy it to `cli/internal/spec/` (a test checks) |

@@ -47,9 +47,13 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
             </svg>
           </div>
           {type === 'uploaded' ? (
-            <p className="text-white/70 text-sm">No uploaded packs to display.{' '}
-              <Link href="/upload" className="text-blue-400 hover:underline">Upload your first pack</Link>.
-            </p>
+            canManage ? (
+              <p className="text-white/70 text-sm">No uploaded packs to display.{' '}
+                <Link href="/upload" className="text-blue-400 hover:underline">Upload your first pack</Link>.
+              </p>
+            ) : (
+              <p className="text-white/70 text-sm">No packs yet.</p>
+            )
           ) : (
             <p className="text-white/70 text-sm">No favourited packs yet.{' '}
               <Link href="/gallery" className="text-blue-400 hover:underline">Explore the gallery</Link>.
@@ -59,7 +63,7 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {packs.map(pack => {
-            const status = statusOf(pack);
+            const status = canManage ? statusOf(pack) : null;
             return (
               <div
                 key={pack.id}
@@ -78,8 +82,9 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
                   <h3 className="font-semibold text-white text-sm truncate">{pack.name}</h3>
                 </Link>
                 <div className="flex items-center justify-between mt-3">
+                  {/* Review status is the owner's business; visitors only see published packs anyway. */}
                   {type === 'uploaded' ? (
-                    <span className={`text-xs px-2 py-1 rounded-full border ${status.className}`}>{status.label}</span>
+                    status ? <span className={`text-xs px-2 py-1 rounded-full border ${status.className}`}>{status.label}</span> : <span />
                   ) : (
                     <span className="text-xs text-white/60">{pack.author}</span>
                   )}

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const metadata = { title: 'Check your email | Wallpy' };
+
 export default function SignUpSuccessPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">

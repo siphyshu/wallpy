@@ -5,7 +5,7 @@ import { errorMessage } from '@/lib/utils';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { safeRedirectPath } from '@/lib/safe-redirect';
+import { safeRedirectPath, withRedirect } from '@/lib/safe-redirect';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -172,7 +172,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
             <div className="mt-6 text-center text-sm text-white/70">
               Don&apos;t have an account?{" "}
               <Link
-                href="/auth/sign-up"
+                href={withRedirect('/auth/sign-up', searchParams.get('redirect'))}
                 className="text-white hover:underline transition-colors"
               >
                 Create one

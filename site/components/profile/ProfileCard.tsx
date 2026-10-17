@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { uploadProfileImage } from '@/lib/upload-client';
 import { errorMessage } from '@/lib/utils';
+import { checkProfileFields, profileSaveError, PROFILE_IMAGE_MAX_BYTES } from '@/lib/profile-fields';
 import type { ChangeEvent } from 'react';
 import type { Database } from '@/lib/database.types';
 import type { Profile, ProfileLink } from '@/lib/types';
@@ -77,7 +78,11 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
   // Handle avatar file selection
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    e.target.value = '';
+    if (file && file.size > PROFILE_IMAGE_MAX_BYTES) {
+      setError('Images must be under 5 MB.');
+    } else if (file) {
+      setError(null);
       setAvatarFile(file);
       setAvatarUrl(URL.createObjectURL(file));
     }
@@ -86,7 +91,11 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
   // Handle cover file selection
   const handleCoverChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    e.target.value = '';
+    if (file && file.size > PROFILE_IMAGE_MAX_BYTES) {
+      setError('Images must be under 5 MB.');
+    } else if (file) {
+      setError(null);
       setCoverFile(file);
       setCoverUrl(URL.createObjectURL(file));
     }
@@ -117,13 +126,18 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
     setError(null);
     
     try {
+      // Same rules as the database's checks, with messages a person can act on.
+      const checked = checkProfileFields({ links, contactEmail: emailContact });
+      if ('error' in checked) throw new Error(checked.error);
+      setLinks(checked.links);
+
       // Images go straight to R2 under keys the server derives from your id
       // and the file's hash; the profile row only stores the key.
       const updateData: Database['public']['Tables']['profiles']['Update'] = {
         display_name: name.trim() || null,
         bio: bio.trim() || null,
-        links: links.filter(link => link.name.trim() && link.url.trim()),
-        contact_email: emailContact.trim() || null,
+        links: checked.links,
+        contact_email: checked.contactEmail,
       };
       if (avatarFile) updateData.avatar_key = await uploadProfileImage(avatarFile);
       if (coverFile) updateData.cover_key = await uploadProfileImage(coverFile);
@@ -140,7 +154,7 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
       setCoverFile(null);
       router.refresh();
     } catch (err) {
-      setError(`Couldn't save your profile: ${errorMessage(err)}`);
+      setError(profileSaveError(errorMessage(err)));
     } finally {
       setIsSaving(false);
     }
@@ -251,7 +265,7 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Enter your full name"
-                  maxLength={50}
+                  maxLength={60}
                 />
               </div>
 
@@ -281,10 +295,10 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
                     type="button"
                     onClick={addLink}
                     disabled={Array.isArray(links) ? links.length >= 5 : true}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ${
-                      Array.isArray(links) && links.length >= 5 
-                        ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed' 
-                        : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300'
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full border border-white/20 text-xs font-medium transition-colors duration-200 ${
+                      Array.isArray(links) && links.length >= 5
+                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/10 hover:bg-white/20 text-white'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -319,7 +333,9 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
                                 value={link.url}
                                 onChange={e => updateLink(index, 'url', e.target.value)}
                                 placeholder="https://example.com"
-                                maxLength={100}
+                                maxLength={300}
+                                type="url"
+                                inputMode="url"
                               />
                             </div>
                             <div className="flex flex-col items-center gap-2">
@@ -350,6 +366,7 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
                 <label className="block text-white/70 text-sm font-medium mb-2 text-left">
                   Contact Email <span className="text-white/40 text-xs">(optional)</span>
                 </label>
+                <p className="text-white/40 text-xs mb-2 text-left">Shown publicly on your profile.</p>
                 <input
                   className="w-full rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 p-3 focus:outline-none focus:ring-2 focus:ring-blue-300/40 transition shadow-sm"
                   value={emailContact}
@@ -399,6 +416,20 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
           )}
         </div>
       </div>
+
+      {/* New creators start with an empty profile: invite them to fill it in. */}
+      {isCurrentUser && !editing && !user.avatar_url && !user.bio && (
+        <div className="mx-6 mb-4 flex flex-col gap-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+          <p>Add a photo and a short bio so people know who&apos;s behind your packs.</p>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="self-start px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors"
+          >
+            Fill in your profile
+          </button>
+        </div>
+      )}
 
       {/* Error message */}
       {error && <div className="px-6 pb-4 text-red-400 text-xs">{error}</div>}

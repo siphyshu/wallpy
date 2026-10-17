@@ -1,8 +1,10 @@
 "use client";
 import type { ComponentProps, FormEvent } from 'react';
 import { errorMessage } from '@/lib/utils';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { safeRedirectPath, withRedirect } from '@/lib/safe-redirect';
+import { USERNAME_RULE, signUpErrorMessage, usernameProblem } from '@/lib/username';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -19,8 +21,40 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [availability, setAvailability] = useState<{ username: string; state: 'available' | 'taken' | 'unknown' } | null>(null);
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const redirect = safeRedirectPath(redirectParam, '/gallery');
+  const [supabase] = useState(createClient);
+
+  // Check the username as they type (debounced). Profiles are public, so the
+  // anon client can look a username up; the trigger still has the final say.
+  const usernameError = usernameProblem(username);
+  const usernameOk = username.length > 0 && !usernameError;
+  useEffect(() => {
+    if (!usernameOk) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data, error } = await supabase.from('profiles').select('id').eq('username', username).maybeSingle();
+      if (!cancelled) setAvailability({ username, state: error ? 'unknown' : data ? 'taken' : 'available' });
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [username, usernameOk, supabase]);
+  const check = availability?.username === username ? availability.state : 'checking';
+  const usernameStatus: { text: string; className: string } = usernameError
+    ? { text: usernameError, className: 'text-red-400' }
+    : !usernameOk || check === 'unknown'
+      ? { text: USERNAME_RULE, className: 'text-white/50' }
+      : check === 'checking'
+        ? { text: 'Checking…', className: 'text-white/50' }
+        : check === 'taken'
+          ? { text: 'That username is taken', className: 'text-red-400' }
+          : { text: 'Available', className: 'text-green-400' };
+  // Only a username known to be unusable blocks the button (the message under
+  // the field says why); a failed or unfinished lookup falls back to the
+  // friendly submit error.
+  const canSubmit = !usernameError && !(usernameOk && check === 'taken');
 
   // Step 1: Basic info
   const handleSignUp = async (e: FormEvent<HTMLFormElement>) => {
@@ -28,7 +62,7 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -38,7 +72,7 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
       if (error) throw error;
       setStep(2);
     } catch (err) {
-      setError(errorMessage(err, 'Sign up failed'));
+      setError(signUpErrorMessage(errorMessage(err, 'Sign up failed')));
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +90,7 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
         type: 'email',
       });
       if (error) throw error;
-      router.push('/gallery');
+      router.push(redirect);
     } catch (err) {
       setError(errorMessage(err, 'OTP verification failed'));
     } finally {
@@ -84,6 +118,8 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
                     type="text"
                     placeholder="John Doe"
                     required
+                    maxLength={60}
+                    autoComplete="name"
                     value={name}
                     onChange={e => setName(e.target.value)}
                   />
@@ -95,9 +131,19 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
                     type="text"
                     placeholder="johndoe"
                     required
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    maxLength={30}
+                    aria-invalid={!!usernameError || check === 'taken'}
+                    aria-describedby="username-status"
                     value={username}
-                    onChange={e => setUsername(e.target.value)}
+                    // The database stores usernames lowercase; show that as they type.
+                    onChange={e => setUsername(e.target.value.toLowerCase())}
                   />
+                  <p id="username-status" aria-live="polite" className={`text-xs ${usernameStatus.className}`}>
+                    {usernameStatus.text}
+                  </p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
@@ -122,14 +168,14 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
                   />
                 </div>
                 {error && <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>}
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || !canSubmit}>
                   {isLoading ? 'Signing up...' : 'Sign Up'}
                 </Button>
               </form>
               <div className="mt-6 text-center text-sm text-white/70">
                 Already have an account?{" "}
                 <Link 
-                  href="/auth/login" 
+                  href={withRedirect('/auth/login', redirectParam)}
                   className="text-white hover:underline transition-colors"
                 >
                   Sign in
