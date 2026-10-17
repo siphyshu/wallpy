@@ -243,3 +243,8 @@ func (c *Client) Fetch(ctx context.Context, rawURL string) ([]byte, error) {
 	}
 	return io.ReadAll(io.LimitReader(res.Body, 30<<20))
 }
+
+// PackURL is a pack's page in the gallery.
+func (c *Client) PackURL(slug string) string {
+	return c.Site + "/packs/" + url.PathEscape(slug)
+}

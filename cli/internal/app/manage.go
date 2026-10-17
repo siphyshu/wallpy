@@ -46,7 +46,7 @@ func newList() *cobra.Command {
 				return nil
 			}
 			var total int64
-			type row struct{ mark, title, slug, kind, size string }
+			type row struct{ mark, title, slug, kind, size, url string }
 			var rows []row
 			for _, pk := range packs {
 				size := pk.Size()
@@ -61,7 +61,7 @@ func newList() *cobra.Command {
 				if pk.Slug == st.Active {
 					mark = "●"
 				}
-				rows = append(rows, row{mark, pk.Title(), pk.Slug, kind, ui.Bytes(size)})
+				rows = append(rows, row{mark, pk.Title(), pk.Slug, kind, ui.Bytes(size), pk.GalleryURL()})
 			}
 			p.Heading("Installed packs", fmt.Sprintf("%d · %s", len(packs), ui.Bytes(total)))
 			p.Blank()
@@ -71,9 +71,10 @@ func newList() *cobra.Command {
 			}
 			pad := func(s string, w int) string { return s + strings.Repeat(" ", w-len([]rune(s))) }
 			for _, r := range rows {
-				title := p.Plain(pad(r.title, wt))
+				gap := strings.Repeat(" ", wt-len([]rune(r.title)))
+				title := p.Link(p.Plain(r.title), r.url) + gap
 				if r.mark != " " {
-					title = p.Strong(pad(r.title, wt))
+					title = p.Link(p.Strong(r.title), r.url) + gap
 				}
 				p.Raw(p.Accent(r.mark) + " " + title + "  " + p.Muted(pad(r.slug, ws)) + "  " + p.Faint(pad(r.kind, wk)+"  "+r.size))
 			}
@@ -89,6 +90,7 @@ func newList() *cobra.Command {
 
 func newShow(version string) *cobra.Command {
 	var at string
+	var web bool
 	cmd := &cobra.Command{
 		Use:   "show <pack>",
 		Short: "Show a pack's details and schedule",
@@ -96,7 +98,7 @@ func newShow(version string) *cobra.Command {
 			"without installing anything, for packs in the gallery. --at shows what\n" +
 			"would be on screen at another time.",
 		ValidArgsFunction: completeInstalled,
-		Example:           "wallpy show zelda-wind-waker\nwallpy show zelda-wind-waker --at 18:45\nwallpy show ocean-hours --at \"2026-12-24 08:00\"",
+		Example:           "wallpy show zelda-wind-waker\nwallpy show zelda-wind-waker --web\nwallpy show zelda-wind-waker --at 18:45\nwallpy show ocean-hours --at \"2026-12-24 08:00\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return &problem{msg: "Which pack?", fix: run("For example: ", "wallpy show zelda-wind-waker", "")}
@@ -116,8 +118,10 @@ func newShow(version string) *cobra.Command {
 			var sched *spec.Schedule
 			var m *remote.Manifest
 			var pack *library.Pack
+			var gallery string
 			if pk, err := lib.Get(args[0]); err == nil {
 				pack = pk
+				gallery = pk.GalleryURL()
 				if sched, err = pk.Schedule(); err != nil {
 					return &problem{msg: sentence(err.Error()), fix: run("Check it with ", "wallpy check "+pk.Dir, ""), err: err}
 				}
@@ -130,6 +134,10 @@ func newShow(version string) *cobra.Command {
 				if err != nil {
 					return &problem{msg: sentence(err.Error()), err: err}
 				}
+				gallery = c.PackURL(slug)
+				if web {
+					return openGallery(gallery, args[0])
+				}
 				if m, err = c.Manifest(cmd.Context(), slug); err != nil {
 					return explainNetwork(c, slug, err)
 				}
@@ -140,13 +148,16 @@ func newShow(version string) *cobra.Command {
 				sched = s
 			}
 
+			if web {
+				return openGallery(gallery, args[0])
+			}
 			p := printerAt(when, st.Location())
 			p.Blank()
 			title := sched.Name
 			if m != nil {
 				title = m.Title
 			}
-			head := p.Strong(title)
+			head := p.Link(p.Strong(title), gallery)
 			if m != nil {
 				head += "  " + p.Faint(fmt.Sprintf("v%d", m.Version))
 			}
@@ -190,6 +201,7 @@ func newShow(version string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&at, "at", "", `a time ("18:45") or date and time ("2026-12-24 08:00")`)
+	cmd.Flags().BoolVar(&web, "web", false, "open the pack's page in the gallery")
 	return cmd
 }
 
@@ -352,4 +364,19 @@ func keepWallpaper(st *state.State, dir, name string) string {
 		return ""
 	}
 	return keep
+}
+
+// openGallery opens a pack's gallery page in the browser.
+func openGallery(url, name string) error {
+	if url == "" {
+		return &problem{msg: fmt.Sprintf("%s is a local pack, so it isn't in the gallery.", name)}
+	}
+	if err := openURL(url); err != nil {
+		return &problem{msg: "Couldn't open a browser.", fix: run("The page is ", url, ""), err: err}
+	}
+	p := ui.Stdout()
+	p.Blank()
+	p.Success(p.Muted("Opened ") + p.Link(p.Plain(url), url))
+	p.Blank()
+	return nil
 }

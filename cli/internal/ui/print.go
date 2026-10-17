@@ -10,6 +10,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Symbols. One meaning each, used nowhere else.
@@ -84,6 +85,15 @@ func (p *Printer) Muted(s string) string  { return p.fg(p.look.Muted).Render(s) 
 func (p *Printer) Faint(s string) string  { return p.fg(p.look.Faint).Render(s) }
 func (p *Printer) Accent(s string) string { return p.fg(p.look.Sky()).Render(s) }
 func (p *Printer) Code(s string) string   { return p.fg(p.look.Sky()).Render(s) }
+
+// Link makes text a clickable link (OSC 8) in terminals that support it;
+// elsewhere, and when url is empty, it's just the text.
+func (p *Printer) Link(text, url string) string {
+	if url == "" || !p.Styled() {
+		return text
+	}
+	return ansi.SetHyperlink(url) + text + ansi.ResetHyperlink()
+}
 
 // Heading is a section title: bold, with an optional muted note after it.
 func (p *Printer) Heading(title, note string) {

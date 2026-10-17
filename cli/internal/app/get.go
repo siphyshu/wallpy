@@ -74,13 +74,13 @@ func get(cmd *cobra.Command, p *ui.Printer, c *remote.Client, ref string, force 
 		return err
 	}
 	if !fresh {
-		p.Success(p.Strong(m.Title) + "  " + p.Faint(fmt.Sprintf("v%d", m.Version)) + p.Muted(" is already installed."))
+		p.Success(p.Link(p.Strong(m.Title), c.PackURL(m.Slug)) + "  " + p.Faint(fmt.Sprintf("v%d", m.Version)) + p.Muted(" is already installed."))
 		p.Blank()
 		p.Hints([2]string{"wallpy get " + m.Slug + " --force", "reinstall and re-check every file"})
 		p.Blank()
 		return nil
 	}
-	p.Success(p.Strong(m.Title) + "  " + p.Faint(fmt.Sprintf("v%d", m.Version)))
+	p.Success(p.Link(p.Strong(m.Title), c.PackURL(m.Slug)) + "  " + p.Faint(fmt.Sprintf("v%d", m.Version)))
 	p.Raw("  " + p.Muted(fmt.Sprintf("%d images · %s · verified", len(m.Files), ui.Bytes(m.Size()))))
 	p.Raw("  " + p.Muted(credit(m)))
 	p.Raw("  " + p.Faint(tilde(pack.Dir)))

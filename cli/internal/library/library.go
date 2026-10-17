@@ -272,3 +272,11 @@ func (p *Pack) Size() int64 {
 	}
 	return n
 }
+
+// GalleryURL is the pack's page on the site it came from ("" for local packs).
+func (p *Pack) GalleryURL() string {
+	if p.Info == nil || p.Info.Source == "" {
+		return ""
+	}
+	return p.Info.Source + "/packs/" + p.Slug
+}

@@ -51,7 +51,7 @@ func home(ctx context.Context, version string) error {
 	}
 
 	p.Blank()
-	title := p.Strong(cur.Pack.Title())
+	title := p.Link(p.Strong(cur.Pack.Title()), cur.Pack.GalleryURL())
 	if cur.Pack.Info != nil {
 		title += "  " + p.Faint(fmt.Sprintf("v%d", cur.Pack.Info.Manifest.Version))
 	}

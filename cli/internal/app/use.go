@@ -85,7 +85,7 @@ func use(ctx context.Context, version, ref string) error {
 	if err != nil {
 		return &problem{msg: "Couldn't set the wallpaper: " + sentence(err.Error()), fix: run("Run ", "wallpy doctor", " to see what's wrong."), err: err}
 	}
-	p.Success(p.Muted("Now using ") + p.Strong(pack.Title()))
+	p.Success(p.Muted("Now using ") + p.Link(p.Strong(pack.Title()), pack.GalleryURL()))
 	p.Raw("  " + p.Muted(fmt.Sprintf("%s until %s, then %s", cur.Active.Image,
 		cur.Active.Until.Format("15:04"), next(cur, st.Location()))))
 	agentNote(p)

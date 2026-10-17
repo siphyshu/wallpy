@@ -7,12 +7,14 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"os"
 	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
+	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
 
 	"github.com/siphyshu/wallpy/cli/internal/library"
@@ -60,7 +62,9 @@ func browse(ctx context.Context, version, search string) error {
 	}
 	lib, _ := library.Open()
 	m := &browser{ctx: ctx, c: c, p: p, packs: packs, total: total, search: search,
-		pictures: map[string]image.Image{}, loading: map[string]bool{}, active: st.Active}
+		pictures: map[string]image.Image{}, loading: map[string]bool{}, active: st.Active,
+		graphics: ui.DetectGraphics(), blocks: map[string]string{}, sent: map[string]string{},
+		sending: map[string]bool{}, ids: map[string]int{}}
 	if lib != nil {
 		m.installed = map[string]bool{}
 		if list, err := lib.List(); err == nil {
@@ -96,10 +100,22 @@ type browser struct {
 	filtering     bool
 	width, height int
 
-	pictures map[string]image.Image
+	pictures map[string]image.Image // previews, already shrunk
 	loading  map[string]bool
 	picked   string
+	status   string // a passing note in the footer ("Opened … in your browser")
+
+	graphics ui.Graphics
+	blocks   map[string]string // rendered half-block previews, by slug and size
+	sent     map[string]string // Kitty: slug -> the size its image was sent for
+	sending  map[string]bool
+	ids      map[string]int // Kitty image IDs, by slug
 }
+
+// kittyMsg carries a prepared Kitty transmission; kittySentMsg says it's out.
+type kittyMsg struct{ slug, size, seq string }
+type kittySentMsg struct{ slug, size string }
+type statusMsg string
 
 type pictureMsg struct {
 	slug string
@@ -148,12 +164,24 @@ func (b *browser) load() tea.Cmd {
 		if err != nil {
 			return pictureMsg{pk.Slug, nil}
 		}
-		return pictureMsg{pk.Slug, img}
+		return pictureMsg{pk.Slug, shrink(img, 1600)}
 	}
 }
 
 func (b *browser) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	model, cmd := b.update(msg)
+	return model, tea.Batch(cmd, b.sendPreview())
+}
+
+func (b *browser) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case kittyMsg:
+		return b, tea.Sequence(tea.Raw(msg.seq), func() tea.Msg { return kittySentMsg{msg.slug, msg.size} })
+	case kittySentMsg:
+		b.sent[msg.slug] = msg.size
+		delete(b.sending, msg.slug+msg.size)
+	case statusMsg:
+		b.status = string(msg)
 	case tea.WindowSizeMsg:
 		b.width, b.height = msg.Width, msg.Height
 	case pictureMsg:
@@ -172,7 +200,7 @@ func (b *browser) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					b.filter = string(r[:len(r)-1])
 				}
 			case "ctrl+c":
-				return b, tea.Quit
+				return b, b.quit()
 			default:
 				if t := msg.Text; t != "" {
 					b.filter += t
@@ -181,9 +209,21 @@ func (b *browser) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			b.cursor = 0
 			return b, b.load()
 		}
+		b.status = ""
 		switch key {
 		case "q", "esc", "ctrl+c":
-			return b, tea.Quit
+			return b, b.quit()
+		case "o":
+			if pk, ok := b.selected(); ok {
+				url := b.c.PackURL(pk.Slug)
+				name := pk.Name
+				return b, func() tea.Msg {
+					if err := openURL(url); err != nil {
+						return statusMsg("Couldn't open a browser: " + url)
+					}
+					return statusMsg("Opened " + name + " in your browser")
+				}
+			}
 		case "up", "k":
 			b.cursor = max(b.cursor-1, 0)
 		case "down", "j":
@@ -193,7 +233,7 @@ func (b *browser) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if pk, ok := b.selected(); ok {
 				b.picked = pk.Slug
-				return b, tea.Quit
+				return b, b.quit()
 			}
 		}
 		return b, b.load()
@@ -212,10 +252,8 @@ func (b *browser) render() string {
 	if b.width == 0 {
 		return ""
 	}
-	w, h := b.width, b.height
-	listW := min(34, w/3)
-	picW := max(w-listW-6, 10)
-	picH := min(max(h-9, 4), picW*9/32) // about 16:9
+	h := b.height
+	listW, picW, picH := b.box()
 
 	// Header.
 	header := p.Strong("wallpy browse") + "  " + p.Faint(fmt.Sprintf("%s · most downloaded", plural(b.total, "pack")))
@@ -259,7 +297,7 @@ func (b *browser) render() string {
 		img, done := b.pictures[pk.Slug]
 		switch {
 		case done && img != nil:
-			detail = append(detail, strings.Split(ui.Picture(img, picW, picH), "\n")...)
+			detail = append(detail, strings.Split(b.preview(pk.Slug, img, picW, picH), "\n")...)
 		case done:
 			detail = append(detail, p.Faint("(no preview)"))
 			for range picH - 1 {
@@ -293,7 +331,10 @@ func (b *browser) render() string {
 	left := lipgloss.NewStyle().Width(listW).Render(strings.Join(list, "\n"))
 	right := strings.Join(detail, "\n")
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, "  ", right)
-	footer := p.Faint("↑↓ move · enter use · / filter · q quit")
+	footer := p.Faint("↑↓ move · enter use · o open in gallery · / filter · q quit")
+	if b.status != "" {
+		footer = p.Accent(ui.SymSuccess) + " " + p.Muted(b.status)
+	}
 	return "\n " + header + "\n\n" + indent(body, " ") + "\n\n " + footer
 }
 
@@ -307,4 +348,90 @@ func truncate(s string, n int) string {
 
 func indent(s, pad string) string {
 	return pad + strings.ReplaceAll(s, "\n", "\n"+pad)
+}
+
+// box is the layout: the list's width and the preview's size in cells.
+func (b *browser) box() (listW, picW, picH int) {
+	listW = min(34, b.width/3)
+	picW = max(b.width-listW-6, 10)
+	picH = min(max(b.height-9, 4), picW*9/32) // about 16:9
+	return
+}
+
+// preview is the selected pack's picture: real pixels once the Kitty image
+// has arrived, half blocks until then (and in other terminals).
+func (b *browser) preview(slug string, img image.Image, w, h int) string {
+	size := fmt.Sprintf("%dx%d", w, h)
+	if b.graphics == ui.Kitty && b.sent[slug] == size {
+		return ui.KittyCells(b.id(slug), w, h)
+	}
+	key := slug + "@" + size
+	if s, ok := b.blocks[key]; ok {
+		return s
+	}
+	s := ui.Picture(img, w, h)
+	b.blocks[key] = s
+	return s
+}
+
+// sendPreview prepares the selected preview's Kitty image, off the UI
+// thread, when it hasn't been sent at the current size.
+func (b *browser) sendPreview() tea.Cmd {
+	if b.graphics != ui.Kitty || b.width == 0 {
+		return nil
+	}
+	pk, ok := b.selected()
+	if !ok {
+		return nil
+	}
+	img := b.pictures[pk.Slug]
+	_, w, h := b.box()
+	size := fmt.Sprintf("%dx%d", w, h)
+	if img == nil || b.sent[pk.Slug] == size || b.sending[pk.Slug+size] {
+		return nil
+	}
+	b.sending[pk.Slug+size] = true
+	id, slug := b.id(pk.Slug), pk.Slug
+	return func() tea.Msg {
+		seq, err := ui.KittyImage(img, id, w, h)
+		if err != nil {
+			return nil
+		}
+		return kittyMsg{slug, size, seq}
+	}
+}
+
+// id is a pack's Kitty image ID: unique to this run (so another app's
+// images in the same terminal aren't touched), never zero.
+func (b *browser) id(slug string) int {
+	if id, ok := b.ids[slug]; ok {
+		return id
+	}
+	id := (os.Getpid()%2048+1)<<12 | (len(b.ids) + 1)
+	b.ids[slug] = id
+	return id
+}
+
+// quit frees the images sent to the terminal, then ends the program.
+func (b *browser) quit() tea.Cmd {
+	if b.graphics != ui.Kitty || len(b.ids) == 0 {
+		return tea.Quit
+	}
+	var forget strings.Builder
+	for _, id := range b.ids {
+		forget.WriteString(ui.KittyForget(id))
+	}
+	return tea.Sequence(tea.Raw(forget.String()), tea.Quit)
+}
+
+// shrink scales big photos down once, so redraws stay fast.
+func shrink(img image.Image, maxW int) image.Image {
+	b := img.Bounds()
+	if b.Dx() <= maxW {
+		return img
+	}
+	h := b.Dy() * maxW / b.Dx()
+	out := image.NewRGBA(image.Rect(0, 0, maxW, h))
+	draw.ApproxBiLinear.Scale(out, out.Bounds(), img, b, draw.Src, nil)
+	return out
 }

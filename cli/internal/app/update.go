@@ -72,7 +72,7 @@ func newUpdate(version string) *cobra.Command {
 					continue
 				}
 				updated++
-				p.Success(fmt.Sprintf("%s %s", p.Strong(m.Title), p.Muted(fmt.Sprintf("v%d → v%d", pk.Info.Manifest.Version, m.Version))))
+				p.Success(fmt.Sprintf("%s %s", p.Link(p.Strong(m.Title), c.PackURL(m.Slug)), p.Muted(fmt.Sprintf("v%d → v%d", pk.Info.Manifest.Version, m.Version))))
 				if pk.Slug == st.Active {
 					engine.Apply(lib, time.Now(), true)
 				}
