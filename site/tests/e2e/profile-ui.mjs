@@ -7,7 +7,7 @@
 // Run on purpose only:  npm run test:e2e:profile   (SHOTS=dir for screenshots at 1440 and 390 wide)
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
-import { BASE, COOKIE_NAME, E, admin, api, check, cleanup, makeImage, makeUser, runId, summary, uploadImages } from './helpers.mjs';
+import { BASE, COOKIE_NAME, E, admin, api, check, cleanup, makeImage, makeUser, r2Exists, runId, summary, uploadImages } from './helpers.mjs';
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { chromium } = require('playwright-core');
 const { createClient } = require('@supabase/supabase-js');
@@ -169,6 +169,22 @@ try {
     await shot(visitor, `profile-4-visitor-${width}`);
     await visitor.context().close();
   }
+
+  // --- Remove the avatar and cover: keys cleared, files deleted from R2 ---
+  await me.getByRole('button', { name: 'Edit Profile' }).click();
+  await me.getByRole('button', { name: 'Remove avatar' }).click();
+  await me.getByRole('button', { name: 'Remove cover photo' }).click();
+  check('removed images disappear from the form', !(await me.locator('img[alt="Cover"]').isVisible()));
+  await me.getByRole('button', { name: 'Save' }).click();
+  await me.getByRole('button', { name: 'Edit Profile' }).waitFor({ timeout: 30_000 });
+  const { data: cleared } = await admin.from('profiles').select('avatar_key, cover_key').eq('id', owner.id).single();
+  check('removing clears the avatar and cover', cleared.avatar_key === null && cleared.cover_key === null);
+  let gone = false;
+  for (let i = 0; i < 10 && !gone; i++) {
+    gone = !(await r2Exists(row.avatar_key)) && !(await r2Exists(row.cover_key));
+    if (!gone) await new Promise((r) => setTimeout(r, 500));
+  }
+  check('removed files are deleted from storage', gone);
 } catch (e) {
   check('unexpected error', false, e.stack);
 } finally {

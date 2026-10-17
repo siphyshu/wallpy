@@ -76,7 +76,7 @@ Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks 
 - [ ] Review step shows the pack's size with a download icon ("⬇ 50 KB"), which reads like a download button; tags show as typed (#Test) though they're stored lowercase
 - [ ] No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile
 - [ ] "Waiting for review" doesn't say what happens next or how long it usually takes
-- [ ] Owners can't unlist or delete a published pack (the DB has `is_listed`; only declined packs can be deleted), or withdraw a version in review (already under Later)
+- [x] Owners can't unlist or delete a published pack (the DB has `is_listed`; only declined packs can be deleted), or withdraw a version in review (already under Later) (2026-10-17: Unlist/List, Withdraw and Delete on the owner's pack page and profile cards, each confirmed; delete needs the pack name typed. Unlisted packs keep their link and installs. Delete account at the bottom of the profile edit form)
 - [ ] No upload from a ready-made folder/zip (already listed above)
 
 Moderator (from the e2e screenshots)
@@ -90,8 +90,8 @@ Profile editing (walked 2026-10-17 with a throwaway user; now `npm run test:e2e:
 - Fine: name, bio, links, contact email, avatar and cover save, survive a reload and show to signed-out visitors; images land in `profiles/<id>/`
 - [x] Fixed: a link without `https://` or a malformed contact email failed the DB check with a raw constraint error; now checked first with a clear message (`lib/profile-fields.ts`), scheme added for bare domains. Link URLs were silently cut at 100 characters (DB allows 300), name at 50 (DB 60). Images over 5 MB only failed on Save; now on picking. "Add Link" was blue; now the `bg-white/10` secondary pill
 - [ ] Navbar avatar doesn't update after saving a new one until the page reloads (it loads the profile once on mount)
-- [ ] No way to remove an avatar or cover once set (only replace); replaced files stay in R2 under `profiles/<id>/`
-- [ ] `profiles.website` exists (filled for v1 users) but the profile neither shows nor edits it; links cover the same need
+- [x] No way to remove an avatar or cover once set (only replace); replaced files stay in R2 under `profiles/<id>/` (2026-10-17: remove buttons in the edit form; removed and replaced files are deleted from R2)
+- [x] `profiles.website` exists (filled for v1 users) but the profile neither shows nor edits it; links cover the same need (2026-10-17: moved into `links` as "Website", column dropped)
 - [ ] With no display name the profile shows an empty heading above `@username` (sign-up asks for a name, so mostly old/test accounts)
 
 ## Go CLI: feature-complete (publish after the site)
@@ -144,6 +144,6 @@ hidden `run` for the service.
 ## Later / ideas
 
 - Weekday pills on Daypack blocks (weekend variants of a time block); the format allows it, the builder doesn't (use Edit as text)
-- Withdraw a version that's in review
+- ~~Withdraw a version that's in review~~ (done 2026-10-17)
 - Garbage-collect R2 blobs no version uses (deleting a pack keeps its images)
 - Keep moderation history when an owner deletes a declined pack (deleting cascades it today)

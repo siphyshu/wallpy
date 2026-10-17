@@ -5,6 +5,10 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | Unlisting only hides a pack from listings (gallery, search, visitors' view of the owner's profile, search engines via `noindex`); RLS and `is_public_version()` no longer look at `is_listed`, so the page, manifest and images keep working. Owners can delete any of their packs (published ones after typing the name); images stay in R2 | "Unlist" must not break installs; listing is a site concern, not a security boundary |
+| 2026-10-17 | Withdrawing a version in review (`withdraw_version()`, owner only, logged as `withdraw`) makes it a draft again, for new packs and updates alike. Sending a new version replaces the draft atomically (`create_version_replacing_draft()`); the new version takes the draft's number | One state, no data lost, works with the one-open-version index |
+| 2026-10-17 | Account deletion (`delete_my_account(keep_published)`, the caller's own account only, one transaction including `auth.users`) deletes profile, favourites and unpublished packs; kept published packs lose their unreviewed versions and get `owner_id = null`, shown as "Deleted user". The route also deletes `profiles/<uid>/` from R2 and signs out | No service role needed; can't target anyone else |
+| 2026-10-17 | `profiles.website` moved into `links` (as "Website", skipping duplicates) and dropped | Links already cover it; the profile never showed it |
 | 2026-10-17 | Sign-up checks usernames as they type: lowercased automatically, the rule shown under the field, availability looked up with a plain select on `profiles` (public anyway). Only a known-bad or taken name disables the button; a failed lookup falls back to a friendly message for the trigger's error | No schema change needed; the trigger stays the final check |
 | 2026-10-17 | Profile links typed without a scheme get `https://`; other schemes are refused before saving | Matches `is_http_url`; people type bare domains |
 | 2026-10-17 | Review status badges on a profile's packs show to the owner only | Visitors only see published packs; the badge is the owner's to-do |

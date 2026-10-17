@@ -1,5 +1,5 @@
 import 'server-only';
-import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { serverEnv } from '@/lib/env';
 
@@ -79,4 +79,25 @@ export async function headObject(
     if (status === 404 || (error instanceof Error && error.name === 'NotFound')) return null;
     throw error;
   }
+}
+
+/** Delete one object from the public bucket (missing objects are fine). */
+export async function deleteObject(key: string): Promise<void> {
+  await r2().send(new DeleteObjectCommand({ Bucket: PUBLIC_BUCKET, Key: key }));
+}
+
+/** Delete every object under a prefix, e.g. `profiles/<uid>/`. Returns how many. */
+export async function deletePrefix(prefix: string): Promise<number> {
+  let deleted = 0;
+  let token: string | undefined;
+  do {
+    const page = await r2().send(new ListObjectsV2Command({ Bucket: PUBLIC_BUCKET, Prefix: prefix, ContinuationToken: token }));
+    const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []));
+    if (keys.length) {
+      await r2().send(new DeleteObjectsCommand({ Bucket: PUBLIC_BUCKET, Delete: { Objects: keys, Quiet: true } }));
+      deleted += keys.length;
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  return deleted;
 }

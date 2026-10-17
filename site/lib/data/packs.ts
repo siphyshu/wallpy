@@ -46,6 +46,10 @@ type PackRow = {
 
 /** Who gets the credit: the uploader if they made it, else the credited artist. */
 function credit(version: Pick<VersionSummaryRow, 'uploader_is_artist' | 'artist'> | null | undefined, owner: OwnerRow): Credit {
+  if (version?.uploader_is_artist && !owner) {
+    // The uploader deleted their account and left the pack up.
+    return { name: 'Deleted user', url: null, avatar: DEFAULT_AVATAR, internal: false };
+  }
   if (version?.uploader_is_artist && owner) {
     return {
       name: owner.display_name || owner.username,
@@ -85,7 +89,10 @@ function toCard(pack: PackRow, version: VersionSummaryRow | null | undefined): P
     kindLabel: version?.kind ? KIND_LABELS[version.kind] : 'Pack',
     aiUse: version?.ai_use ?? null,
     status: version?.status ?? null,
-    isPublic: Boolean(pack.current_version_id && pack.is_listed && !pack.removed_at),
+    // Published and not taken down: its link and installs work. Unlisted packs
+    // are public too; they're only left out of the gallery and profiles.
+    isPublic: Boolean(pack.current_version_id && !pack.removed_at),
+    isListed: pack.is_listed,
   };
 }
 
@@ -130,17 +137,18 @@ export async function listPublicPacks({ search, tag, kind, hideAi = false, sort 
 }
 
 /**
- * Packs owned by a user. Everyone sees the public ones; the owner (and
- * moderators) also see drafts and pending ones, because RLS lets them.
+ * Packs owned by a user. Everyone sees the public, listed ones; the owner
+ * (`isOwner`) also sees unlisted packs, and drafts and pending ones, because
+ * RLS lets them.
  */
-export async function listPacksByOwner(ownerId: string): Promise<PackCard[]> {
+export async function listPacksByOwner(ownerId: string, { isOwner = false }: { isOwner?: boolean } = {}): Promise<PackCard[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('packs')
     .select(`${PACK_COLUMNS}, ${OWNER}, versions:pack_versions!pack_versions_pack_id_fkey(${VERSION_SUMMARY})`)
-    .eq('owner_id', ownerId)
-    .order('created_at', { ascending: false })
-    ;
+    .eq('owner_id', ownerId);
+  if (!isOwner) query = query.eq('is_listed', true).not('current_version_id', 'is', null).is('removed_at', null);
+  const { data, error } = await query.order('created_at', { ascending: false });
   if (error) {
     console.error('listPacksByOwner:', error);
     return [];
@@ -151,8 +159,9 @@ export async function listPacksByOwner(ownerId: string): Promise<PackCard[]> {
     // Only owners and moderators can see versions that aren't public.
     const newest = versions[0]?.status;
     const review = newest === 'rejected' && p.removed_at && !p.current_version_id ? 'declined'
-      : newest === 'pending' || newest === 'rejected' ? newest : undefined;
-    return { ...toCard(p, shown), ...(review ? { review } : {}) };
+      : newest === 'pending' || newest === 'rejected' || (newest === 'draft' && p.current_version_id) ? newest : undefined;
+    const pendingId = newest === 'pending' ? versions[0].id : undefined;
+    return { ...toCard(p, shown), ...(review ? { review } : {}), ...(pendingId ? { pendingVersionId: pendingId } : {}) };
   });
 }
 

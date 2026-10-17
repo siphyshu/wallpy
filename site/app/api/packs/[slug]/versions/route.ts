@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { parseSubmission, toRpcPayload } from '@/lib/packs/submission';
 
 /**
- * Submit a new version of one of your packs: changes after a rejection, or an
- * update to a published pack (it replaces the current version once approved).
+ * Submit a new version of one of your packs: changes after a rejection or a
+ * withdrawal, or an update to a published pack (it replaces the current version once approved).
  * Same body and checks as POST /api/packs; create_version() checks ownership.
  */
 export async function POST(request: Request, { params }: RouteContext<'/api/packs/[slug]/versions'>) {
@@ -16,7 +16,8 @@ export async function POST(request: Request, { params }: RouteContext<'/api/pack
   const result = parseSubmission(await request.json().catch(() => null));
   if (!result.ok) return NextResponse.json({ error: result.error, issues: result.issues }, { status: 400 });
 
-  const { data, error } = await supabase.rpc('create_version', { p_slug: slug, p: toRpcPayload(result.submission) });
+  // A version withdrawn from review is a draft: the new one replaces it, atomically.
+  const { data, error } = await supabase.rpc('create_version_replacing_draft', { p_slug: slug, p: toRpcPayload(result.submission) });
   if (error) {
     // P0002: not the caller's pack. 23505: pack_versions_one_open, a version is already in review.
     if (error.code === 'P0002') return NextResponse.json({ error: 'Pack not found.' }, { status: 404 });

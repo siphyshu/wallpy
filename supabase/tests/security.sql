@@ -409,5 +409,132 @@ delete from public.packs where slug = (select r ->> 'slug' from spam);
 select pg_temp.expect('the owner can delete a declined pack',
   not exists (select 1 from public.pack_versions where id = (select (r ->> 'version_id')::uuid from spam)));
 
+
+-- ---- owner controls: unlist, delete, withdraw, delete account ----------------
+select pg_temp.as_admin();
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-00000000000d', 'dave@example.test', '{"username":"dave_t"}'),
+  ('00000000-0000-0000-0000-00000000000e', 'erin@example.test', '{"username":"erin_t"}');
+insert into public.blob_uploads (sha256, profile_id) values (repeat('a', 64), '00000000-0000-0000-0000-00000000000d'), (repeat('a', 64), '00000000-0000-0000-0000-00000000000e');
+create temp table owned (k text, r jsonb);
+grant all on owned to anon, authenticated;
+create function pg_temp.slug_of(key text) returns text language sql as $$ select r ->> 'slug' from owned where k = key $$;
+create function pg_temp.version_of(key text) returns uuid language sql as $$ select (r ->> 'version_id')::uuid from owned where k = key $$;
+grant execute on all functions in schema pg_temp to anon, authenticated, service_role;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+insert into owned select 'pub', public.create_pack(pg_temp.payload('Dave Pub', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+insert into owned select 'unl', public.create_pack(pg_temp.payload('Dave Unlisted', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+insert into owned select 'gone', public.create_pack(pg_temp.payload('Dave Gone', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+insert into owned select 'draft', public.create_pack(pg_temp.payload('Dave Draft', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64))), false));
+insert into owned select 'pend', public.create_pack(pg_temp.payload('Dave Pending', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+insert into owned select 'erin', public.create_pack(pg_temp.payload('Erin Pub', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select public.moderate(pg_temp.version_of(k), 'approve') from owned where k in ('pub', 'unl', 'gone', 'erin');
+
+-- Unlist: only the owner, and the pack stays reachable by link.
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot unlist a pack',
+  $q$update public.packs set is_listed = false where slug = pg_temp.slug_of('unl')$q$);
+select pg_temp.expect_error('anon cannot delete a pack',
+  $q$delete from public.packs where slug = pg_temp.slug_of('unl')$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+update public.packs set is_listed = false where slug = pg_temp.slug_of('unl');
+delete from public.packs where slug = pg_temp.slug_of('unl');
+select pg_temp.expect('others cannot unlist or delete someone''s published pack',
+  (select is_listed from public.packs where slug = pg_temp.slug_of('unl')));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+update public.packs set is_listed = false where slug = pg_temp.slug_of('unl');
+select pg_temp.as_user(null);
+select pg_temp.expect('an unlisted pack still opens by link',
+  exists (select 1 from public.packs p join public.pack_versions v on v.id = p.current_version_id
+          where v.title = 'Dave Unlisted' and not p.is_listed));
+select pg_temp.expect('an unlisted pack''s files stay installable',
+  exists (select 1 from public.version_files f join public.pack_versions v on v.id = f.version_id where v.title = 'Dave Unlisted'));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+update public.packs set is_listed = true where slug = pg_temp.slug_of('unl');
+select pg_temp.expect('the owner can list it again',
+  (select is_listed from public.packs where slug = pg_temp.slug_of('unl')));
+
+-- Delete a published pack: gone for everyone.
+delete from public.packs where slug = pg_temp.slug_of('gone');
+select pg_temp.as_admin();
+select pg_temp.expect('the owner can delete a published pack',
+  not exists (select 1 from public.packs where slug = pg_temp.slug_of('gone'))
+  and not exists (select 1 from public.pack_versions where id = pg_temp.version_of('gone')));
+
+-- Withdraw a version in review.
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot withdraw',
+  $q$select public.withdraw_version(pg_temp.version_of('pend'))$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+select pg_temp.expect_error('others cannot withdraw someone''s version',
+  $q$select public.withdraw_version(pg_temp.version_of('pend'))$q$, '{P0002}');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect_error('only versions in review can be withdrawn',
+  $q$select public.withdraw_version(pg_temp.version_of('pub'))$q$, '{23514}');
+select pg_temp.expect('withdrawing returns draft', public.withdraw_version(pg_temp.version_of('pend')) = 'draft');
+select pg_temp.expect('the owner withdraws a version in review',
+  (select status = 'draft' and submitted_at is null from public.pack_versions where id = pg_temp.version_of('pend')));
+select pg_temp.expect('a withdrawal is logged',
+  exists (select 1 from public.moderation_events where version_id = pg_temp.version_of('pend') and action = 'withdraw'));
+update public.pack_versions set title = 'Dave Pending 2' where id = pg_temp.version_of('pend');
+select pg_temp.expect('a withdrawn version is editable again',
+  (select title from public.pack_versions where id = pg_temp.version_of('pend')) = 'Dave Pending 2');
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+select pg_temp.expect_error('others cannot replace someone''s draft',
+  $q$select public.create_version_replacing_draft(pg_temp.slug_of('pend'), pg_temp.payload('Hijack', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))))$q$, '{P0002}');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect('their draft survives', exists (select 1 from public.pack_versions where id = pg_temp.version_of('pend')));
+select pg_temp.expect_error('a failed resubmission keeps the draft',
+  $q$select public.create_version_replacing_draft(pg_temp.slug_of('pend'), pg_temp.payload('Broken', '{a.jpg,ghost.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))))$q$, '{23514}');
+select pg_temp.expect('the draft is still there after the failure', exists (select 1 from public.pack_versions where id = pg_temp.version_of('pend')));
+insert into owned select 'pend2', public.create_version_replacing_draft(pg_temp.slug_of('pend'), pg_temp.payload('Dave Pending 3', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+select pg_temp.expect('resubmitting replaces the draft',
+  not exists (select 1 from public.pack_versions where id = pg_temp.version_of('pend'))
+  and (select status from public.pack_versions where id = pg_temp.version_of('pend2')) = 'pending');
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot resubmit',
+  $q$select public.create_version_replacing_draft(pg_temp.slug_of('pend'), '{}'::jsonb)$q$);
+
+-- Delete an account.
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot delete an account',
+  $q$select public.delete_my_account(false)$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+-- an update in review on a published pack is dropped when the pack is kept
+insert into owned select 'pub2', public.create_version(pg_temp.slug_of('pub'), pg_temp.payload('Dave Pub v2', '{a.jpg}', jsonb_build_array(jsonb_build_object('path', 'a.jpg', 'sha256', repeat('a', 64)))));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+select public.delete_my_account(false);
+select pg_temp.as_admin();
+select pg_temp.expect('deleting an account removes only the caller',
+  not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-00000000000e')
+  and not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000e')
+  and exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000d'));
+select pg_temp.expect('without keeping, published packs go too',
+  not exists (select 1 from public.packs where slug = pg_temp.slug_of('erin')));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+select public.delete_my_account(true);
+select pg_temp.as_admin();
+select pg_temp.expect('the account and profile are gone',
+  not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-00000000000d') and not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000d'));
+select pg_temp.expect('unpublished packs are deleted',
+  not exists (select 1 from public.packs where slug in (pg_temp.slug_of('draft'), pg_temp.slug_of('pend'))));
+select pg_temp.expect('their packs in review are deleted with them',
+  not exists (select 1 from public.pack_versions where id = pg_temp.version_of('pend2')));
+select pg_temp.expect('kept packs drop their unreviewed versions',
+  not exists (select 1 from public.pack_versions where id = pg_temp.version_of('pub2')));
+select pg_temp.as_user(null);
+select pg_temp.expect('kept published packs stay public, credited to no one',
+  (select count(*) from public.packs p join public.pack_versions v on v.id = p.current_version_id
+   where v.title in ('Dave Pub', 'Dave Unlisted') and p.owner_id is null) = 2);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect_error('nobody can claim an ownerless pack',
+  $q$update public.packs set owner_id = auth.uid() where slug = pg_temp.slug_of('pub')$q$);
+select pg_temp.expect('profiles have no website column (moved into links)',
+  not exists (select 1 from information_schema.columns where table_name = 'profiles' and column_name = 'website'));
+
 select pg_temp.as_admin();
 rollback;

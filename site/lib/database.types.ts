@@ -267,6 +267,7 @@ export type Database = {
         Row: {
           ai_use: Database["public"]["Enums"]["ai_use"] | null
           artist_id: string | null
+          categories: Database["public"]["Enums"]["pack_category"][]
           cover_file_id: string | null
           created_at: string
           created_by: string | null
@@ -291,6 +292,7 @@ export type Database = {
         Insert: {
           ai_use?: Database["public"]["Enums"]["ai_use"] | null
           artist_id?: string | null
+          categories?: Database["public"]["Enums"]["pack_category"][]
           cover_file_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -315,6 +317,7 @@ export type Database = {
         Update: {
           ai_use?: Database["public"]["Enums"]["ai_use"] | null
           artist_id?: string | null
+          categories?: Database["public"]["Enums"]["pack_category"][]
           cover_file_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -396,7 +399,7 @@ export type Database = {
           favourite_count: number
           id: string
           is_listed: boolean
-          owner_id: string
+          owner_id: string | null
           removed_at: string | null
           removed_reason: string | null
           slug: string
@@ -408,7 +411,7 @@ export type Database = {
           favourite_count?: number
           id?: string
           is_listed?: boolean
-          owner_id: string
+          owner_id?: string | null
           removed_at?: string | null
           removed_reason?: string | null
           slug: string
@@ -420,7 +423,7 @@ export type Database = {
           favourite_count?: number
           id?: string
           is_listed?: boolean
-          owner_id?: string
+          owner_id?: string | null
           removed_at?: string | null
           removed_reason?: string | null
           slug?: string
@@ -455,7 +458,6 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string
-          website: string | null
         }
         Insert: {
           avatar_key?: string | null
@@ -469,7 +471,6 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username: string
-          website?: string | null
         }
         Update: {
           avatar_key?: string | null
@@ -483,7 +484,6 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string
-          website?: string | null
         }
         Relationships: []
       }
@@ -542,6 +542,14 @@ export type Database = {
       can_use_blob: { Args: { s: string }; Returns: boolean }
       create_pack: { Args: { p: Json }; Returns: Json }
       create_version: { Args: { p: Json; p_slug: string }; Returns: Json }
+      create_version_replacing_draft: {
+        Args: { p: Json; p_slug: string }
+        Returns: Json
+      }
+      delete_my_account: {
+        Args: { p_keep_published: boolean }
+        Returns: undefined
+      }
       interval_minutes: { Args: { i: string }; Returns: number }
       is_api_caller: { Args: never; Returns: boolean }
       is_http_url: { Args: { u: string }; Returns: boolean }
@@ -556,6 +564,13 @@ export type Database = {
         Returns: Database["public"]["Enums"]["version_status"]
       }
       owns_pack: { Args: { p: string }; Returns: boolean }
+      public_tags: {
+        Args: never
+        Returns: {
+          tag: string
+          uses: number
+        }[]
+      }
       schedule_images: { Args: { s: Json }; Returns: string[] }
       schedule_kind: {
         Args: { s: Json }
@@ -565,8 +580,16 @@ export type Database = {
       spec_rotate_ok: { Args: { r: string }; Returns: boolean }
       spec_time_ok: { Args: { t: string }; Returns: boolean }
       uploaded_by_me: { Args: { s: string }; Returns: boolean }
+      valid_categories: {
+        Args: { c: Database["public"]["Enums"]["pack_category"][] }
+        Returns: boolean
+      }
       valid_links: { Args: { l: Json }; Returns: boolean }
       valid_tags: { Args: { t: string[] }; Returns: boolean }
+      withdraw_version: {
+        Args: { p_version: string }
+        Returns: Database["public"]["Enums"]["version_status"]
+      }
       write_version: { Args: { p: Json; p_pack_id: string }; Returns: Json }
     }
     Enums: {
@@ -579,6 +602,18 @@ export type Database = {
         | "takedown"
         | "restore"
         | "decline"
+        | "withdraw"
+      pack_category:
+        | "nature"
+        | "landscapes"
+        | "cities"
+        | "space"
+        | "anime"
+        | "games"
+        | "art"
+        | "minimal"
+        | "abstract"
+        | "seasons"
       pack_kind: "timeblocks" | "days" | "album"
       pack_license:
         | "personal-use"
@@ -729,6 +764,19 @@ export const Constants = {
         "takedown",
         "restore",
         "decline",
+        "withdraw",
+      ],
+      pack_category: [
+        "nature",
+        "landscapes",
+        "cities",
+        "space",
+        "anime",
+        "games",
+        "art",
+        "minimal",
+        "abstract",
+        "seasons",
       ],
       pack_kind: ["timeblocks", "days", "album"],
       pack_license: [

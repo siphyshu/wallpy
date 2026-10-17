@@ -11,6 +11,7 @@ import type { ChangeEvent } from 'react';
 import type { Database } from '@/lib/database.types';
 import type { Profile, ProfileLink } from '@/lib/types';
 import Image from 'next/image';
+import DeleteAccount from '@/components/profile/DeleteAccount';
 import { 
   Link as LinkIcon,
   Mail
@@ -140,7 +141,9 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
         contact_email: checked.contactEmail,
       };
       if (avatarFile) updateData.avatar_key = await uploadProfileImage(avatarFile);
+      else if (!avatarUrl && user.avatar_key) updateData.avatar_key = null;
       if (coverFile) updateData.cover_key = await uploadProfileImage(coverFile);
+      else if (!coverUrl && user.cover_key) updateData.cover_key = null;
 
       const supabase = createClient();
       const { error: updateError } = await supabase
@@ -148,6 +151,20 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
         .update(updateData)
         .eq('id', user.id);
       if (updateError) throw updateError;
+
+      // Removed or replaced images: delete the old files (the server checks
+      // they're yours and no longer used).
+      const unused = [
+        'avatar_key' in updateData ? user.avatar_key : null,
+        'cover_key' in updateData ? user.cover_key : null,
+      ].filter((k): k is string => Boolean(k));
+      if (unused.length) {
+        await fetch('/api/uploads/profile-image', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keys: unused }),
+        }).catch(() => {});
+      }
 
       setEditing(false);
       setAvatarFile(null);
@@ -191,6 +208,19 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
             </svg>
           </div>
         )}
+        {editing && isCurrentUser && coverUrl && (
+          <button
+            className="absolute top-2 right-12 bg-white/30 border border-white/40 rounded-full p-2 hover:bg-white/60 transition"
+            onClick={() => { setCoverFile(null); setCoverUrl(''); }}
+            type="button"
+            aria-label="Remove cover photo"
+            title="Remove cover photo"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
         {editing && isCurrentUser && (
           <button
             className="absolute top-2 right-2 bg-white/30 border border-white/40 rounded-full p-2 hover:bg-white/60 transition"
@@ -228,6 +258,19 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
               </svg>
             </div>
+          )}
+          {editing && isCurrentUser && avatarUrl && (
+            <button
+              className="absolute bottom-0 left-0 bg-white/30 border border-white/40 rounded-full p-1 hover:bg-white/60 transition"
+              onClick={() => { setAvatarFile(null); setAvatarUrl(''); }}
+              type="button"
+              aria-label="Remove avatar"
+              title="Remove avatar"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+            </button>
           )}
           {editing && isCurrentUser && (
             <button
@@ -464,6 +507,8 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
           )
         )}
       </div>
+
+      {editing && isCurrentUser && <DeleteAccount username={user.username} />}
     </div>
   );
-} 
+}

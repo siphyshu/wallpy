@@ -61,7 +61,8 @@ export default function UploadWizard({ edit = null }) {
   const [uploadedFiles, setUploadedFiles] = useState(initial.files);
   const [scheduleConfig, setScheduleConfig] = useState(initial.config);
   const [packMetadata, setPackMetadata] = useState(initial.metadata);
-  const nextVersion = edit ? edit.latest.number + 1 : null;
+  // A withdrawn draft is replaced by the new version, which takes its number.
+  const nextVersion = edit ? edit.latest.number + (edit.latest.status === 'draft' ? 0 : 1) : null;
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');

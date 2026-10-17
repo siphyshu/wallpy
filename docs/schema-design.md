@@ -43,7 +43,7 @@ it lives only in `auth.users`, so it can't leak through this table.
 |---|---|---|
 | id | uuid PK → auth.users | |
 | username | citext unique | `^[a-z0-9_]{3,30}$` |
-| display_name, bio, website | text | length-checked |
+| display_name, bio | text | length-checked (`website` was moved into `links` and dropped, 2026-10-17) |
 | links | jsonb | array of `{label, url}`, `http(s)` only (check constraint) |
 | contact_email | text null | optional *public* contact address, opt-in |
 | avatar_key, cover_key | text null | R2 keys, see Storage |
@@ -69,14 +69,14 @@ Stable identity only. Nothing here describes content, so nothing here needs revi
 |---|---|---|
 | id | uuid PK | |
 | slug | citext unique | URL + `wallpy download <slug>`; never used in storage keys |
-| owner_id | uuid → profiles | |
+| owner_id | uuid → profiles, nullable | null: the owner deleted their account and kept the pack up ("Deleted user") |
 | current_version_id | uuid null → pack_versions | latest **approved** version; null = never approved |
-| is_listed | bool default true | owner can hide without deleting |
+| is_listed | bool default true | owner can hide it from the gallery, search and their profile; the link and installs keep working |
 | removed_at, removed_reason | | moderator takedown |
 | download_count, favourite_count | int | cached, maintained by triggers |
 | created_at | | |
 
-A pack is publicly visible iff `current_version_id is not null and is_listed and removed_at is null`.
+A pack is publicly visible iff `current_version_id is not null and removed_at is null`; `is_listed` only decides whether listings show it (site queries filter on it). Owners can `withdraw_version()` a pending version (back to draft) and `delete_my_account(keep_published)`.
 
 ### `pack_versions`
 An immutable snapshot of a pack's content + metadata. Editing a pack = creating
