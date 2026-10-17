@@ -133,6 +133,7 @@ hidden `run` for the service.
 ## Before launch
 
 - [ ] Cloudflare on `wallpy-cdn.siphyshu.me`: Cache Rule (eligible, respect origin TTL) **and** a response-header rule `Access-Control-Allow-Origin: *` (both together; see operations.md)
+- [ ] Remove the dev origins `http://localhost:3101`–`3110` from the `wallpy-public` CORS rules (keep `localhost:3000` only if still needed)
 - [ ] Swap the temporary admin R2 token `wallpy-admin-setup` for a bucket-scoped `wallpy-site-prod`
 - [ ] DNS: `wallpy.siphyshu.me` points at a dead IP; stale `*.siphyshu.me` wildcard
 - [ ] Deploy the site (host TBD) with production env vars

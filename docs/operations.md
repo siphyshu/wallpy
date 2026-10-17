@@ -19,7 +19,7 @@ bucket. The e2e tests create throwaway users and delete everything they made.
 | Types | `cd site && npm run typecheck` | |
 | Lint | `cd site && npm run lint` | 0 errors expected (warnings are `<img>` in the builders) |
 | Unit | `cd site && npm test` | Vitest: spec port vs vectors, storage, redirects, username and profile-field checks |
-| E2E | `cd site && npm run test:e2e` | Needs `npm run dev` running; api, ui (album), moderation, versions, builders (Daypack + Weekpack, uses samples/), profile (sign-up username checks without submitting, profile editing with avatar/cover, visitor view) suites (each also runnable alone: `test:e2e:<name>`; `SHOTS=dir` saves screenshots; `BASE=http://localhost:<port>` for another dev server). R2's CORS allows only port 3000, so browser uploads from other ports fail; the profile suite answers those PUTs itself. Cleanup also deletes `profiles/<id>/` images |
+| E2E | `cd site && npm run test:e2e` | Needs `npm run dev` running; api, ui (album), moderation, versions, builders (Daypack + Weekpack, uses samples/), profile (sign-up username checks without submitting, profile editing with avatar/cover, visitor view) suites (each also runnable alone: `test:e2e:<name>`; `SHOTS=dir` saves screenshots; `BASE=http://localhost:<port>` for another dev server). R2's CORS allows ports 3000 and 3101–3110, so run extra dev servers on those. Cleanup also deletes `profiles/<id>/` images |
 | DB security | `supabase/scripts/test_security.sh` | Every migration on a scratch local Postgres, then the attack checks in `supabase/tests/security.sql` |
 | Spec | `pytest spec/tests` | Needs `pip install -r spec/requirements.txt` |
 | CLI | `cd cli && go vet ./... && go test ./...` | Runs `spec/vectors/vectors.json`; after changing `spec/schedule.schema.json`, copy it to `cli/internal/spec/` (a test checks) |
@@ -47,7 +47,7 @@ Read-only queries: `supabase/scripts/prod_sql.py query "select ..."`.
 - Bucket `wallpy-public`, public at `https://wallpy-cdn.siphyshu.me`.
   Keys: `blobs/<sha256>` (pack images, thumbnails), `profiles/<uid>/<sha>.<ext>`, `artists/<sha>.<ext>`.
 - Bucket `wallpy-packs` (private): `recovered/` originals and `archive/` zip. Keep.
-- CORS allows `http://localhost:3000` and `https://wallpy.siphyshu.me`.
+- CORS allows `https://wallpy.siphyshu.me`, `http://localhost:3000` and, for parallel dev servers (worktrees), `http://localhost:3101`–`3110` (added 2026-10-17; remove before launch). Change it with the S3 API (`GetBucketCors`/`PutBucketCors`) using the R2 keys in `site/.env.local`.
 - Browser `fetch()`es of CDN files use `cache: 'reload'`: `<img>` tags cache copies without CORS headers.
 
 ### Cloudflare cache (to do before launch)
