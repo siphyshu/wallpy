@@ -671,5 +671,37 @@ select pg_temp.expect('moderators dismiss a pack''s open reports', public.dismis
 select pg_temp.expect('the restore is logged with its note',
   exists (select 1 from public.moderation_events where version_id = pg_temp.sunset_v() and action = 'restore' and notes = 'Credit added.'));
 
+-- ---- notices (dot + /notices) -------------------------------------------------
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect('the owner sees their own review events, newest first',
+  (select count(*) from public.my_notices()) = 8
+  and (select notes from public.my_notices() order by created_at desc, id desc limit 1) = 'Credit added.');
+select pg_temp.expect('the takedown reason is visible to the owner',
+  exists (select 1 from public.my_notices() where action = 'takedown' and notes = 'Uses art without credit.'));
+select pg_temp.expect('the restore note is visible too',
+  exists (select 1 from public.my_notices() where action = 'restore' and notes = 'Credit added.'));
+select pg_temp.expect('my_notices never names the moderator',
+  not exists (select 1 from public.my_notices() n where to_jsonb(n)::text ilike '%mod_t%'));
+-- Everything in this file runs in one transaction, so now() never advances;
+-- backdate notices_seen_at to simulate a profile that hasn't looked in a while.
+update public.profiles set notices_seen_at = '2000-01-01' where id = auth.uid();
+select pg_temp.expect('the dot is on before marking notices seen', public.has_unseen_notices());
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect('another user sees none of alice''s events', not exists (select 1 from public.my_notices()));
+select pg_temp.expect('and no dot for events on someone else''s pack', not public.has_unseen_notices());
+update public.profiles set notices_seen_at = '1999-01-01' where id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.as_admin();
+select pg_temp.expect('a user cannot mark another user''s notices seen',
+  (select notices_seen_at from public.profiles where id = '00000000-0000-0000-0000-00000000000a') <> timestamptz '1999-01-01');
+
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot call my_notices', $q$select * from public.my_notices()$q$);
+select pg_temp.expect_error('anon cannot call has_unseen_notices', $q$select public.has_unseen_notices()$q$);
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+update public.profiles set notices_seen_at = now() where id = auth.uid();
+select pg_temp.expect('marking them seen turns the dot off', not public.has_unseen_notices());
+
 select pg_temp.as_admin();
 rollback;

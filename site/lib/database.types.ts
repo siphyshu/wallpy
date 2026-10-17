@@ -513,6 +513,7 @@ export type Database = {
           display_name: string | null
           id: string
           links: Json
+          notices_seen_at: string
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string
@@ -526,6 +527,7 @@ export type Database = {
           display_name?: string | null
           id: string
           links?: Json
+          notices_seen_at?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username: string
@@ -539,6 +541,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           links?: Json
+          notices_seen_at?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string
@@ -609,6 +612,7 @@ export type Database = {
         Returns: undefined
       }
       dismiss_reports: { Args: { p_pack: string }; Returns: number }
+      has_unseen_notices: { Args: never; Returns: boolean }
       interval_minutes: { Args: { i: string }; Returns: number }
       is_api_caller: { Args: never; Returns: boolean }
       is_http_url: { Args: { u: string }; Returns: boolean }
@@ -621,6 +625,18 @@ export type Database = {
           p_version: string
         }
         Returns: Database["public"]["Enums"]["version_status"]
+      }
+      my_notices: {
+        Args: never
+        Returns: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          created_at: string
+          id: number
+          notes: string
+          pack_id: string
+          slug: string
+          title: string
+        }[]
       }
       owns_pack: { Args: { p: string }; Returns: boolean }
       public_tags: {

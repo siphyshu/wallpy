@@ -4,11 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Alegreya } from 'next/font/google';
 import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User as AuthUser } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
 import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR } from '@/lib/data/profile-shape';
-import { User, Upload, LogOut, ShieldCheck, Menu, X } from 'lucide-react';
+import { User, Upload, LogOut, ShieldCheck, Menu, X, Bell } from 'lucide-react';
 
 const testing = Alegreya({
     subsets: ['latin'],
@@ -23,6 +24,8 @@ const NavBar = () => {
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
     const [isMobile, setIsMobile] = useState(false);
     const [scrolled, setScrolled] = useState(false); // tint the bar once content scrolls under it
+    const [hasUnseenNotices, setHasUnseenNotices] = useState(false);
+    const pathname = usePathname();
     const avatarRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null); // the bar and the phone menu
@@ -40,13 +43,13 @@ const NavBar = () => {
         window.addEventListener('resize', checkMobile);
 
         const loadProfile = async (userId: string) => {
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select(PROFILE_COLUMNS)
-                .eq('id', userId)
-                .single();
+            const [{ data: profileData }, { data: unseen }] = await Promise.all([
+                supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', userId).single(),
+                supabase.rpc('has_unseen_notices'),
+            ]);
             if (mounted) {
                 setProfile(toProfile(profileData));
+                setHasUnseenNotices(Boolean(unseen));
             }
         };
 
@@ -61,6 +64,7 @@ const NavBar = () => {
                     await loadProfile(session.user.id);
                 } else {
                     setProfile(null);
+                    setHasUnseenNotices(false);
                 }
             } catch (error) {
                 console.error('Error getting initial session:', error);
@@ -91,6 +95,7 @@ const NavBar = () => {
                     }, 0);
                 } else {
                     setProfile(null);
+                    setHasUnseenNotices(false);
                     setLoading(false);
                 }
             }
@@ -127,10 +132,15 @@ const NavBar = () => {
             await supabase.auth.signOut();
             setUser(null);
             setProfile(null);
+            setHasUnseenNotices(false);
         } catch (error) {
             console.error('Error signing out:', error);
         }
     };
+
+    // Opening /notices marks everything read server-side; hide the dot right
+    // away rather than waiting for a remount to re-check has_unseen_notices.
+    const showNoticesDot = hasUnseenNotices && pathname !== '/notices';
 
     // The hover dropdown is for wide screens; phones get the menu instead.
     const handleDropdownShow = () => {
@@ -221,7 +231,7 @@ const NavBar = () => {
                                 onMouseEnter={handleDropdownShow}
                                 onMouseLeave={handleDropdownHide}
                             >
-                                <Link href={`/profile/${profile?.username}`} className="flex items-center gap-2 focus:outline-none" onClick={closeMenu}>
+                                <Link href={`/profile/${profile?.username}`} className="relative flex items-center gap-2 focus:outline-none" onClick={closeMenu}>
                                     <Image
                                         src={profile?.avatar_url || DEFAULT_AVATAR}
                                         alt={profile?.name || profile?.username || "User"}
@@ -229,6 +239,12 @@ const NavBar = () => {
                                         height={36}
                                         className="rounded-full border-2 border-white/20 object-cover w-9 h-9 bg-white/10 hover:border-white/40 transition-colors duration-200"
                                     />
+                                    {showNoticesDot && (
+                                        <span
+                                            data-testid="notices-dot"
+                                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-black/60"
+                                        />
+                                    )}
                                 </Link>
                             </div>
                         ) : (
@@ -265,6 +281,13 @@ const NavBar = () => {
                             <Link href={`/profile/${profile?.username}`} className={menuItem} onClick={closeMenu}>
                                 <User size={18} />
                                 Profile
+                            </Link>
+                            <Link href="/notices" className={`${menuItem} justify-between`} onClick={closeMenu}>
+                                <span className="flex items-center gap-3">
+                                    <Bell size={18} />
+                                    Notices
+                                </span>
+                                {showNoticesDot && <span className="w-2 h-2 rounded-full bg-amber-400" />}
                             </Link>
                             <Link href="/upload" className={menuItem} onClick={closeMenu}>
                                 <Upload size={18} />
@@ -309,6 +332,16 @@ const NavBar = () => {
                         >
                             <User size={18} />
                             Profile
+                        </Link>
+                        <Link
+                            href="/notices"
+                            className="px-6 py-2 hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center justify-between gap-3"
+                        >
+                            <span className="flex items-center gap-3">
+                                <Bell size={18} />
+                                Notices
+                            </span>
+                            {showNoticesDot && <span className="w-2 h-2 rounded-full bg-amber-400" />}
                         </Link>
                         <Link
                             href="/upload"
