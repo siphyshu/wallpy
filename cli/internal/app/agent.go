@@ -28,7 +28,7 @@ func newRun() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			hideConsole()
 			lock, err := service.TryLock()
-			// An agent that's being replaced (wallpy stop then resume, or an
+			// An agent that's being replaced (uninstall then resume, or an
 			// upgrade on Windows) may still be letting go: wait a little.
 			for i := 0; errors.Is(err, service.ErrRunning) && i < 10; i++ {
 				time.Sleep(time.Second)
@@ -166,27 +166,6 @@ func newResume() *cobra.Command {
 			}
 			p.Success(fmt.Sprintf("Resumed. Showing %s until %s.", cur.Active.Image, cur.Active.Until.Format("15:04")))
 			agentNote(p)
-			p.Blank()
-			return nil
-		},
-	}
-}
-
-func newStop() *cobra.Command {
-	return &cobra.Command{
-		Use:   "stop",
-		Short: "Stop the background agent and remove it from login",
-		Long: "Stop the background agent and stop it starting at login. Your packs stay;\n" +
-			"wallpy use or wallpy resume starts it again. Run this before uninstalling.",
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := service.Uninstall(); err != nil {
-				return err
-			}
-			p := ui.Stdout()
-			p.Blank()
-			p.Success("Stopped. Wallpy won't change your wallpaper until you start it again.")
-			p.Hints([2]string{"wallpy resume", "start again"})
 			p.Blank()
 			return nil
 		},

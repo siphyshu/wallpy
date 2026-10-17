@@ -19,8 +19,9 @@ wallpy                        # what's showing, today's schedule, what's next
 | Debian, Fedora, Alpine | `.deb`, `.rpm` or `.apk` from the [releases](https://github.com/siphyshu/wallpy/releases) |
 | Arch | `yay -S wallpy-bin` |
 
-One binary, no runtime. Before uninstalling, run `wallpy stop` to remove the
-background agent.
+One binary, no runtime. To remove it, run `wallpy uninstall`: it removes the
+background agent (and, if you like, your packs) and shows the command that
+removes wallpy itself.
 
 ## Commands
 
@@ -32,7 +33,8 @@ background agent.
 | `wallpy show <pack> [--at 18:45]` | A pack's credit and schedule, now or at another time |
 | `wallpy list` / `get` / `update` / `remove` | Manage installed packs |
 | `wallpy location [city \| auto \| lat,lon]` | Where you are, for real sunrise and sunset |
-| `wallpy pause` / `resume` / `stop` | Hold changes, start again, remove the agent |
+| `wallpy pause` / `resume` | Hold the current wallpaper for a while, then carry on |
+| `wallpy uninstall [--all]` | Remove Wallpy from this computer |
 | `wallpy doctor` | Check everything, with a fix for anything wrong |
 | `wallpy check <folder>` | Check a pack you're making against the [pack spec](../spec/README.md) |
 

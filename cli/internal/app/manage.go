@@ -269,7 +269,9 @@ func newRemove() *cobra.Command {
 			}
 			title := pack.Title()
 			if st.Active == pack.Slug {
-				keepWallpaper(st)
+				if home, err := library.Home(); err == nil {
+					keepWallpaper(st, home, "last-wallpaper")
+				}
 			}
 			if err := lib.Remove(pack.Slug); err != nil {
 				return err
@@ -330,23 +332,24 @@ func newCheck() *cobra.Command {
 	}
 }
 
-// keepWallpaper copies the image on screen out of a pack that's about to be
-// deleted and points the desktop at the copy, so the wallpaper survives a
-// restart instead of falling back to the system default.
-func keepWallpaper(st *state.State) {
+// keepWallpaper copies the image on screen into dir, under name plus the
+// image's extension, and points the desktop at the copy: for when the
+// pack holding the original is about to be deleted. It returns the copy's
+// path ("" if there was nothing to keep).
+func keepWallpaper(st *state.State, dir, name string) string {
 	if st.LastSet == "" {
-		return
+		return ""
 	}
 	data, err := os.ReadFile(st.LastSet)
 	if err != nil {
-		return
+		return ""
 	}
-	home, err := library.Home()
-	if err != nil {
-		return
+	keep := filepath.Join(dir, name+filepath.Ext(st.LastSet))
+	if os.MkdirAll(dir, 0o755) != nil || os.WriteFile(keep, data, 0o644) != nil {
+		return ""
 	}
-	keep := filepath.Join(home, "last-wallpaper"+filepath.Ext(st.LastSet))
-	if os.WriteFile(keep, data, 0o644) == nil {
-		wallpaper.Set(keep)
+	if wallpaper.Set(keep) != nil {
+		return ""
 	}
+	return keep
 }

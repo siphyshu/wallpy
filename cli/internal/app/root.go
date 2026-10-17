@@ -61,7 +61,7 @@ func newRoot(version string) *cobra.Command {
 	}
 	add("everyday", newUse(version), newBrowse(version), newShow(version))
 	add("packs", newList(), newGet(version), newUpdate(version), newRemove())
-	add("settings", newLocation(), newPause(), newResume(), newStop(), newDoctor(version))
+	add("settings", newLocation(), newPause(), newResume(), newDoctor(version), newUninstall())
 	add("create", newCheck())
 	root.AddCommand(newRun())
 	root.SetHelpCommandGroupID("settings")
