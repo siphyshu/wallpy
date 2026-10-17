@@ -6,9 +6,12 @@ import (
 	"image"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/kitty"
+	"github.com/charmbracelet/x/term"
 	"golang.org/x/image/draw"
 )
 
@@ -119,4 +122,29 @@ func KittyCells(id, cols, rows int) string {
 // KittyForget is the escape sequence that frees image `id` in the terminal.
 func KittyForget(id int) string {
 	return ansi.KittyGraphics(nil, "a=d", "d=I", fmt.Sprintf("i=%d", id), "q=2")
+}
+
+// Image draws a picture for printed output (not a Bubble Tea screen): the
+// real image in terminals with Kitty graphics, half blocks in other colour
+// terminals, "" when the output isn't a colour terminal. The image stays in
+// the terminal's scrollback, so it isn't freed.
+func (p *Printer) Image(img image.Image, w, h int) string {
+	if img == nil || !p.Rich() {
+		return ""
+	}
+	if DetectGraphics() == Kitty && p.w.Profile == colorprofile.TrueColor { // the image ID rides on a 24-bit colour
+		id := int(time.Now().UnixNano()&0x7fffff) | 1<<23
+		if seq, err := KittyImage(img, id, w, h); err == nil {
+			return seq + KittyCells(id, w, h)
+		}
+	}
+	return Picture(img, w, h)
+}
+
+// Width is the terminal's width in cells (80 if it can't tell).
+func Width() int {
+	if w, _, err := term.GetSize(os.Stdout.Fd()); err == nil && w > 0 {
+		return w
+	}
+	return 80
 }

@@ -1,8 +1,11 @@
 package app
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"image"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -119,6 +122,7 @@ func newShow(version string) *cobra.Command {
 			var m *remote.Manifest
 			var pack *library.Pack
 			var gallery string
+			var client *remote.Client
 			if pk, err := lib.Get(args[0]); err == nil {
 				pack = pk
 				gallery = pk.GalleryURL()
@@ -130,6 +134,7 @@ func newShow(version string) *cobra.Command {
 				}
 			} else {
 				c := remote.New(version)
+				client = c
 				slug, err := c.Resolve(args[0])
 				if err != nil {
 					return &problem{msg: sentence(err.Error()), err: err}
@@ -171,15 +176,21 @@ func newShow(version string) *cobra.Command {
 				p.Blank()
 				p.Raw(p.Plain(wrap(sched.Description, 66)))
 			}
-			if p.Rich() {
-				p.Blank()
-				p.Raw(p.SkyStrip())
-			}
-			p.Blank()
 			a, err := sched.Active(when, st.Location())
 			if err != nil {
 				return err
 			}
+			if p.Rich() {
+				w, h := pictureSize()
+				if pic := p.Image(showImage(cmd.Context(), pack, m, client, a.Image), w, h); pic != "" {
+					p.Blank()
+					p.Raw(pic)
+					p.Raw(p.Faint(a.Image))
+				}
+				p.Blank()
+				p.Raw(p.SkyStrip())
+			}
+			p.Blank()
 			if err := dayList(p, sched, when, st.Location(), &a); err != nil {
 				return err
 			}
@@ -379,4 +390,35 @@ func openGallery(url, name string) error {
 	p.Success(p.Muted("Opened ") + p.Link(p.Plain(url), url))
 	p.Blank()
 	return nil
+}
+
+// pictureSize is how big `show` draws a picture: up to 72 cells wide, 16:9.
+func pictureSize() (w, h int) {
+	w = min(ui.Width()-4, 72)
+	return w, w * 9 / 32
+}
+
+// showImage loads one of a pack's images: from disk when installed, else
+// just that one file from the gallery. nil if it can't.
+func showImage(ctx context.Context, pack *library.Pack, m *remote.Manifest, c *remote.Client, name string) image.Image {
+	var data []byte
+	var err error
+	switch {
+	case pack != nil:
+		data, err = os.ReadFile(pack.Image(name))
+	case m != nil && c != nil:
+		for _, f := range m.Files {
+			if f.Path == name {
+				data, err = c.Fetch(ctx, f.URL)
+			}
+		}
+	}
+	if err != nil || data == nil {
+		return nil
+	}
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil
+	}
+	return shrink(img, 1600)
 }
