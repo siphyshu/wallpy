@@ -267,6 +267,7 @@ export type Database = {
         Row: {
           ai_use: Database["public"]["Enums"]["ai_use"] | null
           artist_id: string | null
+          categories: Database["public"]["Enums"]["pack_category"][]
           cover_file_id: string | null
           created_at: string
           created_by: string | null
@@ -291,6 +292,7 @@ export type Database = {
         Insert: {
           ai_use?: Database["public"]["Enums"]["ai_use"] | null
           artist_id?: string | null
+          categories?: Database["public"]["Enums"]["pack_category"][]
           cover_file_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -315,6 +317,7 @@ export type Database = {
         Update: {
           ai_use?: Database["public"]["Enums"]["ai_use"] | null
           artist_id?: string | null
+          categories?: Database["public"]["Enums"]["pack_category"][]
           cover_file_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -556,6 +559,13 @@ export type Database = {
         Returns: Database["public"]["Enums"]["version_status"]
       }
       owns_pack: { Args: { p: string }; Returns: boolean }
+      public_tags: {
+        Args: never
+        Returns: {
+          tag: string
+          uses: number
+        }[]
+      }
       schedule_images: { Args: { s: Json }; Returns: string[] }
       schedule_kind: {
         Args: { s: Json }
@@ -565,6 +575,10 @@ export type Database = {
       spec_rotate_ok: { Args: { r: string }; Returns: boolean }
       spec_time_ok: { Args: { t: string }; Returns: boolean }
       uploaded_by_me: { Args: { s: string }; Returns: boolean }
+      valid_categories: {
+        Args: { c: Database["public"]["Enums"]["pack_category"][] }
+        Returns: boolean
+      }
       valid_links: { Args: { l: Json }; Returns: boolean }
       valid_tags: { Args: { t: string[] }; Returns: boolean }
       write_version: { Args: { p: Json; p_pack_id: string }; Returns: Json }
@@ -579,6 +593,17 @@ export type Database = {
         | "takedown"
         | "restore"
         | "decline"
+      pack_category:
+        | "nature"
+        | "landscapes"
+        | "cities"
+        | "space"
+        | "anime"
+        | "games"
+        | "art"
+        | "minimal"
+        | "abstract"
+        | "seasons"
       pack_kind: "timeblocks" | "days" | "album"
       pack_license:
         | "personal-use"
@@ -729,6 +754,18 @@ export const Constants = {
         "takedown",
         "restore",
         "decline",
+      ],
+      pack_category: [
+        "nature",
+        "landscapes",
+        "cities",
+        "space",
+        "anime",
+        "games",
+        "art",
+        "minimal",
+        "abstract",
+        "seasons",
       ],
       pack_kind: ["timeblocks", "days", "album"],
       pack_license: [

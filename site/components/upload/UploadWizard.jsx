@@ -11,6 +11,7 @@ import UploadProgress from '@/components/upload/UploadProgress';
 import { submitPack } from '@/lib/packs/client-upload';
 import { BUILDER_KINDS, configToSchedule, defaultConfig, scheduleToConfig } from '@/lib/spec/builder';
 import { validateSchedule } from '@/lib/spec/validate';
+import { parseTagList } from '@/lib/packs/limits';
 
 /**
  * The wizard's starting state. Editing (a new version of `edit`, an
@@ -20,7 +21,7 @@ function initialState(edit) {
   if (!edit) {
     return {
       step: 1, type: null, files: [], config: null,
-      metadata: { title: '', description: '', isOriginal: true, authorName: '', authorUrl: '', tags: '', aiUse: null, license: 'personal-use' },
+      metadata: { title: '', description: '', isOriginal: true, authorName: '', authorUrl: '', tags: '', categories: [], aiUse: null, license: 'personal-use' },
     };
   }
   const { base } = edit;
@@ -46,6 +47,7 @@ function initialState(edit) {
       authorName: base.artist?.name ?? '',
       authorUrl: base.artist?.url ?? '',
       tags: base.tags.join(', '),
+      categories: base.categories,
       aiUse: base.aiUse,
       license: base.license,
     },
@@ -91,7 +93,8 @@ export default function UploadWizard({ edit = null }) {
       case 1:
         return wallpackType !== null;
       case 2:
-        return packMetadata.title.trim() !== '' && packMetadata.tags.trim() !== '' && packMetadata.aiUse !== null
+        return packMetadata.title.trim() !== '' && packMetadata.categories.length >= 1 && packMetadata.categories.length <= 2
+          && packMetadata.aiUse !== null
           && (packMetadata.isOriginal || packMetadata.authorName.trim() !== '');
       case 3:
         return uploadedFiles.length > 0;
@@ -130,7 +133,8 @@ export default function UploadWizard({ edit = null }) {
         {
           title: packMetadata.title,
           description: packMetadata.description,
-          tags: packMetadata.tags.split(',').map((t) => t.trim()).filter(Boolean),
+          tags: parseTagList(packMetadata.tags),
+          categories: packMetadata.categories,
           license: packMetadata.license,
           ai_use: packMetadata.aiUse,
           uploader_is_artist: packMetadata.isOriginal,

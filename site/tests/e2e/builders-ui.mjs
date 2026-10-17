@@ -42,7 +42,8 @@ try {
     await page.getByRole('button', { name: type, exact: true }).click();
     await next.click();
     await page.getByPlaceholder('Enter a descriptive title').fill(title);
-    await page.getByPlaceholder(/nature, landscape/).fill('e2e');
+    await page.getByPlaceholder(/comma separated/).fill('e2e');
+    await page.getByRole('button', { name: 'Abstract', exact: true }).click();
     await page.getByRole('button', { name: 'No AI' }).click();
     await next.click();
     await page.locator('input[type=file]').setInputFiles(files);

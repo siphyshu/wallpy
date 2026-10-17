@@ -89,7 +89,8 @@ version N+1; version N stays live until N+1 is approved.
 | number | int | 1, 2, 3… unique per pack |
 | status | enum `draft \| pending \| approved \| rejected \| superseded` | changed only via `moderate()` |
 | title, description | text | here (not on `packs`) so title edits are reviewed too |
-| tags | text[] | lowercase, ≤ 10 |
+| tags | text[] | lowercase kebab-case, ≤ 30 chars, ≤ 10, no duplicates (`valid_tags`) |
+| categories | pack_category[] | 1–2 of the enum (nature, landscapes, cities, space, anime, games, art, minimal, abstract, seasons); empty allowed only in draft |
 | kind | enum `timeblocks \| days \| album` | **generated** from the schedule (`schedule_kind()`), so it can't disagree with it; UI labels Daypack / Weekpack / Album |
 | ai_use | enum `none \| assisted \| generated`, null | how AI was used; required to submit; shown as a label beside the details, never in the credit line |
 | schedule | jsonb | spec 2, validated against `spec/schedule.schema.json` (structure checked by `schedule_ok()`); **the zip's `schedule.toml` is generated from this**, never stored separately |

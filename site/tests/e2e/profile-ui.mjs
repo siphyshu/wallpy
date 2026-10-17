@@ -26,7 +26,7 @@ try {
   const night = await makeImage('Profile night', '20,30,80');
   await uploadImages(owner, [day, night]);
   const res = await api(owner, '/api/packs', {
-    title: `Profile Pack ${runId}`, tags: ['e2e'], ai_use: 'none', uploader_is_artist: true,
+    title: `Profile Pack ${runId}`, tags: ['e2e'], categories: ['abstract'], ai_use: 'none', uploader_is_artist: true,
     schedule: { spec: 2, name: 'Profile Pack', slot: [{ at: 'sunrise', images: ['day.jpg'] }, { at: 'sunset', images: ['night.jpg'] }] },
     files: [{ path: 'day.jpg', sha256: day.sha256 }, { path: 'night.jpg', sha256: night.sha256 }],
   });

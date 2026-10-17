@@ -5,6 +5,9 @@ the why) whenever something is decided.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-17 | Category list: Nature, Landscapes, Cities, Space, Anime, Games, Art, Minimal, Abstract, Seasons (enum `pack_category`; stored on `pack_versions.categories`, 1–2 required to leave draft). Tags become optional | Short enough for one row of chips; the enum stops the API inventing categories; categories now do the browsing job tags were required for |
+| 2026-10-17 | Gallery filters live in the URL (`q`, `category`, `tag`, `sort`, `ai`, `page`); category and tag filters combine | Back/forward and shared links keep the view; a tag link from a pack page still works inside a category |
+| 2026-10-17 | Navbar is transparent at the top and gets `bg-black/40` (plus blur) once the page scrolls | Links stopped sitting on top of content without hiding the bar |
 | 2026-10-17 | Sign-up checks usernames as they type: lowercased automatically, the rule shown under the field, availability looked up with a plain select on `profiles` (public anyway). Only a known-bad or taken name disables the button; a failed lookup falls back to a friendly message for the trigger's error | No schema change needed; the trigger stays the final check |
 | 2026-10-17 | Profile links typed without a scheme get `https://`; other schemes are refused before saving | Matches `is_http_url`; people type bare domains |
 | 2026-10-17 | Review status badges on a profile's packs show to the owner only | Visitors only see published packs; the badge is the owner's to-do |

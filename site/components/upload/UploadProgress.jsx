@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { categoryName } from '@/lib/packs/categories';
+import { parseTagList } from '@/lib/packs/limits';
 import { PencilIcon, ClockIcon, CalendarIcon, PhotoIcon, CheckCircleIcon, ArrowDownTrayIcon, Square3Stack3DIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 export default function UploadProgress({ 
@@ -141,14 +143,19 @@ export default function UploadProgress({
             </p>
           )}
 
-          {metadata.tags && (
+          {(metadata.categories?.length > 0 || parseTagList(metadata.tags).length > 0) && (
             <div className="flex flex-wrap gap-2 pt-4 border-t border-white/5">
-              {metadata.tags.split(',').filter(t => t.trim()).map((tag, index) => (
+              {(metadata.categories ?? []).map((c) => (
+                <span key={c} className="px-2.5 py-1 bg-white/10 rounded-full text-xs text-white/80 border border-white/20">
+                  {categoryName(c)}
+                </span>
+              ))}
+              {parseTagList(metadata.tags).map((tag) => (
                 <span
-                  key={index}
+                  key={tag}
                   className="px-2.5 py-1 bg-white/5 rounded-md text-xs text-white/60 border border-white/5"
                 >
-                  #{tag.trim()}
+                  #{tag}
                 </span>
               ))}
             </div>

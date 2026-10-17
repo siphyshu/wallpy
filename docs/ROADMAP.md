@@ -46,15 +46,15 @@ Visitor (home, gallery, pack page, profile)
 - [x] Navbar "Docs" links to `/docs`, which 404s
 - [x] Hero "Install Wallpy →" links to PyPI (the retired Python CLI); pack pages' "Install it first" links to `/#install`, but `<InstallSection />` is commented out in `app/page.tsx`
 - [x] No navigation on phones: the navbar hides Docs/Gallery/Github below `md` and there's no menu button (`isMobileMenuOpen` is never used). Now a menu button and a glass menu below `md`, with the account items when signed in
-- [ ] Gallery categories are a fixed list (`GalleryFilters.tsx`) but tags are free text, so chips only match exact tags: Zelda shows under Gaming only because its creator happened to type `gaming`; Ocean Hours isn't under Nature. Either pick tags from the category list at upload, or build the chips from tags in use
-- [ ] Gallery search, category and sort aren't in the URL (only `?tag=` on first load): back button and shared links lose them
-- [ ] Sort dropdown renders under the cards' "AI-generated" badge (z-index)
+- [x] (2026-10-17: 10 curated categories on the version, 1–2 required, enum-checked in the DB; tags normalised, deduped and autocompleted from public packs) Gallery categories are a fixed list (`GalleryFilters.tsx`) but tags are free text, so chips only match exact tags: Zelda shows under Gaming only because its creator happened to type `gaming`; Ocean Hours isn't under Nature. Either pick tags from the category list at upload, or build the chips from tags in use
+- [x] (2026-10-17: `?q=&category=&tag=&sort=&ai=hide&page=`, back/forward work; `?tag=` shows a removable pill) Gallery search, category and sort aren't in the URL (only `?tag=` on first load): back button and shared links lose them
+- [x] (2026-10-17: dropdown z-40) Sort dropdown renders under the cards' "AI-generated" badge (z-index)
 - [x] (2026-10-17: every image gets a 640px thumbnail and 1920px preview WebP at upload, `version_files.thumb_sha256`/`preview_sha256`; production packs backfilled) Pack page images are slow: only the cover gets a thumb/preview at upload (gallery cards are 20–60 KB, fine), so `PackImageGallery` runs every ~4 MB original through the Next optimizer; thumbnails sit blank on first view. Make a small preview for every image at upload
 - [x] (2026-10-17: `PackSchedule`: Daypack 24h strip + blocks with a now marker, Weekpack days with today, Album order + interval; images open in the viewer) Pack page doesn't show the schedule, which is the point of a dynamic pack: what shows when (dawn → morning → dusk → night), ideally with a "now" marker like the CLI's sky strip
 - [x] (2026-10-17: pill on the card image) Gallery cards don't say what kind of pack it is (Daypack / Weekpack / Album)
-- [ ] Download counts show 0 everywhere; consider hiding at 0
+- [x] (2026-10-17: hidden at 0 on cards and the pack page) Download counts show 0 everywhere; consider hiding at 0
 - [x] 404 page is Next's default (black, unstyled). Now `app/not-found.tsx` (glass card, gallery/home); pack, profile and moderation 404s use it
-- [ ] The floating navbar has no fill (blur only), so on the homepage gallery its links sit on top of card titles while scrolling. Needs a choice: a dark tint (`bg-black/40`), hide on scroll down, or leave it
+- [x] (2026-10-17: transparent at the top, `bg-black/40` + blur once scrolled, every page) The floating navbar has no fill (blur only), so on the homepage gallery its links sit on top of card titles while scrolling. Needs a choice: a dark tint (`bg-black/40`), hide on scroll down, or leave it
 - [x] Profile "Contact Email" field is public but only labelled "(optional)"; say it's shown on the profile (2026-10-17: "Shown publicly on your profile.")
 - [x] Profile shows "Published" status badges to visitors (only the owner needs them) (2026-10-17; visitors with no packs also no longer see "Upload your first pack")
 - Fine: favourite while signed out → login with `?redirect=` back; `/upload` and `/edit` redirect to login; `/moderation` 404s for non-moderators; ZIP builds in the browser with hash checks and progress; CDN CORS allows localhost
