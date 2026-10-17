@@ -63,3 +63,7 @@ Layout: `cmd/wallpy` (entry), `internal/app` (commands), `internal/ui` (the
 terminal design system; all output goes through it), `internal/spec` (the pack
 format), `internal/engine`, `library`, `remote`, `state`, `wallpaper`,
 `service`, `geo`. The retired Python CLI is in `python/`.
+
+City data: [GeoNames](https://www.geonames.org) (cities of 15,000+ people,
+CC BY 4.0), built into `internal/geo/cities.tsv.gz` by `internal/geo/gen`.
+Smaller places are searched online with [Open-Meteo](https://open-meteo.com).

@@ -1,5 +1,6 @@
 // Package geo finds where the user is, for sunrise and sunset: from the
-// system time zone (offline), a city search, or coordinates.
+// system time zone (offline), a city search (offline, then online), or
+// coordinates.
 package geo
 
 import (
@@ -116,8 +117,17 @@ var SearchURL = "https://geocoding-api.open-meteo.com/v1/search"
 // ErrNoMatch means the search found nothing.
 var ErrNoMatch = errors.New("no place matches")
 
-// Search finds places by name, most relevant first.
+// Search finds places by name, most relevant first: the offline city list,
+// then (only if that has nothing) Open-Meteo's online search for smaller
+// places.
 func Search(ctx context.Context, query string) ([]state.Place, error) {
+	if found := Lookup(query); len(found) > 0 {
+		return found, nil
+	}
+	return searchOnline(ctx, query)
+}
+
+func searchOnline(ctx context.Context, query string) ([]state.Place, error) {
 	u := SearchURL + "?" + url.Values{"name": {query}, "count": {"8"}, "language": {"en"}, "format": {"json"}}.Encode()
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()

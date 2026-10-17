@@ -24,10 +24,12 @@ func newLocation() *cobra.Command {
 		Short: "Set where you are, for real sunrise and sunset",
 		Long: "Set where you are, so packs follow your real sunrise and sunset.\n\n" +
 			"  auto       guess from your time zone (offline, approximate)\n" +
-			"  <city>     search by name (asks Open-Meteo's free place search)\n" +
+			"  <city>     search by name: 34,000 cities offline, including other names\n" +
+			"             (Bangalore, Bombay); add a state or country to narrow it\n" +
+			"             (\"paris, texas\"); smaller places are searched online\n" +
 			"  <lat,lon>  exact coordinates\n\n" +
 			"With nothing, shows the current location and today's sun times.",
-		Example: "wallpy location auto\nwallpy location \"New Delhi\"\nwallpy location 52.52,13.40\nwallpy location --clear",
+		Example: "wallpy location auto\nwallpy location bangalore\nwallpy location \"springfield, il\"\nwallpy location 52.52,13.40\nwallpy location --clear",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			st, err := state.Load()
 			if err != nil {
@@ -53,6 +55,7 @@ func newLocation() *cobra.Command {
 
 			var place *state.Place
 			approximate := false
+			var others []state.Place // other matches, when nobody could choose
 			switch {
 			case query == "auto":
 				zone := geo.SystemZone()
@@ -76,7 +79,9 @@ func newLocation() *cobra.Command {
 					return &problem{msg: sentence(err.Error()), fix: run("Without a connection, try ", "wallpy location auto", "."), err: err}
 				}
 				place = &results[0]
-				if ask := printerAt(time.Now(), st.Location()); len(results) > 1 && ask.Styled() && ui.Interactive() {
+				if ask := printerAt(time.Now(), st.Location()); len(results) > 1 && !(ask.Styled() && ui.Interactive()) {
+					others = results[1:]
+				} else if len(results) > 1 {
 					p := ask
 					options := make([]huh.Option[int], len(results))
 					for i, r := range results {
@@ -98,6 +103,14 @@ func newLocation() *cobra.Command {
 			p.Blank()
 			p.Success(p.Muted("Location set to ") + p.Strong(place.Name))
 			p.Raw("  " + p.Faint(sunLine(now, &place.Location)))
+			if len(others) > 0 {
+				names := []string{}
+				for _, o := range others[:min(3, len(others))] {
+					names = append(names, o.Name)
+				}
+				p.Raw("  " + p.Muted("Also matched: "+strings.Join(names, "; ")+"."))
+				p.Hints([2]string{fmt.Sprintf("wallpy location \"%s, <state or country>\"", query), "to pick another"})
+			}
 			if approximate {
 				p.Raw("  " + p.Muted("Guessed from your time zone ("+place.Timezone+"), so sun times may be off."))
 				p.Hints([2]string{"wallpy location <your city>", "for exact times"})

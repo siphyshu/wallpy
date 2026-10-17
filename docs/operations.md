@@ -69,6 +69,13 @@ Make someone a moderator: `update public.profiles set role = 'moderator' where u
 `samples/` (see its README) has a Daypack and a Weekpack for trying workflows by
 hand; `node samples/make.mjs` regenerates them.
 
+## Refresh the CLI's city list
+
+`internal/geo/cities.tsv.gz` comes from GeoNames. To refresh it, download
+`cities15000.zip` (unzip it), `admin1CodesASCII.txt` and `countryInfo.txt`
+from https://download.geonames.org/export/dump/ into a folder, then
+`cd cli/internal/geo && go run gen/main.go <folder>` and run `go test ./internal/geo`.
+
 ## Release the CLI
 
 Config: `cli/.goreleaser.yaml`. Dry run (everything but publishing, no tag
