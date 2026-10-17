@@ -8,6 +8,7 @@ export type VersionStatus = Enums['version_status'];
 export type PackLicense = Enums['pack_license'];
 export type UserRole = Enums['user_role'];
 export type AiUse = Enums['ai_use'];
+export type PackCategory = Enums['pack_category'];
 
 export type ProfileLink = { name: string; url: string };
 
@@ -112,6 +113,7 @@ export type PackDetail = PackCard & {
     title: string;
     description: string | null;
     tags: string[];
+    categories: PackCategory[];
     kind: PackKind;
     schedule: Schedule;
     license: PackLicense;

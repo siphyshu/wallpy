@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react';
+import { CATEGORIES, MAX_CATEGORIES } from '@/lib/packs/categories';
+import { PACK_LIMITS, normalizeTag, parseTagList } from '@/lib/packs/limits';
+
 const AI_OPTIONS = [
   { id: 'none', label: 'No AI', help: 'Made without AI image tools.' },
   { id: 'assisted', label: 'AI-assisted', help: 'AI tools helped, e.g. upscaling, touch-ups or parts of the image.' },
@@ -18,6 +22,35 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
       ...metadata,
       [field]: value
     });
+  };
+
+  const categories = metadata.categories ?? [];
+  const toggleCategory = (id) => {
+    if (categories.includes(id)) handleChange('categories', categories.filter((c) => c !== id));
+    else if (categories.length < MAX_CATEGORIES) handleChange('categories', [...categories, id]);
+  };
+
+  // Tags as they'll be saved, and suggestions from tags already used on public packs.
+  const tags = parseTagList(metadata.tags);
+  const tagsOverLimit = new Set(metadata.tags.split(',').map(normalizeTag).filter(Boolean)).size > PACK_LIMITS.maxTags;
+  const [knownTags, setKnownTags] = useState([]);
+  useEffect(() => {
+    let live = true;
+    fetch('/api/tags')
+      .then((r) => (r.ok ? r.json() : { tags: [] }))
+      .then((d) => { if (live) setKnownTags(d.tags ?? []); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+  const parts = metadata.tags.split(',');
+  const fragment = normalizeTag(parts[parts.length - 1] ?? '');
+  const suggestions = tags.length >= PACK_LIMITS.maxTags ? [] : knownTags
+    .filter((t) => !tags.includes(t))
+    .filter((t) => !fragment || t.startsWith(fragment))
+    .slice(0, 8);
+  const pickSuggestion = (tag) => {
+    const kept = parts.slice(0, -1).map((t) => t.trim()).filter(Boolean);
+    handleChange('tags', [...kept, tag].join(', ') + ', ');
   };
 
   return (
@@ -58,30 +91,79 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
             />
           </div>
 
+          {/* Categories */}
+          <div>
+            <label className="block text-sm font-medium mb-1" id="categories-label">
+              Categories <span className="text-red-400">*</span>
+            </label>
+            <p className="text-xs text-white/50 mb-3">Pick one or two. They decide where the pack shows up in the gallery.</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="categories-label">
+              {CATEGORIES.map((c) => {
+                const on = categories.includes(c.id);
+                const full = !on && categories.length >= MAX_CATEGORIES;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={on}
+                    disabled={full}
+                    onClick={() => toggleCategory(c.id)}
+                    className={`px-4 py-1.5 rounded-full border text-sm transition-all ${
+                      on
+                        ? 'bg-white text-black border-white'
+                        : 'bg-white/5 text-white/70 border-white/20 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5 disabled:cursor-not-allowed'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Tags <span className="text-red-400">*</span>
+            <label className="block text-sm font-medium mb-2" htmlFor="pack-tags">
+              Tags <span className="text-white/40 font-normal">(optional)</span>
             </label>
             <input
+              id="pack-tags"
               type="text"
-              required
+              autoComplete="off"
               value={metadata.tags}
               onChange={(e) => handleChange('tags', e.target.value)}
               className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 transition-all"
-              placeholder="nature, landscape, anime (comma separated)"
+              placeholder="sunset, pixel-art, studio-ghibli (comma separated)"
             />
-            {metadata.tags && (
+            {suggestions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-2" aria-label="Tags already in use">
+                <span className="text-xs text-white/40">In use:</span>
+                {suggestions.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => pickSuggestion(tag)}
+                    className="px-2 py-0.5 bg-white/5 text-white/70 text-xs rounded-full border border-white/20 hover:bg-white/10 hover:text-white"
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+            {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {metadata.tags.split(',').filter(t => t.trim()).map((tag, index) => (
+                {tags.map((tag) => (
                   <span
-                    key={index}
+                    key={tag}
                     className="px-2 py-0.5 bg-white/10 text-white/70 text-xs rounded-full border border-white/20"
                   >
-                    {tag.trim()}
+                    #{tag}
                   </span>
                 ))}
               </div>
+            )}
+            {tagsOverLimit && (
+              <p className="text-xs text-amber-300 mt-2">Only the first {PACK_LIMITS.maxTags} tags are kept.</p>
             )}
           </div>
 

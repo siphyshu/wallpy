@@ -5,6 +5,7 @@ export const PACK_LIMITS = {
   maxUploadBlobs: 100 * 3 + 2,
   maxFileBytes: 30 * 1024 * 1024, // matches the blobs.size check constraint
   maxTags: 10,
+  tagMax: 30,
   titleMax: 80,
   descriptionMax: 2000,
 } as const;
@@ -28,7 +29,26 @@ export function slugify(title: string): string {
 
 /** "Digital Art" -> "digital-art" (tags are kebab-case in the database). */
 export function normalizeTag(tag: string): string {
-  return slugify(tag).slice(0, 30);
+  return (
+    tag
+      .normalize('NFKD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, PACK_LIMITS.tagMax)
+      .replace(/-+$/, '')
+  );
+}
+
+/** Normalised, deduplicated, empty ones dropped, at most maxTags (what the database accepts). */
+export function normalizeTags(tags: Iterable<string>): string[] {
+  return [...new Set([...tags].map(normalizeTag).filter(Boolean))].slice(0, PACK_LIMITS.maxTags);
+}
+
+/** "Sunset, golden hour,sunset" -> ["sunset", "golden-hour"] (the upload form's comma list). */
+export function parseTagList(text: string): string[] {
+  return normalizeTags(text.split(','));
 }
 
 /**

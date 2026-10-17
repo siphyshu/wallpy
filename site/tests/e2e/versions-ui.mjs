@@ -24,7 +24,7 @@ try {
     const night = await makeImage(`${name} night`, '20,30,80');
     await uploadImages(uploader, [day, night]);
     const res = await api(uploader, '/api/packs', {
-      title: `${name} ${runId}`, tags: ['e2e'], ai_use: 'none', uploader_is_artist: true,
+      title: `${name} ${runId}`, tags: ['e2e'], categories: ['abstract'], ai_use: 'none', uploader_is_artist: true,
       schedule: { spec: 2, name, slot: [{ at: 'sunrise', images: ['day.jpg'] }, { at: 'sunset', images: ['night.jpg'] }] },
       files: [{ path: 'day.jpg', sha256: day.sha256 }, { path: 'night.jpg', sha256: night.sha256 }],
       // The wizard always sends renditions of the cover; stand in with the image itself.
@@ -53,7 +53,7 @@ try {
 
   // API rules.
   const body = {
-    title: 'Hijack', tags: ['e2e'], ai_use: 'none', uploader_is_artist: true,
+    title: 'Hijack', tags: ['e2e'], categories: ['abstract'], ai_use: 'none', uploader_is_artist: true,
     schedule: { spec: 2, name: 'x', slot: [{ images: ['day.jpg'] }] }, files: [{ path: 'day.jpg', sha256: '0'.repeat(64) }],
   };
   check('strangers cannot add versions to someone else\'s pack',
@@ -87,7 +87,8 @@ try {
   check('edit page repeats the note', await up.getByText(/Changes requested on version 1/).isVisible());
   check('no false "builder can\'t show this" warning', !(await up.getByText(/options the builder can't show/).isVisible()));
   check('details are filled in from version 1',
-    await up.getByPlaceholder('Enter a descriptive title').inputValue() === `Fix Me ${runId}`);
+    await up.getByPlaceholder('Enter a descriptive title').inputValue() === `Fix Me ${runId}`
+    && await up.getByRole('button', { name: 'Abstract', exact: true }).getAttribute('aria-pressed') === 'true');
   await shot(up, 'v-2-edit-details');
   const next = up.getByText('Next', { exact: true });
   await next.click();

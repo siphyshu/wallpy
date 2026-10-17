@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { blobUrl, fileUrl } from '@/lib/storage';
 import { DEFAULT_AVATAR } from '@/lib/data/profile-shape';
-import type { AiUse, Credit, PackCard, PackDetail, PackFile, PackKind, Schedule, VersionStatus } from '@/lib/types';
+import type { AiUse, Credit, PackCard, PackCategory, PackDetail, PackFile, PackKind, Schedule, VersionStatus } from '@/lib/types';
 
 // Read side of the pack data model (docs/schema-design.md). Row level security
 // decides what each viewer may see; these helpers only shape the results.
 
 const OWNER = 'owner:profiles!packs_owner_id_fkey(username, display_name, avatar_key)';
 const VERSION_SUMMARY = `
-  id, number, status, title, kind, tags, uploader_is_artist, ai_use,
+  id, number, status, title, kind, tags, categories, uploader_is_artist, ai_use,
   artist:artists(name, url, avatar_key),
   thumb:blobs!pack_versions_thumb_sha256_fkey(sha256, blurhash)`;
 const PACK_COLUMNS = 'id, slug, current_version_id, is_listed, removed_at, download_count, favourite_count, created_at';
@@ -27,6 +27,7 @@ type VersionSummaryRow = {
   title: string;
   kind: PackKind | null;
   tags: string[];
+  categories: PackCategory[];
   uploader_is_artist: boolean;
   ai_use: AiUse | null;
   artist: ArtistRow;
@@ -94,8 +95,9 @@ function escapeLike(s: string): string {
 }
 
 /** Gallery: public packs only, filtered and paginated in the database. */
-export async function listPublicPacks({ search, tag, kind, hideAi = false, sort = 'newest', limit = 9, offset = 0 }: {
+export async function listPublicPacks({ search, tag, category, kind, hideAi = false, sort = 'newest', limit = 9, offset = 0 }: {
   search?: string;
+  category?: PackCategory;
   /** only packs made without AI */
   hideAi?: boolean;
   tag?: string;
@@ -116,6 +118,7 @@ export async function listPublicPacks({ search, tag, kind, hideAi = false, sort 
 
   if (search) query = query.ilike('version.title', `%${escapeLike(search.slice(0, 80))}%`);
   if (tag) query = query.contains('version.tags', [tag]);
+  if (category) query = query.contains('version.categories', [category]);
   if (kind) query = query.eq('version.kind', kind);
   if (hideAi) query = query.eq('version.ai_use', 'none');
 
@@ -237,6 +240,7 @@ export async function getPackBySlug(slug: string): Promise<PackDetail | null> {
       title: version.title,
       description: version.description,
       tags: version.tags,
+      categories: version.categories,
       kind: version.kind ?? 'timeblocks',
       // jsonb in the database; its shape is enforced on write by the
       // schedule_shape_ok() check constraint and spec/schedule.schema.json.
@@ -252,4 +256,15 @@ export async function getPackBySlug(slug: string): Promise<PackDetail | null> {
     cover,
     files,
   };
+}
+
+/** Tags used on public packs, most used first (upload autocomplete). */
+export async function listPublicTags(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('public_tags');
+  if (error) {
+    console.error('listPublicTags:', error);
+    return [];
+  }
+  return data.map((r) => r.tag);
 }

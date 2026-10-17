@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { blobUrl } from '@/lib/storage';
 import { latestRejectionNotes } from '@/lib/data/moderation';
-import type { AiUse, PackKind, PackLicense, Schedule, VersionStatus } from '@/lib/types';
+import type { AiUse, PackCategory, PackKind, PackLicense, Schedule, VersionStatus } from '@/lib/types';
 
 /** The newest version of a pack, as its owner sees it. */
 export type LatestVersion = { id: string; number: number; status: VersionStatus; notes: string | null };
@@ -19,6 +19,7 @@ export type EditablePack = {
     title: string;
     description: string;
     tags: string[];
+    categories: PackCategory[];
     kind: PackKind;
     schedule: Schedule;
     license: PackLicense;
@@ -72,7 +73,7 @@ export async function getPackForEditing(slug: string): Promise<EditablePack | nu
 
   const { data: v, error } = await supabase
     .from('pack_versions')
-    .select(`number, title, description, tags, kind, schedule, license, ai_use, uploader_is_artist,
+    .select(`number, title, description, tags, categories, kind, schedule, license, ai_use, uploader_is_artist,
              thumb_sha256, preview_sha256, cover_file_id,
              artist:artists(name, url),
              files:version_files!version_files_version_id_fkey(id, path, sort_order, thumb_sha256, preview_sha256,
@@ -95,6 +96,7 @@ export async function getPackForEditing(slug: string): Promise<EditablePack | nu
       title: v.title,
       description: v.description ?? '',
       tags: v.tags,
+      categories: v.categories,
       kind: v.kind ?? 'timeblocks',
       schedule: v.schedule as Schedule,
       license: v.license,

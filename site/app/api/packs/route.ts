@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { listPublicPacks, type PackSort } from '@/lib/data/packs';
 import { createClient } from '@/lib/supabase/server';
 import { parseSubmission, toRpcPayload } from '@/lib/packs/submission';
-import { slugify } from '@/lib/packs/limits';
+import { normalizeTag, slugify } from '@/lib/packs/limits';
+import { isCategory } from '@/lib/packs/categories';
 import type { PackKind } from '@/lib/types';
 
 const KINDS: readonly PackKind[] = ['timeblocks', 'days', 'album'];
@@ -17,12 +18,14 @@ export async function GET(request: Request) {
   const offset = Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0);
   const kind = oneOf(KINDS, params.get('kind'));
   const sort = oneOf(SORTS, params.get('sort')) ?? 'newest';
-  const tag = params.get('tag')?.toLowerCase().replace(/\s+/g, '-') || undefined;
+  const tag = normalizeTag(params.get('tag') ?? '') || undefined;
+  const categoryParam = params.get('category');
+  const category = isCategory(categoryParam) ? categoryParam : undefined;
   const search = params.get('search')?.trim() || undefined;
   const hideAi = params.get('ai') === 'hide';
 
   try {
-    const { packs, total } = await listPublicPacks({ search, tag, kind, hideAi, sort, limit, offset });
+    const { packs, total } = await listPublicPacks({ search, tag, category, kind, hideAi, sort, limit, offset });
     return NextResponse.json({ packs, total, limit, offset });
   } catch {
     return NextResponse.json({ error: 'Failed to load packs' }, { status: 500 });

@@ -22,6 +22,7 @@ const NavBar = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
     const [isMobile, setIsMobile] = useState(false);
+    const [scrolled, setScrolled] = useState(false); // tint the bar once content scrolls under it
     const avatarRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null); // the bar and the phone menu
@@ -156,6 +157,13 @@ const NavBar = () => {
         }, 100);
     };
 
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     // The phone menu closes on Escape, on a tap outside the bar and menu, and
     // when the window grows past the breakpoint (the links are back in the bar).
     useEffect(() => {
@@ -183,11 +191,13 @@ const NavBar = () => {
     return (
         <div className="fixed w-full z-50" ref={menuRef}>
             {/* Navbar */}
-            <nav className="fixed top-10 left-1/2 -translate-x-1/2 z-50
-                            backdrop-blur-md text-white
+            <nav data-scrolled={scrolled || undefined}
+                 className={`fixed top-10 left-1/2 -translate-x-1/2 z-50
+                            backdrop-blur-md text-white transition-colors duration-300
+                            ${scrolled ? 'bg-black/40' : 'bg-transparent'}
                             shadow-lg font-serif border-2 border-white/10
                             px-4 py-3 rounded-2xl md:px-12 md:py-4 md:rounded-full
-                            flex items-center justify-center w-auto">
+                            flex items-center justify-center w-auto`}>
                 <div className="flex items-center gap-4 md:gap-8">
                     <Link href="/" className="flex-shrink-0" onClick={closeMenu}>
                         <Image

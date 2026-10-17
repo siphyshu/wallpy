@@ -1,22 +1,71 @@
 "use client"
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { X } from 'lucide-react';
+import { isCategory } from '@/lib/packs/categories';
+import { normalizeTag } from '@/lib/packs/limits';
 import type { PackSort } from '@/lib/data/packs';
 import GalleryGrid from '@/components/gallery/GalleryGrid';
 import GalleryFilters from '@/components/gallery/GalleryFilters';
 import GallerySearch from '@/components/gallery/GallerySearch';
 import Footer from '@/components/footer';
 
-export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: string }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(initialTag);
-  const [hideAi, setHideAi] = useState(false);
-  const [sortBy, setSortBy] = useState<PackSort>('newest');
+const SORTS: readonly PackSort[] = ['newest', 'popular', 'rating'];
+
+/**
+ * The gallery's filters live in the URL (?q=&category=&tag=&sort=&ai=hide&page=)
+ * so back/forward and shared links show the same results. Changes push a
+ * history entry; typing in search replaces it (debounced).
+ */
+export default function GalleryBrowser() {
+  const params = useSearchParams();
+  const urlSearch = params.get('q') ?? '';
+  const categoryParam = params.get('category');
+  const selectedCategory = isCategory(categoryParam) ? categoryParam : 'all';
+  const tag = normalizeTag(params.get('tag') ?? '');
+  const sortBy: PackSort = SORTS.find((s) => s === params.get('sort')) ?? 'newest';
+  const hideAi = params.get('ai') === 'hide';
+  const page = Math.max(1, parseInt(params.get('page') ?? '1', 10) || 1);
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [page, setPage] = useState(1);
   const itemsPerPage = 9;
   const dropdownRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Back/forward: the box follows the URL (adjusted during render, not in an effect).
+  const [syncedSearch, setSyncedSearch] = useState(urlSearch);
+  if (syncedSearch !== urlSearch) {
+    setSyncedSearch(urlSearch);
+    setSearchInput(urlSearch);
+  }
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+
+  /** Write changes to the URL. Anything but a page change starts again from page 1. */
+  const update = useCallback((changes: Record<string, string | null>, mode: 'push' | 'replace' = 'push') => {
+    const next = new URLSearchParams(window.location.search);
+    if (!('page' in changes)) next.delete('page');
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === null || value === '') next.delete(key);
+      else next.set(key, value);
+    }
+    const qs = next.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+    if (mode === 'push') window.history.pushState(null, '', url);
+    else window.history.replaceState(null, '', url);
+  }, []);
+
+  const changeSearch = (query: string) => {
+    setSearchInput(query);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => update({ q: query.trim() || null }, 'replace'), 300);
+  };
+  const changeCategory = (category: string) => update({ category: category === 'all' ? null : category });
+  const clearTag = () => update({ tag: null });
+  const toggleHideAi = () => update({ ai: hideAi ? null : 'hide' });
+  const setPage = (n: number) => update({ page: n > 1 ? String(n) : null });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -28,11 +77,6 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Changing what's shown starts again from page 1.
-  const changeSearch = (query: string) => { setSearchQuery(query); setPage(1); };
-  const changeCategory = (category: string) => { setSelectedCategory(category); setPage(1); };
-  const toggleHideAi = () => { setHideAi((v) => !v); setPage(1); };
 
   // // Scroll to grid on page change
   // useEffect(() => {
@@ -60,8 +104,7 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
   ];
 
   const handleSortChange = (optionId: PackSort) => {
-    setSortBy(optionId);
-    setPage(1);
+    update({ sort: optionId === 'newest' ? null : optionId });
     setIsFilterOpen(false);
   };
 
@@ -83,9 +126,9 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
               <div className="flex-1 max-w-2xl">
                 <div className="flex gap-4 items-center">
                   <div className="flex-1">
-                    <GallerySearch 
-                      searchQuery={searchQuery} 
-                      onSearchChange={changeSearch} 
+                    <GallerySearch
+                      searchQuery={searchInput}
+                      onSearchChange={changeSearch}
                     />
                   </div>
                   <div className="relative" ref={dropdownRef}>
@@ -105,18 +148,18 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
                         {sortOptions.find(opt => opt.id === sortBy)?.name}
                       </span>
                     </button>
-                    
+
                     {/* Filter Dropdown */}
                     {isFilterOpen && (
-                      <div className="absolute right-0 mt-2 w-56 rounded-lg bg-[#1d1d1d] border border-white/10 shadow-lg backdrop-blur-sm z-30">
+                      <div className="absolute right-0 mt-2 w-56 rounded-lg bg-[#1d1d1d] border border-white/10 shadow-lg backdrop-blur-sm z-40">
                         <div className="py-1">
                           {sortOptions.map((option) => (
                             <button
                               key={option.id}
                               onClick={() => handleSortChange(option.id)}
                               className={`w-full px-4 py-2 text-sm flex items-center gap-2 transition-colors duration-200
-                                ${sortBy === option.id 
-                                  ? 'bg-white/10 text-white' 
+                                ${sortBy === option.id
+                                  ? 'bg-white/10 text-white'
                                   : 'text-white/70 hover:bg-white/5 hover:text-white'
                                 }`}
                             >
@@ -153,17 +196,33 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
 
           {/* Category Filters */}
           <div className="mb-12">
-            <GalleryFilters 
+            <GalleryFilters
               selectedCategory={selectedCategory}
               onCategoryChange={changeCategory}
             />
+            {tag && (
+              <div className="mt-4 flex justify-center">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 pl-3 pr-1 py-1 text-sm text-white">
+                  Tagged #{tag}
+                  <button
+                    type="button"
+                    onClick={clearTag}
+                    aria-label={`Remove tag ${tag}`}
+                    className="rounded-full p-1 text-white/70 hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              </div>
+            )}
           </div>
-          
+
           {/* Gallery Grid */}
           <div ref={gridRef}>
-            <GalleryGrid 
-              searchQuery={searchQuery}
+            <GalleryGrid
+              searchQuery={urlSearch}
               category={selectedCategory}
+              tag={tag}
               sortBy={sortBy}
               hideAi={hideAi}
               page={page}
@@ -177,4 +236,4 @@ export default function GalleryBrowser({ initialTag = 'all' }: { initialTag?: st
       <Footer />
     </div>
   );
-} 
+}

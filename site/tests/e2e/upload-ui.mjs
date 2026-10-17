@@ -63,10 +63,14 @@ try {
   // 2. details
   const next = page.getByText('Next', { exact: true });
   await page.getByPlaceholder('Enter a descriptive title').fill(`E2E Album ${runId}`);
-  await page.getByPlaceholder(/nature, landscape/).fill('Test, Gradients');
+  await page.getByPlaceholder(/comma separated/).fill('Test, Gradients, test');
   check('Next stays disabled until the AI question is answered', await next.isDisabled());
   await page.getByRole('button', { name: 'AI-assisted' }).click();
-  check('AI answer enables Next', await next.isEnabled());
+  check('Next stays disabled until a category is picked', await next.isDisabled());
+  await page.getByRole('button', { name: 'Abstract', exact: true }).click();
+  await page.getByRole('button', { name: 'Minimal', exact: true }).click();
+  check('a third category can\'t be picked', await page.getByRole('button', { name: 'Space', exact: true }).isDisabled());
+  check('one or two categories enable Next', await next.isEnabled());
   await shot('2-details');
   await next.click();
 
@@ -97,12 +101,12 @@ try {
 
   const { data: version } = await admin
     .from('pack_versions')
-    .select('status, kind, ai_use, tags, schedule, files:version_files!version_files_version_id_fkey(path)')
+    .select('status, kind, ai_use, tags, categories, schedule, files:version_files!version_files_version_id_fkey(path)')
     .eq('pack_id', (await admin.from('packs').select('id').eq('slug', slug).single()).data.id)
     .single();
   check('stored: pending album, 30m rotation, AI-assisted, tags', version.status === 'pending' && version.kind === 'album'
     && version.schedule.slot[0].rotate === 'every 30m' && version.ai_use === 'assisted'
-    && JSON.stringify(version.tags) === '["test","gradients"]', JSON.stringify({ ...version, schedule: version.schedule.slot }));
+    && JSON.stringify(version.tags) === '["test","gradients"]' && JSON.stringify(version.categories) === '["abstract","minimal"]', JSON.stringify({ ...version, schedule: version.schedule.slot }));
   check('stored file names match the schedule', version.files.map((f) => f.path).sort().join() === [...version.schedule.slot[0].images].sort().join());
   check('no page errors in the browser', consoleErrors.length === 0, consoleErrors.join(' | '));
 } catch (e) {

@@ -1,10 +1,14 @@
+import { Suspense } from 'react';
 import GalleryBrowser from '@/components/gallery/GalleryBrowser';
 
 export const metadata = { title: 'Gallery | Wallpy' };
 
-// Tag links (/gallery?tag=gaming) preselect a category, read on the server so
-// the first render is already filtered.
-export default async function GalleryPage({ searchParams }: PageProps<'/gallery'>) {
-  const { tag } = await searchParams;
-  return <GalleryBrowser initialTag={typeof tag === 'string' ? tag : 'all'} />;
+// Filters live in the URL (/gallery?category=games, /gallery?tag=japan, ...);
+// GalleryBrowser reads them with useSearchParams.
+export default function GalleryPage() {
+  return (
+    <Suspense>
+      <GalleryBrowser />
+    </Suspense>
+  );
 }

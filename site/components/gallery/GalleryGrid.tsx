@@ -6,10 +6,11 @@ import type { PackSort } from '@/lib/data/packs';
 import type { PackCard } from '@/lib/types';
 import { errorMessage } from '@/lib/utils';
 
-export default function GalleryGrid({ searchQuery, category, sortBy, hideAi = false, page = 1, itemsPerPage = 9, onPageChange }: {
+export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, hideAi = false, page = 1, itemsPerPage = 9, onPageChange }: {
   searchQuery: string;
   hideAi?: boolean;
   category: string;
+  tag?: string;
   sortBy: PackSort;
   page?: number;
   itemsPerPage?: number;
@@ -33,8 +34,8 @@ export default function GalleryGrid({ searchQuery, category, sortBy, hideAi = fa
           sort: sortBy,
         });
         if (searchQuery) params.append('search', searchQuery);
-        // Categories are themes, stored as tags.
-        if (category && category !== 'all') params.append('tag', category);
+        if (category && category !== 'all') params.append('category', category);
+        if (tag) params.append('tag', tag);
         if (hideAi) params.append('ai', 'hide');
 
         const response = await fetch(`/api/packs?${params.toString()}`);
@@ -55,7 +56,7 @@ export default function GalleryGrid({ searchQuery, category, sortBy, hideAi = fa
     };
 
     fetchPacks();
-  }, [searchQuery, category, sortBy, hideAi, page, itemsPerPage]);
+  }, [searchQuery, category, tag, sortBy, hideAi, page, itemsPerPage]);
 
   if (loading) {
     return (

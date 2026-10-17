@@ -1,6 +1,7 @@
 // A pack submission: what the upload wizard sends to POST /api/packs.
 import { z } from 'zod';
-import { PACK_LIMITS, normalizeTag } from '@/lib/packs/limits';
+import { PACK_LIMITS, normalizeTags } from '@/lib/packs/limits';
+import { CATEGORY_IDS, MAX_CATEGORIES } from '@/lib/packs/categories';
 import { validateSchedule } from '@/lib/spec/validate';
 import type { Json } from '@/lib/database.types';
 
@@ -11,7 +12,12 @@ export const Submission = z
   .object({
     title: z.string().trim().min(1, 'Give the pack a title').max(PACK_LIMITS.titleMax),
     description: z.string().trim().max(PACK_LIMITS.descriptionMax).optional().default(''),
-    tags: z.array(z.string()).max(PACK_LIMITS.maxTags).default([]),
+    tags: z.array(z.string().max(60)).max(PACK_LIMITS.maxTags, `At most ${PACK_LIMITS.maxTags} tags`).default([]),
+    categories: z
+      .array(z.enum(CATEGORY_IDS, { message: 'Unknown category' }))
+      .min(1, 'Pick a category')
+      .max(MAX_CATEGORIES, `Pick at most ${MAX_CATEGORIES} categories`)
+      .refine((c) => new Set(c).size === c.length, 'Pick each category once'),
     license: z.enum(['personal-use', 'cc-by-4.0', 'cc-by-nc-4.0', 'cc0', 'other']).default('personal-use'),
     license_notes: z.string().trim().max(500).optional().default(''),
     ai_use: z.enum(['none', 'assisted', 'generated'], { message: 'Say whether AI was used to make these images' }),
@@ -41,7 +47,8 @@ export function toRpcPayload(s: z.output<typeof Submission>) {
   return {
     title: s.title,
     description: s.description,
-    tags: [...new Set(s.tags.map(normalizeTag).filter(Boolean))],
+    tags: normalizeTags(s.tags),
+    categories: s.categories,
     license: s.license,
     license_notes: s.license_notes,
     ai_use: s.ai_use,

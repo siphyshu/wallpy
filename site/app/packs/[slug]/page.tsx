@@ -8,6 +8,7 @@ import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
 import AiUseLabel from '@/components/packs/AiUseLabel';
 import { getPackBySlug } from '@/lib/data/packs';
+import { categoryName } from '@/lib/packs/categories';
 import { latestVersion } from '@/lib/data/editing';
 import { createClient } from '@/lib/supabase/server';
 import type { PackLicense, VersionStatus } from '@/lib/types';
@@ -141,8 +142,13 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
 
             {version.description && <p className="prose text-white/80 mb-4">{version.description}</p>}
 
-            {version.tags.length > 0 && (
+            {(version.categories.length > 0 || version.tags.length > 0) && (
               <div className="flex flex-wrap gap-2 mb-4">
+                {version.categories.map((c) => (
+                  <Link key={c} href={`/gallery?category=${c}`} className="px-3 py-1 border border-white/20 bg-white/5 rounded-full text-sm hover:bg-white/10">
+                    {categoryName(c)}
+                  </Link>
+                ))}
                 {version.tags.map((tag) => (
                   <Link key={tag} href={`/gallery?tag=${tag}`} className="px-2 py-1 bg-white/10 rounded-full text-sm hover:bg-white/20">
                     #{tag}
@@ -152,12 +158,14 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
             )}
 
             <div className="flex items-center gap-4 mb-2 text-sm text-white/60">
-              <span className="flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                {pack.downloads} downloads
-              </span>
+              {pack.downloads > 0 && (
+                <span className="flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  {pack.downloads} {pack.downloads === 1 ? 'download' : 'downloads'}
+                </span>
+              )}
               <FavouriteButton packId={pack.id} initialFavourited={favourited} initialCount={pack.favourites} signedIn={Boolean(user)} />
               <span>{pack.files.length} images</span>
             </div>
