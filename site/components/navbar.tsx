@@ -8,8 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { User as AuthUser } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
 import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR } from '@/lib/data/profile-shape';
-import { Button } from '@/components/ui/button';
-import { User, Upload, LogOut, ShieldCheck } from 'lucide-react';
+import { User, Upload, LogOut, ShieldCheck, Menu, X } from 'lucide-react';
 
 const testing = Alegreya({
     subsets: ['latin'],
@@ -25,6 +24,7 @@ const NavBar = () => {
     const [isMobile, setIsMobile] = useState(false);
     const avatarRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null); // the bar and the phone menu
     const supabase = createClient();
 
     useEffect(() => {
@@ -131,28 +131,17 @@ const NavBar = () => {
         }
     };
 
+    // The hover dropdown is for wide screens; phones get the menu instead.
     const handleDropdownShow = () => {
+        if (isMobile) return;
         if (avatarRef.current) {
             const rect = avatarRef.current.getBoundingClientRect();
-            
-            if (isMobile) {
-                // On mobile, center the dropdown below the avatar
-                const dropdownWidth = 280; // Wider for mobile
-                setDropdownPosition({
-                    top: rect.bottom + 8,
-                    left: rect.left + (rect.width / 2) - (dropdownWidth / 2)
-                });
-            } else {
-                // Desktop positioning
-                const dropdownWidth = 200;
-                const viewportWidth = window.innerWidth;
-                const wouldOverflowRight = rect.right + dropdownWidth > viewportWidth;
-                
-                setDropdownPosition({
-                    top: rect.bottom + 8,
-                    left: wouldOverflowRight ? rect.left - dropdownWidth : rect.right
-                });
-            }
+            const dropdownWidth = 200;
+            const wouldOverflowRight = rect.right + dropdownWidth > window.innerWidth;
+            setDropdownPosition({
+                top: rect.bottom + 8,
+                left: wouldOverflowRight ? rect.left - dropdownWidth : rect.right
+            });
         }
         setDropdownOpen(true);
     };
@@ -167,46 +156,62 @@ const NavBar = () => {
         }, 100);
     };
 
+    // The phone menu closes on Escape, on a tap outside the bar and menu, and
+    // when the window grows past the breakpoint (the links are back in the bar).
+    useEffect(() => {
+        if (!isMobileMenuOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsMobileMenuOpen(false); };
+        const onDown = (e: PointerEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) setIsMobileMenuOpen(false);
+        };
+        const onResize = () => { if (window.innerWidth >= 768) setIsMobileMenuOpen(false); };
+        document.addEventListener('keydown', onKey);
+        document.addEventListener('pointerdown', onDown);
+        window.addEventListener('resize', onResize);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('pointerdown', onDown);
+            window.removeEventListener('resize', onResize);
+        };
+    }, [isMobileMenuOpen]);
+
+    const closeMenu = () => setIsMobileMenuOpen(false);
     const isAuthenticated = !!user;
+    const isModerator = profile?.role === 'moderator' || profile?.role === 'admin';
+    const menuItem = 'px-4 py-3 rounded-xl hover:bg-white/10 transition-colors duration-200 flex items-center gap-3';
 
     return (
-        <div className="fixed w-full z-50">
+        <div className="fixed w-full z-50" ref={menuRef}>
             {/* Navbar */}
-            <nav className={`fixed top-10 left-1/2 -translate-x-1/2 z-50
+            <nav className="fixed top-10 left-1/2 -translate-x-1/2 z-50
                             backdrop-blur-md text-white
                             shadow-lg font-serif border-2 border-white/10
-                            ${isMobile 
-                                ? 'px-4 py-3 rounded-2xl mx-4' 
-                                : 'px-12 py-4 rounded-full'
-                            } flex items-center justify-center w-auto`}>
-                <div className={`flex items-center ${isMobile ? 'gap-4' : 'gap-8'}`}>
-                    <Link href="/" className="flex-shrink-0">
-                        <Image 
-                            src="/waves.png" 
-                            alt="Wallpy Logo" 
-                            width={48} 
-                            height={48} 
+                            px-4 py-3 rounded-2xl md:px-12 md:py-4 md:rounded-full
+                            flex items-center justify-center w-auto">
+                <div className="flex items-center gap-4 md:gap-8">
+                    <Link href="/" className="flex-shrink-0" onClick={closeMenu}>
+                        <Image
+                            src="/waves.png"
+                            alt="Wallpy Logo"
+                            width={48}
+                            height={48}
                             className="w-8 h-8"
                         />
                     </Link>
-                    <div className={`flex items-center ${isMobile ? 'gap-4' : 'gap-8'}`}>
-                        {!isMobile && (
-                            <>
-                                <Link href="/docs" className="hover:underline whitespace-nowrap">Docs</Link>
-                                <Link href="/gallery" className="hover:underline whitespace-nowrap">Gallery</Link>
-                                <Link href="https://github.com/siphyshu/wallpy" className="hover:underline whitespace-nowrap">Github</Link>
-                            </>
-                        )}
+                    <div className="flex items-center gap-4 md:gap-8">
+                        <Link href="/docs" className="hidden md:inline hover:underline whitespace-nowrap">Docs</Link>
+                        <Link href="/gallery" className="hidden md:inline hover:underline whitespace-nowrap">Gallery</Link>
+                        <Link href="https://github.com/siphyshu/wallpy" className="hidden md:inline hover:underline whitespace-nowrap">Github</Link>
                         {loading ? (
                             <div className="w-9 h-9 rounded-full bg-white/10 animate-pulse"></div>
                         ) : isAuthenticated ? (
-                            <div 
-                                className="relative flex items-center gap-2" 
+                            <div
+                                className="relative flex items-center gap-2"
                                 ref={avatarRef}
                                 onMouseEnter={handleDropdownShow}
                                 onMouseLeave={handleDropdownHide}
                             >
-                                <Link href={`/profile/${profile?.username}`} className="flex items-center gap-2 focus:outline-none">
+                                <Link href={`/profile/${profile?.username}`} className="flex items-center gap-2 focus:outline-none" onClick={closeMenu}>
                                     <Image
                                         src={profile?.avatar_url || DEFAULT_AVATAR}
                                         alt={profile?.name || profile?.username || "User"}
@@ -217,51 +222,95 @@ const NavBar = () => {
                                 </Link>
                             </div>
                         ) : (
-                            <Link href="/auth/login" className="hover:underline whitespace-nowrap">Sign In</Link>
+                            <Link href="/auth/login" className="hover:underline whitespace-nowrap" onClick={closeMenu}>Sign In</Link>
                         )}
+                        <button
+                            type="button"
+                            className="md:hidden -mr-1 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                            aria-expanded={isMobileMenuOpen}
+                            aria-controls="mobile-menu"
+                            onClick={() => setIsMobileMenuOpen((open) => !open)}
+                        >
+                            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
                     </div>
                 </div>
             </nav>
-            
+
+            {/* Phone menu: the bar's links, plus the account ones the hover dropdown has on wide screens */}
+            {isMobileMenuOpen && (
+                <div
+                    id="mobile-menu"
+                    className="md:hidden fixed top-28 left-4 right-4 z-50 mx-auto max-w-sm
+                               bg-black/60 backdrop-blur-md text-white shadow-2xl border-2 border-white/10
+                               rounded-2xl p-2 font-serif text-lg flex flex-col"
+                >
+                    <Link href="/docs" className={menuItem} onClick={closeMenu}>Docs</Link>
+                    <Link href="/gallery" className={menuItem} onClick={closeMenu}>Gallery</Link>
+                    <Link href="https://github.com/siphyshu/wallpy" className={menuItem} onClick={closeMenu}>Github</Link>
+                    {isAuthenticated && (
+                        <>
+                            <div className="h-px bg-white/10 my-2 mx-2" />
+                            <Link href={`/profile/${profile?.username}`} className={menuItem} onClick={closeMenu}>
+                                <User size={18} />
+                                Profile
+                            </Link>
+                            <Link href="/upload" className={menuItem} onClick={closeMenu}>
+                                <Upload size={18} />
+                                Upload
+                            </Link>
+                            {isModerator && (
+                                <Link href="/moderation" className={menuItem} onClick={closeMenu}>
+                                    <ShieldCheck size={18} />
+                                    Review queue
+                                </Link>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => { closeMenu(); handleSignOut(); }}
+                                className="px-4 py-3 rounded-xl text-left hover:bg-red-500/20 hover:text-red-300 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <LogOut size={18} />
+                                Sign Out
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+
             {/* Dropdown positioned at same DOM level as navbar */}
-            {dropdownOpen && isAuthenticated && (
-                <div 
+            {dropdownOpen && isAuthenticated && !isMobile && (
+                <div
                     className="fixed z-50"
                     ref={dropdownRef}
-                    onMouseEnter={() => !isMobile && setDropdownOpen(true)}
-                    onMouseLeave={() => !isMobile && setDropdownOpen(false)}
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
                     style={{
                         top: `${dropdownPosition.top + 20}px`,
                         left: `${dropdownPosition.left}px`,
-                        transform: isMobile ? 'none' : 'translateX(-65%)'
+                        transform: 'translateX(-65%)'
                     }}
                 >
-                    <div className={`backdrop-blur-md text-white shadow-2xl border-2 border-white/10 flex flex-col font-serif ${
-                        isMobile 
-                            ? 'w-72 rounded-2xl py-3' 
-                            : 'w-fit rounded-3xl py-4'
-                    }`}>
-                        <Link 
-                            href={`/profile/${profile?.username}`} 
-                            className={`${isMobile ? 'px-4 py-3' : 'px-6 py-2'} hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3`}
-                            onClick={() => isMobile && setDropdownOpen(false)}
+                    <div className="backdrop-blur-md text-white shadow-2xl border-2 border-white/10 flex flex-col font-serif w-fit rounded-3xl py-4">
+                        <Link
+                            href={`/profile/${profile?.username}`}
+                            className="px-6 py-2 hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3"
                         >
                             <User size={18} />
                             Profile
                         </Link>
-                        <Link 
-                            href="/upload" 
-                            className={`${isMobile ? 'px-4 py-3' : 'px-6 py-2'} hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3`}
-                            onClick={() => isMobile && setDropdownOpen(false)}
+                        <Link
+                            href="/upload"
+                            className="px-6 py-2 hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3"
                         >
                             <Upload size={18} />
                             Upload
                         </Link>
-                        {(profile?.role === 'moderator' || profile?.role === 'admin') && (
+                        {isModerator && (
                             <Link
                                 href="/moderation"
-                                className={`${isMobile ? 'px-4 py-3' : 'px-6 py-2'} hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3`}
-                                onClick={() => isMobile && setDropdownOpen(false)}
+                                className="px-6 py-2 hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3"
                             >
                                 <ShieldCheck size={18} />
                                 Review queue
@@ -272,7 +321,7 @@ const NavBar = () => {
                                 handleSignOut();
                                 setDropdownOpen(false);
                             }}
-                            className={`${isMobile ? 'px-4 py-3' : 'px-6 py-2'} text-left hover:bg-red-500/20 hover:text-red-300 rounded-2xl mx-2 transition-colors duration-200 font-medium flex items-center gap-3`}
+                            className="px-6 py-2 text-left hover:bg-red-500/20 hover:text-red-300 rounded-2xl mx-2 transition-colors duration-200 font-medium flex items-center gap-3"
                         >
                             <LogOut size={18} />
                             Sign Out

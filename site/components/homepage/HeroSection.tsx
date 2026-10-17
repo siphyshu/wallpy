@@ -44,7 +44,7 @@ const HeroSection = () => {
             Browse Gallery
           </a>
           <a
-            href="https://pypi.org/project/wallpy/"
+            href="#install"
             className="px-6 py-2 rounded-full border border-white text-white text-sm hover:bg-white/10"
           >
             Install Wallpy →

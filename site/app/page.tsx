@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image";
 import HeroSection from '@/components/homepage/HeroSection';
 import GallerySection from '@/components/homepage/GallerySection';
 import Footer from '@/components/footer';
@@ -14,7 +13,7 @@ export default function Home() {
       </div>
       
       <HeroSection />
-      {/* <InstallSection /> */}
+      <InstallSection />
       <GallerySection />
       <Footer isHome={true} />
     </div>
