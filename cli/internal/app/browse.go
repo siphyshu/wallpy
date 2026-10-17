@@ -13,6 +13,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/spf13/cobra"
 	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
@@ -64,7 +65,7 @@ func browse(ctx context.Context, version, search string) error {
 	m := &browser{ctx: ctx, c: c, p: p, packs: packs, total: total, search: search,
 		pictures: map[string]image.Image{}, loading: map[string]bool{}, active: st.Active,
 		graphics: ui.DetectGraphics(), blocks: map[string]string{}, sent: map[string]string{},
-		sending: map[string]bool{}, ids: map[string]int{}}
+		sending: map[string]bool{}, ids: map[string]int{}, overlays: map[string]string{}}
 	if lib != nil {
 		m.installed = map[string]bool{}
 		if list, err := lib.List(); err == nil {
@@ -110,7 +111,16 @@ type browser struct {
 	sent     map[string]string // Kitty: slug -> the size its image was sent for
 	sending  map[string]bool
 	ids      map[string]int // Kitty image IDs, by slug
+
+	// iTerm2 and Sixel paint over the text, so the screen leaves the
+	// preview's box blank and the image is painted into it afterwards.
+	overlays map[string]string // ready escape sequences, by slug@size
+	placing  string            // slug@size waiting for its blank box to be drawn
+	onScreen string            // slug@size painted now
 }
+
+type overlayMsg struct{ key, seq string }
+type paintMsg struct{ key string }
 
 // kittyMsg carries a prepared Kitty transmission; kittySentMsg says it's out.
 type kittyMsg struct{ slug, size, seq string }
@@ -180,14 +190,31 @@ func (b *browser) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case kittySentMsg:
 		b.sent[msg.slug] = msg.size
 		delete(b.sending, msg.slug+msg.size)
+	case overlayMsg:
+		b.overlays[msg.key] = msg.seq
+		delete(b.sending, msg.key)
+	case paintMsg:
+		if msg.key == b.placing && msg.key == b.currentKey() {
+			b.placing, b.onScreen = "", msg.key
+			listW, _, _ := b.box()
+			// The preview's top-left cell: row 4, right of the list (see render).
+			return b, tea.Raw(ansi.SaveCursor + ansi.CursorPosition(listW+4, 4) + b.overlays[msg.key] + ansi.RestoreCursor)
+		}
 	case statusMsg:
 		b.status = string(msg)
 	case tea.WindowSizeMsg:
 		b.width, b.height = msg.Width, msg.Height
+		b.placing, b.onScreen = "", "" // the screen is redrawn from scratch
 	case pictureMsg:
 		b.pictures[msg.slug] = msg.img
 	case tea.KeyPressMsg:
 		key := msg.String()
+		before := b.currentKey()
+		defer func() {
+			if b.currentKey() != before { // another pack: its preview draws over the image
+				b.placing, b.onScreen = "", ""
+			}
+		}()
 		if b.filtering {
 			switch key {
 			case "enter", "esc":
@@ -365,6 +392,9 @@ func (b *browser) preview(slug string, img image.Image, w, h int) string {
 	if b.graphics == ui.Kitty && b.sent[slug] == size {
 		return ui.KittyCells(b.id(slug), w, h)
 	}
+	if key := slug + "@" + size; b.graphics.Overlay() && (b.onScreen == key || b.placing == key) {
+		return strings.TrimSuffix(strings.Repeat(strings.Repeat(" ", w)+"\n", h), "\n") // the image goes here
+	}
 	key := slug + "@" + size
 	if s, ok := b.blocks[key]; ok {
 		return s
@@ -377,6 +407,9 @@ func (b *browser) preview(slug string, img image.Image, w, h int) string {
 // sendPreview prepares the selected preview's Kitty image, off the UI
 // thread, when it hasn't been sent at the current size.
 func (b *browser) sendPreview() tea.Cmd {
+	if b.graphics.Overlay() {
+		return b.paintPreview()
+	}
 	if b.graphics != ui.Kitty || b.width == 0 {
 		return nil
 	}
@@ -434,4 +467,46 @@ func shrink(img image.Image, maxW int) image.Image {
 	out := image.NewRGBA(image.Rect(0, 0, maxW, h))
 	draw.ApproxBiLinear.Scale(out, out.Bounds(), img, b, draw.Src, nil)
 	return out
+}
+
+// currentKey is the selected pack and preview size, "slug@WxH".
+func (b *browser) currentKey() string {
+	pk, ok := b.selected()
+	if !ok || b.width == 0 {
+		return ""
+	}
+	_, w, h := b.box()
+	return fmt.Sprintf("%s@%dx%d", pk.Slug, w, h)
+}
+
+// paintPreview gets the selected preview painted with iTerm2 or Sixel:
+// encode it (off the UI thread), let a frame draw the blank box, then
+// paint the image into it.
+func (b *browser) paintPreview() tea.Cmd {
+	key := b.currentKey()
+	if key == "" || key == b.onScreen || key == b.placing {
+		return nil
+	}
+	pk, _ := b.selected()
+	img := b.pictures[pk.Slug]
+	if img == nil {
+		return nil
+	}
+	if _, ready := b.overlays[key]; ready {
+		b.placing = key
+		return tea.Tick(60*time.Millisecond, func(time.Time) tea.Msg { return paintMsg{key} })
+	}
+	if b.sending[key] {
+		return nil
+	}
+	b.sending[key] = true
+	g := b.graphics
+	_, w, h := b.box()
+	return func() tea.Msg {
+		seq, err := ui.OverlayImage(g, img, w, h)
+		if err != nil {
+			return nil
+		}
+		return overlayMsg{key, seq}
+	}
 }

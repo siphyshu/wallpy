@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"regexp"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/kitty"
+	"github.com/charmbracelet/x/ansi/sixel"
 )
 
 func photo(w, h int) image.Image {
@@ -99,5 +101,58 @@ func TestKittyCells(t *testing.T) {
 		if w := ansi.StringWidth(row); w != 5 {
 			t.Errorf("row %d is %d cells wide, want 5", r, w)
 		}
+	}
+}
+
+func TestSixelImage(t *testing.T) {
+	seq, err := OverlayImage(Sixel, photo(4000, 3000), 30, 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// DCS p1;p2;p3 q <data> ST
+	m := regexp.MustCompile(`^\x1bP0;1(?:;0)?q(.*)\x1b\\$`).FindStringSubmatch(seq)
+	if m == nil {
+		t.Fatalf("not a sixel sequence: %.40q", seq)
+	}
+	img, err := (&sixel.Decoder{}).Decode(strings.NewReader(m[1]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cw, ch := CellPixels() // 10×20 when the test's output isn't a terminal
+	if b := img.Bounds(); b.Dx() != 30*cw || b.Dy() != 9*ch {
+		t.Errorf("sixel image is %v, want %dx%d", b, 30*cw, 9*ch)
+	}
+}
+
+func TestITerm2Image(t *testing.T) {
+	seq, err := OverlayImage(ITerm2, photo(4000, 3000), 30, 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`^\x1b\]1337;File=([^:]*):([A-Za-z0-9+/=]+)\x07$`).FindStringSubmatch(seq)
+	if m == nil {
+		t.Fatalf("not an iTerm2 image: %.60q", seq)
+	}
+	for _, want := range []string{"inline=1", "width=30", "height=9", "preserveAspectRatio=0"} {
+		if !strings.Contains(";"+m[1]+";", ";"+want+";") {
+			t.Errorf("options %q lack %s", m[1], want)
+		}
+	}
+	data, _ := base64.StdEncoding.DecodeString(m[2])
+	img, err := jpeg.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cw, ch := CellPixels()
+	if b := img.Bounds(); b.Dx() != 30*cw || b.Dy() != 9*ch {
+		t.Errorf("image is %v", b)
+	}
+}
+
+func TestReserveAndPaint(t *testing.T) {
+	got := ReserveAndPaint("IMG", 2, 3)
+	want := "\n\n\n" + "\x1b[3A" + "\x1b[3G" + "\x1b7" + "IMG" + "\x1b8" + "\x1b[3B" + "\r"
+	if got != want {
+		t.Errorf("got %q\nwant %q", got, want)
 	}
 }

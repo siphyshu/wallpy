@@ -182,9 +182,9 @@ func newShow(version string) *cobra.Command {
 			}
 			if p.Rich() {
 				w, h := pictureSize()
-				if pic := p.Image(showImage(cmd.Context(), pack, m, client, a.Image), w, h); pic != "" {
+				if img := showImage(cmd.Context(), pack, m, client, a.Image); img != nil {
 					p.Blank()
-					p.Raw(pic)
+					p.PrintImage(img, w, h)
 					p.Raw(p.Faint(a.Image))
 				}
 				p.Blank()
