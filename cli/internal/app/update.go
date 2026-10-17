@@ -52,7 +52,8 @@ func newUpdate(version string) *cobra.Command {
 				m, err := c.Manifest(cmd.Context(), pk.Slug)
 				switch {
 				case errors.Is(err, remote.ErrNotFound):
-					p.Notice(pk.Title() + p.Muted(" is no longer in the gallery. Your copy stays."))
+					// 404 means deleted or taken down; unlisted packs still have a manifest.
+					p.Notice(pk.Title() + p.Muted(" was removed from Wallpy. Your copy stays and keeps working."))
 					continue
 				case err != nil:
 					failed++
