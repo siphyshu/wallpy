@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siphyshu/wallpy/cli/internal/ui"
+	"github.com/siphyshu/wallpy/cli/internal/update"
 )
 
 const tagline = "Dynamic wallpapers for your desktop."
@@ -64,6 +65,28 @@ func newRoot(version string) *cobra.Command {
 	add("settings", newLocation(), newPause(), newResume(), newDoctor(version), newUninstall())
 	add("create", newCheck())
 	root.AddCommand(newRun())
+
+	// Look for a new release in the background; mention it after the command.
+	var checked <-chan struct{}
+	root.PersistentPreRun = func(cmd *cobra.Command, _ []string) {
+		if updateNotices(cmd, version) {
+			checked = update.Refresh(cmd.Context(), version)
+		}
+	}
+	root.PersistentPostRun = func(cmd *cobra.Command, _ []string) {
+		if checked == nil {
+			return
+		}
+		select { // a fresh check gets a moment to finish; never more
+		case <-checked:
+		case <-time.After(400 * time.Millisecond):
+		}
+		if latest := update.Newer(version); latest != "" {
+			p := ui.New(os.Stderr, ui.Look{Theme: ui.ThemeFor(ui.DetectDark()), Now: time.Now(), Sun: ui.FallbackSun})
+			p.Raw(p.Accent(ui.SymUpdate) + " " + p.Muted(fmt.Sprintf("wallpy %s is out (you have %s): ", latest, version)) + p.Code(howInstalled().upgrade))
+			p.Blank()
+		}
+	}
 	root.SetHelpCommandGroupID("settings")
 	root.SetCompletionCommandGroupID("settings")
 	return root
@@ -152,4 +175,18 @@ func sentence(s string) string {
 		r[0] = unicode.ToUpper(r[0])
 	}
 	return strings.TrimSuffix(string(r), ".") + "."
+}
+
+// updateNotices says whether to look for new releases: only for released
+// builds, run by a person at a terminal, and not for the agent, completion
+// or help. WALLPY_NO_UPDATE_CHECK=1 (or CI) turns it off.
+func updateNotices(cmd *cobra.Command, version string) bool {
+	if version == "" || os.Getenv("WALLPY_NO_UPDATE_CHECK") != "" || os.Getenv("CI") != "" || !ui.Interactive() {
+		return false
+	}
+	switch cmd.Name() {
+	case "run", "completion", "__complete", "__completeNoDesc", "help", "man":
+		return false
+	}
+	return true
 }

@@ -20,6 +20,7 @@ const (
 	SymNotice  = "!"
 	SymHint    = "›"
 	SymNow     = "▲"
+	SymUpdate  = "↑"
 )
 
 // margin is the left edge of everything the CLI prints.

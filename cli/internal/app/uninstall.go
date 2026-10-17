@@ -3,10 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"time"
 
 	"charm.land/huh/v2"
@@ -86,9 +83,9 @@ func newUninstall() *cobra.Command {
 			}
 
 			p.Blank()
-			cmdline, how := removeCommand()
-			p.Raw(p.Muted("To finish, " + how + ":"))
-			p.Raw("  " + p.Code(cmdline))
+			m := howInstalled()
+			p.Raw(p.Muted("To finish, " + m.removeHow + ":"))
+			p.Raw("  " + p.Code(m.remove))
 			p.Blank()
 			return nil
 		},
@@ -106,44 +103,4 @@ func picturesDir() string {
 		return filepath.Join(home, "Pictures")
 	}
 	return home
-}
-
-// removeCommand is how to remove this wallpy, judged from where it's
-// installed: a package manager's command, or deleting the file.
-func removeCommand() (cmdline, how string) {
-	exe, err := os.Executable()
-	if err != nil {
-		return "", "remove the wallpy program"
-	}
-	if real, err := filepath.EvalSymlinks(exe); err == nil {
-		exe = real
-	}
-	lower := strings.ToLower(exe)
-	switch {
-	case strings.Contains(lower, "/cellar/") || strings.Contains(lower, "/caskroom/") || strings.Contains(lower, "linuxbrew"):
-		return "brew uninstall wallpy", "remove it with Homebrew"
-	case strings.Contains(lower, `\scoop\`):
-		return "scoop uninstall wallpy", "remove it with Scoop"
-	case strings.Contains(lower, `\winget\`):
-		return "winget uninstall siphyshu.Wallpy", "remove it with winget"
-	}
-	if runtime.GOOS == "linux" {
-		for _, pm := range []struct {
-			query  []string
-			remove string
-		}{
-			{[]string{"pacman", "-Qo", exe}, "sudo pacman -R wallpy-bin"},
-			{[]string{"dpkg", "-S", exe}, "sudo apt remove wallpy"},
-			{[]string{"rpm", "-qf", exe}, "sudo dnf remove wallpy"},
-			{[]string{"apk", "info", "--who-owns", exe}, "sudo apk del wallpy"},
-		} {
-			if _, err := exec.LookPath(pm.query[0]); err == nil && exec.Command(pm.query[0], pm.query[1:]...).Run() == nil {
-				return pm.remove, "remove the package"
-			}
-		}
-	}
-	if runtime.GOOS == "windows" {
-		return fmt.Sprintf("del %q", exe), "delete the program"
-	}
-	return fmt.Sprintf("rm %q", exe), "delete the program"
 }

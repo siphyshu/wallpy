@@ -31,6 +31,9 @@ type State struct {
 	LastSet  string    `json:"lastSet,omitempty"` // image path last made the wallpaper
 	LastTime time.Time `json:"lastTime,omitzero"`
 	Welcomed bool      `json:"welcomed,omitempty"` // the first-run setup has been offered
+
+	UpdateChecked time.Time `json:"updateChecked,omitzero"` // last look for a new release
+	UpdateLatest  string    `json:"updateLatest,omitempty"` // the newest release seen
 }
 
 // Location is the spec location, or nil when none is set.

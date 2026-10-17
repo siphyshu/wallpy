@@ -23,6 +23,10 @@ One binary, no runtime. To remove it, run `wallpy uninstall`: it removes the
 background agent (and, if you like, your packs) and shows the command that
 removes wallpy itself.
 
+Once a day wallpy asks GitHub whether there's a newer release and, if so,
+says so in one line with the upgrade command. `WALLPY_NO_UPDATE_CHECK=1`
+turns that off.
+
 ## Commands
 
 | | |

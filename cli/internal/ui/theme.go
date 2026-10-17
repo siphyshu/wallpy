@@ -10,6 +10,7 @@ package ui
 import (
 	"image/color"
 	"os"
+	"sync"
 	"time"
 
 	"charm.land/lipgloss/v2"
@@ -103,12 +104,15 @@ func ThemeFor(dark bool) Theme {
 // DetectDark asks the terminal for its background colour. It only asks a
 // real terminal (the query waits briefly for a reply); otherwise it assumes
 // dark, the common case and the site's own look.
-func DetectDark() bool {
+func DetectDark() bool { return detectDark() }
+
+// The terminal is asked once per run; its answer doesn't change.
+var detectDark = sync.OnceValue(func() bool {
 	if !term.IsTerminal(os.Stdout.Fd()) || !term.IsTerminal(os.Stdin.Fd()) {
 		return true
 	}
 	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
-}
+})
 
 // Interactive reports whether someone can answer questions: input and
 // output are both a terminal.
