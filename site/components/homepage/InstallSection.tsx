@@ -31,9 +31,11 @@ const InstallSection = () => {
           </Step>
           <Step n={2} title="Pick a pack">
             <p className="text-white/70 text-sm">
-              Browse the gallery in your terminal, or copy a pack&apos;s command from its page here.
+              The first time you run it, Wallpy asks roughly where you are (for your real sunrise and
+              sunset), then opens the gallery in your terminal. Or copy a pack&apos;s command from
+              its <Link href="/gallery" className="underline underline-offset-4 hover:text-white">page here</Link>.
             </p>
-            <CopyCommand command="wallpy browse" />
+            <CopyCommand command="wallpy" />
           </Step>
           <Step n={3} title="That's it">
             <p className="text-white/70 text-sm">

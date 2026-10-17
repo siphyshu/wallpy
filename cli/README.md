@@ -15,7 +15,7 @@ wallpy                        # what's showing, today's schedule, what's next
 | | |
 |---|---|
 | macOS, Linux | `brew install siphyshu/tap/wallpy` |
-| Windows | `winget install siphyshu.Wallpy` or `scoop bucket add siphyshu https://github.com/siphyshu/scoop-bucket && scoop install wallpy` |
+| Windows | `winget install siphyshu.Wallpy` or `scoop bucket add siphyshu https://github.com/siphyshu/scoop-bucket; scoop install wallpy` |
 | Debian, Fedora, Alpine | `.deb`, `.rpm` or `.apk` from the [releases](https://github.com/siphyshu/wallpy/releases) |
 | Arch | `yay -S wallpy-bin` |
 
@@ -33,12 +33,12 @@ turns that off.
 |---|---|
 | `wallpy` | What's showing, today's slots on the sky, the next change |
 | `wallpy use <pack>` | Make a pack your wallpaper: a name, a gallery link or a folder |
-| `wallpy browse [search]` | The gallery, with previews; Enter uses a pack |
-| `wallpy show <pack> [--at 18:45]` | A pack's credit and schedule, now or at another time |
+| `wallpy browse [search]` | The gallery, with previews; Enter uses a pack, `o` opens its page |
+| `wallpy show <pack> [--at 18:45]` | A pack's credit and schedule, now or at another time; works before installing |
 | `wallpy list` / `get` / `update` / `remove` | Manage installed packs |
 | `wallpy location [city \| auto \| lat,lon]` | Where you are, for real sunrise and sunset |
 | `wallpy pause` / `resume` | Hold the current wallpaper for a while, then carry on |
-| `wallpy uninstall [--all]` | Remove Wallpy from this computer |
+| `wallpy uninstall [--all \| --keep]` | Remove Wallpy from this computer |
 | `wallpy doctor` | Check everything, with a fix for anything wrong |
 | `wallpy check <folder>` | Check a pack you're making against the [pack spec](../spec/README.md) |
 

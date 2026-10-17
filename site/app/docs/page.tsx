@@ -22,17 +22,17 @@ const SECTIONS = [
 const COMMANDS: { command: string; what: string }[] = [
   { command: 'wallpy', what: "What's showing, today's schedule on the sky, and the next change." },
   { command: 'wallpy use <pack>', what: 'Make a pack your wallpaper: a name from the gallery, a gallery link or a folder. Installs it if needed.' },
-  { command: 'wallpy browse [search]', what: 'The gallery in your terminal, with previews. Enter uses a pack, o opens it here.' },
-  { command: 'wallpy show <pack> [--at 18:45]', what: "A pack's credit, schedule and picture, now or at another time. Works before you install it." },
+  { command: 'wallpy browse [search]', what: 'The gallery in your terminal, with previews. Enter uses a pack, o opens its page on this site, / searches.' },
+  { command: 'wallpy show <pack> [--at 18:45]', what: "A pack's credit, schedule and a preview, now or at another time. Works before you install it; --web opens its page here." },
   { command: 'wallpy list', what: 'Your installed packs.' },
   { command: 'wallpy get <pack>', what: 'Download a pack without switching to it.' },
-  { command: 'wallpy update [pack]', what: 'Get new versions of your packs; unchanged images are kept.' },
+  { command: 'wallpy update [pack...]', what: 'Get new versions of your packs; unchanged images are kept.' },
   { command: 'wallpy remove <pack>', what: 'Delete an installed pack.' },
   { command: 'wallpy location [city | auto | lat,lon]', what: 'Where you are, for real sunrise and sunset times.' },
   { command: 'wallpy pause / resume', what: 'Hold the current wallpaper for a while, then carry on.' },
   { command: 'wallpy doctor', what: 'Check everything, with a fix for anything wrong.' },
   { command: 'wallpy check <folder>', what: "Check a pack you're making against the pack format." },
-  { command: 'wallpy uninstall [--all]', what: 'Remove Wallpy from this computer.' },
+  { command: 'wallpy uninstall [--all | --keep]', what: 'Remove Wallpy from this computer.' },
 ];
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -79,7 +79,8 @@ export default function DocsPage() {
               <InstallOptions />
             </Card>
             <p className="text-sm text-white/50">
-              Wallpy checks for a new release once a day and tells you the upgrade command in one line.
+              Once a day Wallpy asks GitHub whether there&apos;s a newer release and, if so, says so in one
+              line with the upgrade command for however you installed it.
               Set <Code>WALLPY_NO_UPDATE_CHECK=1</Code> to turn that off.
             </p>
           </Section>
@@ -102,8 +103,10 @@ export default function DocsPage() {
               </div>
             </Card>
             <p className="text-sm text-white/50">
-              The first time, Wallpy asks roughly where you are so packs that follow the sun use your
-              real sunrise and sunset. Change it any time with <Code>wallpy location</Code>.
+              Packs that follow the sun use standard times (sunrise 06:30, sunset 18:30) until Wallpy
+              knows roughly where you are. Running <Code>wallpy</Code> on its own before you have a pack
+              asks you, then offers the gallery; or set it any time with <Code>wallpy location &lt;city&gt;</Code>{' '}
+              (or <Code>auto</Code> to guess from your time zone).
             </p>
           </Section>
 
@@ -151,8 +154,11 @@ export default function DocsPage() {
               <CopyCommand command="wallpy uninstall" />
               <p className="text-sm text-white/70">
                 Stops and removes the background agent, keeps the wallpaper that&apos;s on screen, and asks
-                whether to delete your packs and settings too (<Code>--all</Code> skips the question). It
-                finishes by showing the command that removes Wallpy itself, for however you installed it.
+                whether to delete your packs and settings too (<Code>--all</Code> deletes them,{' '}
+                <Code>--keep</Code> keeps them, without asking). If they go, the current wallpaper is saved
+                to your Pictures folder first. It finishes by showing the command that removes Wallpy
+                itself, for however you installed it. To stop changes for a while instead, use{' '}
+                <Code>wallpy pause</Code>.
               </p>
             </Card>
           </Section>

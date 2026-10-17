@@ -6,7 +6,7 @@ import type { Manifest } from '@/lib/types';
 
 /**
  * Everything needed to install a pack: its schedule and every file with its
- * SHA-256, so clients can verify what they download. Used by `wallpy download`
+ * SHA-256, so clients can verify what they download. Used by the CLI (`wallpy use`, `get`, `show`)
  * and by the website's "Download ZIP" button (which zips in the browser).
  *
  *   GET /api/packs/<slug>/manifest              read only

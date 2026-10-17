@@ -15,7 +15,11 @@ export default function CopyCommand({ command, variant = 'quiet', label }: {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(command);
+    try {
+      await navigator.clipboard.writeText(command);
+    } catch {
+      return; // no clipboard (insecure page, denied): the command is still there to select
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -30,7 +34,8 @@ export default function CopyCommand({ command, variant = 'quiet', label }: {
       className={`group w-full flex items-center justify-between gap-3 px-4 py-2 rounded-lg transition-colors font-mono text-sm text-left ${styles}`}
       aria-label={`Copy ${label ?? 'command'}: ${command}`}
     >
-      <span className="truncate">
+      {/* Wraps rather than truncates: on a phone the whole command should still be readable. */}
+      <span className="min-w-0 [overflow-wrap:anywhere]">
         {variant === 'quiet' && <span className="text-white/40 select-none">$ </span>}
         {command}
       </span>
