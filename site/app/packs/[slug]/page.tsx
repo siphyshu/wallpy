@@ -8,6 +8,10 @@ import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
 import AiUseLabel from '@/components/packs/AiUseLabel';
 import PackOwnerControls from '@/components/packs/PackOwnerControls';
+import ReportPackButton from '@/components/packs/ReportPackButton';
+import PackModActions from '@/components/moderation/PackModActions';
+import ModerationHistory from '@/components/moderation/ModerationHistory';
+import { listHistory } from '@/lib/data/moderation';
 import { getPackBySlug } from '@/lib/data/packs';
 import { categoryName } from '@/lib/packs/categories';
 import { latestVersion } from '@/lib/data/editing';
@@ -88,10 +92,20 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let favourited = false;
+  let reported = false;
+  let isModerator = false;
   if (user) {
-    const { data } = await supabase.from('favourites').select('pack_id').eq('pack_id', pack.id).maybeSingle();
-    favourited = Boolean(data);
+    const [fav, report, me] = await Promise.all([
+      supabase.from('favourites').select('pack_id').eq('pack_id', pack.id).maybeSingle(),
+      // RLS: a visitor reads only their own reports.
+      supabase.from('pack_reports').select('id').eq('pack_id', pack.id).eq('reporter_id', user.id).eq('status', 'open').limit(1),
+      supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+    ]);
+    favourited = Boolean(fav.data);
+    reported = Boolean(report.data?.length);
+    isModerator = me.data?.role === 'moderator' || me.data?.role === 'admin';
   }
+  const history = isModerator ? (await listHistory([pack.id])).get(pack.id) ?? [] : [];
 
   const { version, credit } = pack;
   const isOwner = user?.id === pack.ownerId;
@@ -198,6 +212,20 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
                 <Link href="/#install" className="text-xs text-white/50 hover:text-white mt-1">
                   Don&apos;t have Wallpy yet? Install it first.
                 </Link>
+              </div>
+            )}
+
+            {user && !isOwner && pack.isPublic && (
+              <div className="mt-6 flex flex-col">
+                <ReportPackButton packId={pack.id} alreadyReported={reported} />
+              </div>
+            )}
+
+            {isModerator && (pack.isPublic || (pack.removedAt && version.status === 'approved')) && (
+              <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-3" data-testid="moderate-pack">
+                <p className="text-xs uppercase tracking-wide text-white/50">Moderator</p>
+                <PackModActions versionId={version.id} packId={pack.id} slug={pack.slug} removed={Boolean(pack.removedAt)} />
+                <ModerationHistory entries={history} />
               </div>
             )}
 

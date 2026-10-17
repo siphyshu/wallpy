@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@/lib/moderation/review';
 
 // Owner controls for a pack. RLS and withdraw_version() decide who may do what;
 // these only add the checks a person can act on.
@@ -74,4 +75,21 @@ export async function withdrawVersion(packId: string, versionId: string): Promis
   }
   refresh(pack);
   return { ok: true };
+}
+
+/** Report a published pack to the moderators. report_pack() enforces one open report per person and a rate limit. */
+export async function reportPack(packId: string, reason: ReportReason, note: string): Promise<OwnerActionResult> {
+  if (!REPORT_REASONS.some((r) => r.id === reason)) return { ok: false, error: 'Pick a reason.' };
+  const trimmed = note.trim();
+  if (trimmed.length > REPORT_NOTE_MAX) return { ok: false, error: `Keep the note under ${REPORT_NOTE_MAX} characters.` };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sign in to report a pack.' };
+  const { error } = await supabase.rpc('report_pack', { p_pack: packId, p_reason: reason, p_note: trimmed || undefined });
+  if (!error) return { ok: true };
+  if (error.code === '23505') return { ok: false, error: 'You already reported this pack. Moderators will look at it.' };
+  if (error.code === '54000') return { ok: false, error: 'Too many reports for now. Try again later.' };
+  if (error.code === '23514') return { ok: false, error: "You can't report your own pack." };
+  console.error('reportPack:', error);
+  return { ok: false, error: 'Could not send the report.' };
 }

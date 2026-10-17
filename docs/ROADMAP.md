@@ -80,11 +80,11 @@ Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks 
 - [ ] No upload from a ready-made folder/zip (already listed above)
 
 Moderator (from the e2e screenshots)
-- [ ] An update shows only "Update · vN": no diff against the live version (images added/removed, schedule, title/tags/licence changes)
-- [ ] The queue card doesn't show the schedule or tags; the moderator has to open the pack page to judge them
-- [ ] No takedown/restore for published packs, though `moderate()` supports both; no way for visitors to report a pack
-- [ ] No moderation history (who approved/declined what, when)
-- [ ] Cover on the queue card stretches past 16:9 (flex row overrides `aspect-video`) and crops the image
+- [x] An update shows only "Update · vN": no diff against the live version (images added/removed, schedule, title/tags/licence changes) (2026-10-17: `lib/moderation/review.ts` `diffVersions`, shown on the queue card)
+- [x] The queue card doesn't show the schedule or tags; the moderator has to open the pack page to judge them (2026-10-17: categories, tags and a schedule summary on every card)
+- [x] No takedown/restore for published packs, though `moderate()` supports both; no way for visitors to report a pack (2026-10-17: report a pack from its page with a reason + note; `/moderation` Reports tab groups open reports by pack, dismiss or take down; Published tab searches all published packs incl. ownerless ones, take down/restore with a required reason the owner sees on their pack page)
+- [x] No moderation history (who approved/declined what, when) (2026-10-17: `ModerationHistory.tsx`, collapsed by default, on the pack page for moderators and on every moderation card)
+- [x] Cover on the queue card stretches past 16:9 (flex row overrides `aspect-video`) and crops the image (2026-10-17: `self-start` on the thumb)
 - Fine: decline needs a reason; the uploader sees the note; declined packs can't be resubmitted and can be deleted; approve publishes and lists in the gallery; v1 stays live while v2 is in review; a second pending version is refused; unchanged images aren't re-uploaded
 Profile editing (walked 2026-10-17 with a throwaway user; now `npm run test:e2e:profile`, 28 checks)
 - Fine: name, bio, links, contact email, avatar and cover save, survive a reload and show to signed-out visitors; images land in `profiles/<id>/`

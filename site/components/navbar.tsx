@@ -273,7 +273,7 @@ const NavBar = () => {
                             {isModerator && (
                                 <Link href="/moderation" className={menuItem} onClick={closeMenu}>
                                     <ShieldCheck size={18} />
-                                    Review queue
+                                    Moderation
                                 </Link>
                             )}
                             <button
@@ -323,7 +323,7 @@ const NavBar = () => {
                                 className="px-6 py-2 hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3"
                             >
                                 <ShieldCheck size={18} />
-                                Review queue
+                                Moderation
                             </Link>
                         )}
                         <button
