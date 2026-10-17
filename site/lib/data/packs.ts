@@ -97,7 +97,7 @@ function toCard(pack: PackRow, version: VersionSummaryRow | null | undefined): P
   };
 }
 
-function escapeLike(s: string): string {
+export function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 

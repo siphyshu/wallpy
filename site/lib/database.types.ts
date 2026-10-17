@@ -263,6 +263,64 @@ export type Database = {
           },
         ]
       }
+      pack_reports: {
+        Row: {
+          created_at: string
+          id: number
+          note: string | null
+          pack_id: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          note?: string | null
+          pack_id: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          note?: string | null
+          pack_id?: string
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pack_reports_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pack_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pack_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pack_versions: {
         Row: {
           ai_use: Database["public"]["Enums"]["ai_use"] | null
@@ -550,6 +608,7 @@ export type Database = {
         Args: { p_keep_published: boolean }
         Returns: undefined
       }
+      dismiss_reports: { Args: { p_pack: string }; Returns: number }
       interval_minutes: { Args: { i: string }; Returns: number }
       is_api_caller: { Args: never; Returns: boolean }
       is_http_url: { Args: { u: string }; Returns: boolean }
@@ -570,6 +629,14 @@ export type Database = {
           tag: string
           uses: number
         }[]
+      }
+      report_pack: {
+        Args: {
+          p_note?: string
+          p_pack: string
+          p_reason: Database["public"]["Enums"]["report_reason"]
+        }
+        Returns: number
       }
       schedule_images: { Args: { s: Json }; Returns: string[] }
       schedule_kind: {
@@ -621,6 +688,14 @@ export type Database = {
         | "cc-by-nc-4.0"
         | "cc0"
         | "other"
+      report_reason:
+        | "not_wallpaper"
+        | "stolen"
+        | "ai_undisclosed"
+        | "offensive"
+        | "broken"
+        | "other"
+      report_status: "open" | "dismissed" | "actioned"
       user_role: "user" | "moderator" | "admin"
       version_status:
         | "draft"
@@ -786,6 +861,15 @@ export const Constants = {
         "cc0",
         "other",
       ],
+      report_reason: [
+        "not_wallpaper",
+        "stolen",
+        "ai_undisclosed",
+        "offensive",
+        "broken",
+        "other",
+      ],
+      report_status: ["open", "dismissed", "actioned"],
       user_role: ["user", "moderator", "admin"],
       version_status: [
         "draft",

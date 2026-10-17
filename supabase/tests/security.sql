@@ -588,5 +588,88 @@ select pg_temp.expect_error('nobody can claim an ownerless pack',
 select pg_temp.expect('profiles have no website column (moved into links)',
   not exists (select 1 from information_schema.columns where table_name = 'profiles' and column_name = 'website'));
 
+-- ---- reports, takedown, restore, history -------------------------------------------
+select pg_temp.as_admin();
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-00000000000f', 'fay@example.test', '{"username":"fay_t"}');
+create function pg_temp.sunset() returns uuid language sql security definer as $$ select id from public.packs where slug = 'sunset' $$;
+create function pg_temp.sunset_v() returns uuid language sql security definer as $$ select current_version_id from public.packs where slug = 'sunset' $$;
+grant execute on all functions in schema pg_temp to anon, authenticated, service_role;
+
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot report a pack',
+  $q$select public.report_pack(pg_temp.sunset(), 'stolen')$q$);
+select pg_temp.expect_error('anon cannot read reports', $q$select * from public.pack_reports$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect_error('reports cannot be written directly',
+  $q$insert into public.pack_reports (pack_id, reporter_id, reason) values (pg_temp.sunset(), auth.uid(), 'other')$q$);
+select pg_temp.expect('a signed-in visitor can report a published pack',
+  public.report_pack(pg_temp.sunset(), 'stolen', 'my art, uncredited') is not null);
+select pg_temp.expect_error('one open report per person per pack',
+  $q$select public.report_pack(pg_temp.sunset(), 'offensive')$q$, '{23505}');
+select pg_temp.expect_error('report notes are capped at 500 characters',
+  $q$select public.report_pack(pg_temp.sunset(), 'other', repeat('x', 501))$q$, '{23514}');
+select pg_temp.expect_error('reporters cannot dismiss reports',
+  $q$select public.dismiss_reports(pg_temp.sunset())$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect_error('owners cannot report their own pack',
+  $q$select public.report_pack(pg_temp.sunset(), 'broken')$q$, '{23514}');
+select pg_temp.expect('owners cannot read reports on their pack', not exists (select 1 from public.pack_reports));
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000f');
+select public.report_pack(pg_temp.sunset(), 'broken');
+select pg_temp.expect('reporters see only their own reports',
+  (select count(*) from public.pack_reports) = 1 and (select reason from public.pack_reports) = 'broken');
+select pg_temp.expect('strangers cannot read a pack''s moderation history',
+  not exists (select 1 from public.moderation_events where version_id = pg_temp.sunset_v()));
+select pg_temp.expect_error('non-moderators cannot take a pack down',
+  $q$select public.moderate(pg_temp.sunset_v(), 'takedown', 'spite')$q$);
+select pg_temp.as_user(null);
+select pg_temp.expect_error('anon cannot read moderation history', $q$select * from public.moderation_events$q$);
+
+-- Spam brake.
+select pg_temp.as_admin();
+insert into public.pack_reports (pack_id, reporter_id, reason, status)
+  select pg_temp.sunset(), '00000000-0000-0000-0000-00000000000b', 'other', 'dismissed' from generate_series(1, 5);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect_error('reporting is rate-limited',
+  $q$select public.report_pack((select id from public.packs where slug = pg_temp.slug_of('pub')), 'other')$q$, '{54000}');
+
+-- Moderators: read, dismiss, take down (reason required), restore.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect('moderators read every open report',
+  (select count(*) from public.pack_reports where status = 'open') = 2);
+select pg_temp.expect('moderators read the history',
+  exists (select 1 from public.moderation_events where version_id = pg_temp.sunset_v() and action = 'takedown'));
+select pg_temp.expect_error('a takedown needs a reason',
+  $q$select public.moderate(pg_temp.sunset_v(), 'takedown', '  ')$q$, '{23514}');
+select pg_temp.expect_error('only taken-down packs can be restored',
+  $q$select public.moderate(pg_temp.sunset_v(), 'restore')$q$, '{23514}');
+select public.moderate(pg_temp.sunset_v(), 'takedown', 'Uses art without credit.');
+select pg_temp.expect('a takedown closes the open reports',
+  not exists (select 1 from public.pack_reports where status = 'open')
+  and (select count(*) from public.pack_reports where status = 'actioned') = 2);
+select pg_temp.expect_error('a pack cannot be taken down twice',
+  $q$select public.moderate(pg_temp.sunset_v(), 'takedown', 'again')$q$, '{23514}');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000f');
+select pg_temp.expect_error('taken-down packs cannot be reported',
+  $q$select public.report_pack(pg_temp.sunset(), 'other')$q$, '{P0002}');
+select pg_temp.expect_error('non-moderators cannot restore a pack',
+  $q$select public.moderate(pg_temp.sunset_v(), 'restore', 'please')$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect('the owner sees the takedown reason',
+  (select removed_reason from public.packs where slug = 'sunset') = 'Uses art without credit.');
+select pg_temp.expect_error('owners cannot restore their own pack',
+  $q$select public.moderate(pg_temp.sunset_v(), 'restore', 'fixed')$q$);
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select public.moderate(pg_temp.sunset_v(), 'restore', 'Credit added.');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000f');
+select public.report_pack(pg_temp.sunset(), 'other');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect('a restored pack is public again',
+  (select removed_at from public.packs where slug = 'sunset') is null);
+select pg_temp.expect('moderators dismiss a pack''s open reports', public.dismiss_reports(pg_temp.sunset()) = 1);
+select pg_temp.expect('the restore is logged with its note',
+  exists (select 1 from public.moderation_events where version_id = pg_temp.sunset_v() and action = 'restore' and notes = 'Credit added.'));
+
 select pg_temp.as_admin();
 rollback;
