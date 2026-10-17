@@ -74,7 +74,7 @@ Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks 
 - [ ] Schedule step leads with the raw `schedule.toml` (a tall, mostly empty code box), an "Upload schedule file" panel and a long Configuration Guide; the builder and preview are what creators need. Collapse the TOML and the guide behind "Advanced"/"Help"
 - [ ] Daypack's time blocks scroll inside a fixed-height panel, so blocks below the fold are easy to miss
 - [ ] Review step shows the pack's size with a download icon ("⬇ 50 KB"), which reads like a download button; tags show as typed (#Test) though they're stored lowercase
-- [ ] No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile
+- [x] (2026-10-17: in-site notices -- a dot on the navbar avatar, a `/notices` list of approved/changes requested/declined/taken down/restored with the moderator's note, newest first; opening it marks everything read) No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile
 - [ ] "Waiting for review" doesn't say what happens next or how long it usually takes
 - [x] Owners can't unlist or delete a published pack (the DB has `is_listed`; only declined packs can be deleted), or withdraw a version in review (already under Later) (2026-10-17: Unlist/List, Withdraw and Delete on the owner's pack page and profile cards, each confirmed; delete needs the pack name typed. Unlisted packs keep their link and installs. Delete account at the bottom of the profile edit form)
 - [ ] No upload from a ready-made folder/zip (already listed above)
