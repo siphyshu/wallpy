@@ -87,7 +87,7 @@ export async function getPackForEditing(slug: string): Promise<EditablePack | nu
   const files = [...v.files].sort((a, b) => a.sort_order - b.sort_order);
   return {
     slug: pack.slug,
-    isPublic: Boolean(pack.current_version_id && pack.is_listed && !pack.removed_at),
+    isPublic: Boolean(pack.current_version_id && !pack.removed_at),
     removed: Boolean(pack.removed_at),
     latest,
     canSubmit: latest.status !== 'pending' && !pack.removed_at,

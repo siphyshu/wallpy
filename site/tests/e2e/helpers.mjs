@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { createHash, randomBytes } from 'node:crypto';
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { createClient } = require('@supabase/supabase-js');
-const { S3Client, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
 
 export const E = process.env;
@@ -26,6 +26,12 @@ export function summary() {
 }
 
 const created = [];
+// Outlive their users: packs kept after an account deletion (ownerless), and
+// blobs whose blob_uploads rows went with a deleted account.
+const extraPacks = [];
+const extraBlobs = new Set();
+export const trackPack = (id) => extraPacks.push(id);
+export const trackBlobs = (shas) => shas.forEach((s) => extraBlobs.add(s));
 
 /** A confirmed user, signed in. `cookie` is @supabase/ssr's auth cookie value. */
 export async function makeUser(tag, { role } = {}) {
@@ -76,9 +82,21 @@ export async function uploadImages(user, images) {
 
 const r2 = () => new S3Client({ region: 'auto', endpoint: E.R2_ENDPOINT, credentials: { accessKeyId: E.R2_ACCESS_KEY_ID, secretAccessKey: E.R2_SECRET_ACCESS_KEY } });
 
+/** Whether an object exists in the public bucket. */
+export async function r2Exists(key) {
+  try {
+    await r2().send(new HeadObjectCommand({ Bucket: 'wallpy-public', Key: key }));
+    return true;
+  } catch (e) {
+    if (e.$metadata?.httpStatusCode === 404 || e.name === 'NotFound') return false;
+    throw e;
+  }
+}
+
 /** Delete every user created here, their packs (cascade), blobs, avatars/covers and R2 objects. */
 export async function cleanup() {
-  const shas = new Set();
+  if (extraPacks.length) await admin.from('packs').delete().in('id', extraPacks);
+  const shas = new Set(extraBlobs);
   for (const id of created) {
     const { data } = await admin.from('blob_uploads').select('sha256').eq('profile_id', id);
     (data ?? []).forEach((u) => shas.add(u.sha256));

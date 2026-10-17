@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PackCard } from '@/lib/types';
-import DeletePackButton from '@/components/profile/DeletePackButton';
+import PackOwnerControls from '@/components/packs/PackOwnerControls';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   public: { label: 'Published', className: 'bg-green-500/20 text-green-300 border-green-500/30' },
@@ -13,6 +13,8 @@ const STATUS: Record<string, { label: string; className: string }> = {
   removed: { label: 'Taken down', className: 'bg-red-500/20 text-red-300 border-red-500/30' },
   updatePending: { label: 'Update in review', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
   updateRejected: { label: 'Update sent back', className: 'bg-amber-400/10 text-amber-200 border-amber-400/30' },
+  updateDraft: { label: 'Update withdrawn', className: 'bg-white/10 text-white/70 border-white/20' },
+  unlisted: { label: 'Unlisted', className: 'bg-white/10 text-white/70 border-white/20' },
 };
 
 /** The badge on an uploaded pack: its state, and any newer version's (owners only see those). */
@@ -21,9 +23,10 @@ function statusOf(pack: PackCard) {
   if (pack.isPublic) {
     if (pack.review === 'pending') return STATUS.updatePending;
     if (pack.review === 'rejected') return STATUS.updateRejected;
-    return STATUS.public;
+    if (pack.review === 'draft') return STATUS.updateDraft;
+    return pack.isListed ? STATUS.public : STATUS.unlisted;
   }
-  if (pack.status === 'approved') return STATUS.removed; // published, then taken down or unlisted
+  if (pack.status === 'approved') return STATUS.removed; // published, then taken down
   return STATUS[pack.review ?? pack.status ?? 'draft'] ?? STATUS.draft;
 }
 
@@ -88,13 +91,22 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
                   ) : (
                     <span className="text-xs text-white/60">{pack.author}</span>
                   )}
-                  {/* A declined pack can't come back: let its owner clear it away. */}
-                  {canManage && pack.review === 'declined' ? (
-                    <DeletePackButton packId={pack.id} />
-                  ) : (
-                    <span className="text-xs text-white/60">{pack.downloads} downloads</span>
-                  )}
+                  <span className="text-xs text-white/60">{pack.downloads} downloads</span>
                 </div>
+                {/* Owners manage their packs here too: unlist, withdraw from review, delete. */}
+                {canManage && type === 'uploaded' && (
+                  <div className="flex justify-end mt-3 pt-3 border-t border-white/10">
+                    <PackOwnerControls
+                      variant="card"
+                      packId={pack.id}
+                      slug={pack.slug}
+                      name={pack.name}
+                      published={pack.isPublic}
+                      listed={pack.isListed}
+                      pendingVersionId={pack.pendingVersionId}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

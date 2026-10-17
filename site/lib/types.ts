@@ -17,7 +17,6 @@ export type Profile = {
   username: string;
   name: string | null;
   bio: string | null;
-  website: string | null;
   links: ProfileLink[];
   contact_email: string | null;
   avatar_key: string | null;
@@ -56,9 +55,14 @@ export type PackCard = {
   /** null: not disclosed (older uploads) */
   aiUse: AiUse | null;
   status: VersionStatus | null;
+  /** published and not taken down: the link and installs work */
   isPublic: boolean;
-  /** owner's view only: the newest version is in review, sent back, or declined */
-  review?: 'pending' | 'rejected' | 'declined';
+  /** shown in the gallery, search and on the owner's profile */
+  isListed: boolean;
+  /** owner's view only: the newest version is in review, sent back, withdrawn to a draft, or declined */
+  review?: 'pending' | 'rejected' | 'draft' | 'declined';
+  /** owner's view only: the version waiting for review, which they can withdraw */
+  pendingVersionId?: string;
 };
 
 export type PackFile = {
@@ -102,7 +106,8 @@ export type Schedule = {
 };
 
 export type PackDetail = PackCard & {
-  ownerId: string;
+  /** null when the uploader deleted their account and left the pack up */
+  ownerId: string | null;
   owner: { username: string; display_name: string | null; avatar_key: string | null } | null;
   removedAt: string | null;
   removedReason: string | null;

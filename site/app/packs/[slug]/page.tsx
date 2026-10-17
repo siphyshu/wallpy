@@ -7,6 +7,7 @@ import DownloadZipButton from '@/components/packs/DownloadZipButton';
 import InstallCommand from '@/components/packs/InstallCommand';
 import FavouriteButton from '@/components/packs/FavouriteButton';
 import AiUseLabel from '@/components/packs/AiUseLabel';
+import PackOwnerControls from '@/components/packs/PackOwnerControls';
 import { getPackBySlug } from '@/lib/data/packs';
 import { categoryName } from '@/lib/packs/categories';
 import { latestVersion } from '@/lib/data/editing';
@@ -29,9 +30,9 @@ const STATUS_NOTES: Partial<Record<VersionStatus, string>> = {
 
 /** What the owner is told about their pack, and what they can do next. */
 function ownerNotice(
-  pack: { isPublic: boolean; removedAt: string | null; removedReason: string | null; version: { id: string; number: number; status: VersionStatus } },
+  pack: { isPublic: boolean; isListed: boolean; removedAt: string | null; removedReason: string | null; version: { id: string; number: number; status: VersionStatus } },
   latest: { id: string; number: number; status: VersionStatus; notes: string | null } | null,
-): { text: string; action?: 'edit' } | null {
+): { text: string; action?: 'edit'; actionLabel?: string } | null {
   if (pack.removedAt) {
     // Closed before it was ever published: declined in review.
     return pack.version.status === 'rejected'
@@ -52,7 +53,19 @@ function ownerNotice(
   if (latest.status === 'pending' && isUpdate) {
     return { text: `Version ${latest.number} is waiting for review. Version ${pack.version.number} stays live until it's approved.` };
   }
+  if (latest.status === 'draft') {
+    return {
+      text: isUpdate
+        ? `Version ${latest.number} is a draft (withdrawn from review). Version ${pack.version.number} is still live.`
+        : STATUS_NOTES.draft!,
+      action: 'edit',
+      actionLabel: 'Edit and submit',
+    };
+  }
   if (!pack.isPublic) return STATUS_NOTES[latest.status] ? { text: STATUS_NOTES[latest.status]! } : null;
+  if (!pack.isListed) {
+    return { text: 'Unlisted: hidden from the gallery, search and your profile. Anyone with the link can still see and install it.' };
+  }
   return null;
 }
 
@@ -62,6 +75,8 @@ export async function generateMetadata({ params }: PageProps<'/packs/[slug]'>) {
   return {
     title: `${pack.name} by ${pack.credit.name} | Wallpy`,
     description: pack.version.description || `A ${pack.kindLabel.toLowerCase()} for Wallpy.`,
+    // Unlisted packs work by link but stay out of search engines too.
+    ...(pack.isListed ? {} : { robots: { index: false } }),
   };
 }
 
@@ -100,7 +115,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
                 href={`/packs/${pack.slug}/edit`}
                 className="shrink-0 self-start sm:self-auto px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors"
               >
-                Make changes
+                {notice.actionLabel ?? 'Make changes'}
               </Link>
             )}
           </div>
@@ -186,17 +201,31 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
               </div>
             )}
 
-            {canUpdate && (
-              <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-2">
-                <Link
-                  href={`/packs/${pack.slug}/edit`}
-                  className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center"
-                >
-                  Upload a new version
-                </Link>
-                <p className="text-xs text-white/50">
-                  Change images, the schedule or details. Version {version.number} stays live until the new one is approved.
-                </p>
+            {isOwner && (
+              <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-4" data-testid="manage-pack">
+                {canUpdate && (
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      href={`/packs/${pack.slug}/edit`}
+                      className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center"
+                    >
+                      Upload a new version
+                    </Link>
+                    <p className="text-xs text-white/50">
+                      Change images, the schedule or details. Version {version.number} stays live until the new one is approved.
+                    </p>
+                  </div>
+                )}
+                <PackOwnerControls
+                  variant="page"
+                  packId={pack.id}
+                  slug={pack.slug}
+                  name={version.title}
+                  published={pack.isPublic}
+                  listed={pack.isListed}
+                  pendingVersionId={latest?.status === 'pending' ? latest.id : undefined}
+                  afterDelete={pack.owner ? `/profile/${pack.owner.username}` : '/'}
+                />
               </div>
             )}
           </div>

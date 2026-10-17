@@ -19,7 +19,7 @@ export default async function ProfilePage({ params }: PageProps<'/profile/[usern
   const current = await getCurrentProfile();
   const isCurrentUser = current?.id === profile.id;
   const [packs, favourites] = await Promise.all([
-    listPacksByOwner(profile.id),
+    listPacksByOwner(profile.id, { isOwner: isCurrentUser }),
     // Favourites are private: only the owner sees theirs.
     isCurrentUser ? listMyFavourites() : Promise.resolve([]),
   ]);
