@@ -1,7 +1,7 @@
 import { IMAGE_MIMES, PACK_LIMITS, safeImageName } from '@/lib/packs/limits';
 import { useState, useRef } from 'react';
 
-export default function FileUploader({ files, onFilesChange, wallpackType }) {
+export default function FileUploader({ files, onFilesChange, wallpackType, coverName, onCoverChange }) {
   const [dragActive, setDragActive] = useState(false);
   const [skipped, setSkipped] = useState([]);
   const fileInputRef = useRef(null);
@@ -41,14 +41,33 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
       if (file.size > PACK_LIMITS.maxFileBytes) { rejected.push(`${file.name}: larger than 30 MB`); return false; }
       return true;
     });
+
+    // A restored draft can't keep the actual image bytes: it leaves a
+    // placeholder with the old name. Re-adding a file with that same name
+    // (after sanitising) slots it back into place instead of adding a new one.
+    const pendingByName = new Map(files.filter(f => f.needsReupload).map(f => [f.name.toLowerCase(), f]));
+    const namesExcludingPending = files.filter(f => !f.needsReupload).map(f => f.name);
+    const refills = new Map();
+    const freshFiles = [];
+    for (const file of validFiles) {
+      const candidate = safeImageName(file.name, namesExcludingPending);
+      const pending = pendingByName.get(candidate.toLowerCase());
+      if (pending && !refills.has(pending.id)) {
+        refills.set(pending.id, file);
+      } else {
+        freshFiles.push(file);
+        namesExcludingPending.push(candidate);
+      }
+    }
+
     const room = PACK_LIMITS.maxFiles - files.length;
-    if (validFiles.length > room) rejected.push(`Only ${PACK_LIMITS.maxFiles} images per pack`);
+    if (freshFiles.length > room) rejected.push(`Only ${PACK_LIMITS.maxFiles} images per pack`);
     setSkipped(rejected);
 
     // Names the pack format accepts (lowercase extension, safe characters),
     // unique ignoring case; schedules refer to images by these names.
     const taken = files.map(f => f.name);
-    const processedFiles = validFiles.slice(0, Math.max(room, 0)).map(file => {
+    const processedFiles = freshFiles.slice(0, Math.max(room, 0)).map(file => {
       const name = safeImageName(file.name, taken);
       taken.push(name);
       return {
@@ -61,7 +80,14 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
       };
     });
 
-    onFilesChange(prev => [...prev, ...processedFiles]);
+    onFilesChange(prev => [
+      ...prev.map(f => {
+        const refill = refills.get(f.id);
+        if (!refill) return f;
+        return { ...f, file: refill, size: refill.size, type: refill.type, preview: URL.createObjectURL(refill), needsReupload: false };
+      }),
+      ...processedFiles,
+    ]);
   };
 
   const removeFile = (id) => {
@@ -131,8 +157,8 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
           {/* Drag & Drop Area */}
           <div
             className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
-              dragActive 
-                ? 'border-blue-400 bg-blue-400/10' 
+              dragActive
+                ? 'border-white/60 bg-white/10'
                 : 'border-white/20 hover:border-white/30'
             }`}
             onDragEnter={handleDrag}
@@ -175,7 +201,7 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
           {/* Upload Button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full mt-4 px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors font-medium"
+            className="w-full mt-4 px-4 py-3 bg-white text-black hover:bg-white/90 rounded-lg transition-colors font-medium"
           >
             Choose Files
           </button>
@@ -186,7 +212,13 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
           <h3 className="text-xl font-bold mb-4">
             Uploaded Files ({files.length})
           </h3>
-          
+
+          {files.some(f => f.needsReupload) && (
+            <p className="mb-3 text-xs text-amber-300">
+              {files.filter(f => f.needsReupload).length} image{files.filter(f => f.needsReupload).length === 1 ? '' : 's'} need adding again — drop the same file back in and it slots back into place.
+            </p>
+          )}
+
           {files.length === 0 ? (
             <div className="text-center py-8 text-white/50">
               <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,10 +230,16 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
             <div className="space-y-3 max-h-96 overflow-y-auto scrollbar">
               {files.map((file) => (
                 <div key={file.id} className="flex items-center space-x-3 bg-white/5 rounded-lg p-3 mr-2">
-                  {/* Preview or Icon */}
-                  {file.preview ? (
-                    <img 
-                      src={file.preview} 
+                  {/* Preview, placeholder, or icon */}
+                  {file.needsReupload ? (
+                    <div className="w-24 aspect-[16/9] flex-shrink-0 bg-amber-400/10 border border-amber-400/30 rounded flex items-center justify-center">
+                      <svg className="w-5 h-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                      </svg>
+                    </div>
+                  ) : file.preview ? (
+                    <img
+                      src={file.preview}
                       alt={file.name}
                       className="object-cover rounded aspect-[16/9] w-24"
                     />
@@ -212,13 +250,32 @@ export default function FileUploader({ files, onFilesChange, wallpackType }) {
                       </svg>
                     </div>
                   )}
-                  
+
                   {/* File Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-white/60">{file.existing ? 'Already in the pack · ' : ''}{formatFileSize(file.size)}</p>
+                    <p className={`text-xs ${file.needsReupload ? 'text-amber-300' : 'text-white/60'}`}>
+                      {file.needsReupload ? 'Needs adding again' : file.existing ? `Already in the pack · ${formatFileSize(file.size)}` : formatFileSize(file.size)}
+                    </p>
                   </div>
-                  
+
+                  {/* Cover toggle */}
+                  {onCoverChange && (
+                    <button
+                      type="button"
+                      onClick={() => onCoverChange(file.name)}
+                      aria-pressed={coverName === file.name}
+                      title={coverName === file.name ? 'This is the cover image' : 'Use as the cover image'}
+                      className={`shrink-0 px-2 py-1 rounded-full text-[11px] font-medium border transition-colors whitespace-nowrap ${
+                        coverName === file.name
+                          ? 'bg-white text-black border-white'
+                          : 'bg-white/5 text-white/50 border-white/20 hover:bg-white/10 hover:text-white/80'
+                      }`}
+                    >
+                      {coverName === file.name ? '★ Cover' : 'Cover'}
+                    </button>
+                  )}
+
                   {/* Remove Button */}
                   <button
                     onClick={() => removeFile(file.id)}

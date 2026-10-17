@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { categoryName } from '@/lib/packs/categories';
 import { parseTagList } from '@/lib/packs/limits';
-import { PencilIcon, ClockIcon, CalendarIcon, PhotoIcon, CheckCircleIcon, ArrowDownTrayIcon, Square3Stack3DIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, ClockIcon, CalendarIcon, PhotoIcon, CheckCircleIcon, Square3Stack3DIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 export default function UploadProgress({ 
   progress, 
@@ -131,10 +131,9 @@ export default function UploadProgress({
               </p>
             </div>
             
-            <div className="flex items-center gap-2 text-white/50 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              <span className="text-sm font-mono">{formatFileSize(getTotalFileSize())}</span>
-            </div>
+            <p className="shrink-0 text-white/50 text-sm whitespace-nowrap">
+              {formatFileSize(getTotalFileSize())}, {files.length} image{files.length === 1 ? '' : 's'}
+            </p>
           </div>
 
           {metadata.description && (
