@@ -37,7 +37,7 @@ design and feature work. Collected so far:
 - [x] CLI docs on the site: `/docs` (install per OS, get started, commands, how it works, uninstall, make a pack), checked against the CLI code; content kept in step with cli/README.md
 - [x] Install section on the homepage: 3 steps (install with OS tabs, run `wallpy`, done) at `#install`; commands from `site/lib/install.ts`
 - [x] Pack pages say `wallpy download <slug>` (components/packs/InstallCommand.tsx): use `wallpy use <slug>`
-- [ ] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders
+- [x] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders (2026-10-17: yes — a folder or .zip with schedule.toml + images, parsed and validated against the spec on step 1)
 - [ ] Design pass across the site
 
 Walkthrough findings (2026-10-17):
@@ -66,18 +66,18 @@ Accounts (sign-up, login, reset; read through, not submitted: they hit productio
 - [x] Auth pages all have the generic site title ("Wallpy - Dynamic Wallpapers for your desktop") (2026-10-17: sign in, sign up, reset/choose password, check your email, error. The homepage keeps the site title; `/auth/sign-out` renders nothing)
 
 Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks passed)
-- [ ] Wizard uses blue steps/Next and a green-ish "Upload Wallpack", not the design system (white primary, `bg-white/10` secondary)
-- [ ] Wizard state is only in memory: a refresh or a stray link loses everything, with no "leave page?" warning
-- [ ] Next is disabled on Details with no reason shown (title, tags and the AI question are required; tags is easy to miss)
+- [x] Wizard uses blue steps/Next and a green-ish "Upload Wallpack", not the design system (white primary, `bg-white/10` secondary) (2026-10-17: step circles/lines, Next, Upload Wallpack, Choose Files, type-selector highlights and the Configuration Guide's blue/green icons moved to white/neutral; builder previews, success/error text and the orange/purple guide icons kept their colour)
+- [x] Wizard state is only in memory: a refresh or a stray link loses everything, with no "leave page?" warning (2026-10-17: draft in localStorage — type, metadata, schedule config, cover and step — keyed by slug when editing; `beforeunload` warns while there's unsaved work; "Start over" clears it; cleared after a successful submit)
+- [x] Next is disabled on Details with no reason shown (title, tags and the AI question are required; tags is easy to miss) (2026-10-17: a list of what's missing shows under the nav on steps 1–3; schedule step problems already showed in the Schedule Preview)
 - [ ] Details come before images; images first would let the cover, title and AI question follow from what was uploaded
-- [ ] The cover is always the first uploaded image; no way to pick it
+- [x] The cover is always the first uploaded image; no way to pick it (2026-10-17: a "Cover" pill on each image in the Upload Files step; editing keeps the existing cover selected; `keepRenditions` still works when it's unchanged)
 - [ ] Schedule step leads with the raw `schedule.toml` (a tall, mostly empty code box), an "Upload schedule file" panel and a long Configuration Guide; the builder and preview are what creators need. Collapse the TOML and the guide behind "Advanced"/"Help"
 - [ ] Daypack's time blocks scroll inside a fixed-height panel, so blocks below the fold are easy to miss
-- [ ] Review step shows the pack's size with a download icon ("⬇ 50 KB"), which reads like a download button; tags show as typed (#Test) though they're stored lowercase
+- [x] Review step shows the pack's size with a download icon ("⬇ 50 KB"), which reads like a download button; tags show as typed (#Test) though they're stored lowercase (2026-10-17: plain text "50 KB, 3 images"; the tags preview already used the normalised, stored form)
 - [ ] No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile
 - [ ] "Waiting for review" doesn't say what happens next or how long it usually takes
 - [x] Owners can't unlist or delete a published pack (the DB has `is_listed`; only declined packs can be deleted), or withdraw a version in review (already under Later) (2026-10-17: Unlist/List, Withdraw and Delete on the owner's pack page and profile cards, each confirmed; delete needs the pack name typed. Unlisted packs keep their link and installs. Delete account at the bottom of the profile edit form)
-- [ ] No upload from a ready-made folder/zip (already listed above)
+- [x] No upload from a ready-made folder/zip (already listed above) (2026-10-17: drop a folder or a .zip with schedule.toml + images on step 1; parsed, type detected, validated against the spec, title prefilled, then straight to the details step)
 
 Moderator (from the e2e screenshots)
 - [ ] An update shows only "Update · vN": no diff against the live version (images added/removed, schedule, title/tags/licence changes)

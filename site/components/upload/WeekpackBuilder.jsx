@@ -55,7 +55,7 @@ export default function WeekpackBuilder({ scheduleConfig, imageFiles, onConfigCh
         <h2 className="text-3xl font-serif font-bold mb-2 tracking-tight">Configure Weekly Schedule</h2>
         <p className="text-white/70 text-lg max-w-2xl mx-auto mb-4">
           Group the days of the week and give each group its own images. Wallpapers change at midnight.
-          <a href="#configuration-guide" className="underline text-blue-300 hover:text-blue-200 ml-1">See the configuration guide for tips.</a>
+          <a href="#configuration-guide" className="underline text-white/70 hover:text-white ml-1">See the configuration guide for tips.</a>
         </p>
       </div>
 

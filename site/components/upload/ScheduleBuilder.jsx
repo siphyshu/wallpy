@@ -145,10 +145,10 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                 value={config.text}
                 onChange={(e) => onConfigChange({ mode: 'text', text: e.target.value })}
                 spellCheck={false}
-                className="flex-1 w-full min-h-[320px] text-green-400 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent resize-none scrollbar"
+                className="flex-1 w-full min-h-[320px] text-white/80 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent resize-none scrollbar"
               />
             ) : (
-              <pre className="flex-1 w-full text-green-400 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent overflow-x-auto overflow-y-auto scrollbar">
+              <pre className="flex-1 w-full text-white/80 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent overflow-x-auto overflow-y-auto scrollbar">
                 <code>{tomlString}</code>
               </pre>
             )}
@@ -187,10 +187,10 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
               {/* Structure Management */}
               <div className="bg-white/5 rounded-lg p-6 border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    {wallpackType === 'daypack' && <PlusIcon className="w-5 h-5 text-blue-400" />}
-                    {wallpackType === 'weekpack' && <CalendarIcon className="w-5 h-5 text-blue-400" />}
-                    {wallpackType === 'album' && <PhotoIcon className="w-5 h-5 text-blue-400" />}
+                  <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                    {wallpackType === 'daypack' && <PlusIcon className="w-5 h-5 text-white/70" />}
+                    {wallpackType === 'weekpack' && <CalendarIcon className="w-5 h-5 text-white/70" />}
+                    {wallpackType === 'album' && <PhotoIcon className="w-5 h-5 text-white/70" />}
                   </div>
                   <div>
                     <h4 className="font-semibold text-lg">
@@ -209,15 +209,15 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   {wallpackType === 'daypack' && (
                     <>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Add or remove blocks; click a block&apos;s name to rename it</p>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>A block runs from its start until the next block starts (the last one runs overnight)</p>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Blocks are always listed in the order they start; two can&apos;t start at the same time</p>
                       </div>
                     </>
@@ -225,15 +225,15 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   {wallpackType === 'weekpack' && (
                     <>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Group days that share wallpapers: one per day, weekdays + weekend, or your own mix</p>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Each day belongs to exactly one group, and every day needs one</p>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Click a day to move it in or out of a group</p>
                       </div>
                     </>
@@ -241,15 +241,15 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   {wallpackType === 'album' && (
                     <>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Click images from the available panel to add them to your album</p>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Drag images to reorder them in your album</p>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                         <p>Use &quot;Add All&quot; to quickly include all uploaded images</p>
                       </div>
                     </>
@@ -259,8 +259,8 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
               {/* Image Assignment */}
               <div className="bg-white/5 rounded-lg p-6 border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                    <PhotoIcon className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                    <PhotoIcon className="w-5 h-5 text-white/70" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-lg">Image Assignment</h4>
@@ -269,15 +269,15 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                 </div>
                 <div className="space-y-3 text-sm text-white/80">
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                     <p>Drag images from the left panel or use multi-select for bulk operations</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                     <p>Reorder images by dragging them to new positions</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-white/40 rounded-full mt-2 flex-shrink-0"></div>
                     <p>Every uploaded image has to be used somewhere; the image list marks the ones that aren&apos;t</p>
                   </div>
                 </div>

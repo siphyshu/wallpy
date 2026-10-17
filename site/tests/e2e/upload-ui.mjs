@@ -5,12 +5,16 @@
 // Run on purpose only:  npm run test:e2e:ui   (SHOTS=dir to keep screenshots)
 import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { createClient } = require('@supabase/supabase-js');
 const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
+const JSZip = require('jszip');
 const { chromium } = require('playwright-core');
+
+const SAMPLES = new URL('../../../samples/', import.meta.url).pathname;
 
 const E = process.env;
 const BASE = E.BASE || 'http://localhost:3000';
@@ -108,6 +112,79 @@ try {
     && version.schedule.slot[0].rotate === 'every 30m' && version.ai_use === 'assisted'
     && JSON.stringify(version.tags) === '["test","gradients"]' && JSON.stringify(version.categories) === '["abstract","minimal"]', JSON.stringify({ ...version, schedule: version.schedule.slot }));
   check('stored file names match the schedule', version.files.map((f) => f.path).sort().join() === [...version.schedule.slot[0].images].sort().join());
+
+  // --- disabled-reason text, draft restore after reload, cover choice -------
+  // A separate browser context: the draft lives in localStorage, which is
+  // shared by every page in the same context, and this scenario needs its own.
+  const context2 = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context2.addCookies([{ name: `sb-${REF}-auth-token`, value: cookieValue, url: BASE }]);
+  const page2 = await context2.newPage();
+  await page2.goto(`${BASE}/upload`, { waitUntil: 'networkidle' });
+  check('step 1 explains why Next is disabled', await page2.getByText('Choose a wallpack type').isVisible());
+  await page2.getByRole('button', { name: 'Daypack', exact: true }).click();
+  await page2.getByText('Next', { exact: true }).click();
+
+  check('step 2 lists what\'s missing', await page2.getByText('Add a title').isVisible()
+    && await page2.getByText('Pick 1–2 categories').isVisible() && await page2.getByText('Answer the AI question').isVisible());
+  const draftTitle = `E2E Draft ${runId}`;
+  await page2.getByPlaceholder('Enter a descriptive title').fill(draftTitle);
+  await page2.getByRole('button', { name: 'Nature', exact: true }).click();
+  await page2.getByRole('button', { name: 'No AI' }).click();
+  check('reasons clear once the fields are filled in', await page2.getByText('Add a title').count() === 0);
+  await page2.getByText('Next', { exact: true }).click();
+
+  await page2.locator('input[type=file]').setInputFiles(images.slice(0, 2));
+  await page2.getByText('Uploaded Files (2)').waitFor();
+  await page2.getByRole('button', { name: 'Cover', exact: true }).last().click();
+  check('chosen cover is marked', await page2.getByRole('button', { name: '★ Cover', exact: true }).count() === 1);
+
+  await page2.reload({ waitUntil: 'networkidle' });
+  check('draft restores past step 1', await page2.getByText('Uploaded Files (2)').isVisible());
+  check('draft says images need adding again', await page2.getByText(/Your images need adding again/).isVisible());
+  check('cover choice is restored from the draft', await page2.getByRole('button', { name: '★ Cover', exact: true }).count() === 1);
+  await page2.getByText('Previous', { exact: true }).click();
+  check('title restored from the draft', await page2.getByPlaceholder('Enter a descriptive title').inputValue() === draftTitle);
+  await page2.getByText('Next', { exact: true }).click();
+
+  await page2.locator('input[type=file]').setInputFiles(images.slice(0, 2));
+  check('re-adding the same files clears "needs adding again"', await page2.getByText('Needs adding again').count() === 0);
+
+  // --- zip import (a zip built from samples/colour-week) --------------------
+  const zip = new JSZip();
+  zip.file('schedule.toml', readFileSync(join(SAMPLES, 'colour-week/schedule.toml')));
+  for (const f of readdirSync(join(SAMPLES, 'colour-week/images'))) {
+    zip.file(`images/${f}`, readFileSync(join(SAMPLES, 'colour-week/images', f)));
+  }
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+  const context3 = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context3.addCookies([{ name: `sb-${REF}-auth-token`, value: cookieValue, url: BASE }]);
+  const page3 = await context3.newPage();
+  await page3.goto(`${BASE}/upload`, { waitUntil: 'networkidle' });
+  await page3.locator('input[accept=".zip"]').setInputFiles({ name: 'colour-week.zip', mimeType: 'application/zip', buffer: zipBuffer });
+  await page3.getByRole('heading', { name: 'Pack Information' }).waitFor({ timeout: 15_000 });
+  check('zip import prefills the title and jumps to the details step',
+    await page3.getByPlaceholder('Enter a descriptive title').inputValue() === 'Colour Week');
+  if (SHOTS) await page3.screenshot({ path: `${SHOTS}/7-zip-import-details.png`, fullPage: true });
+  await page3.getByRole('button', { name: 'Seasons', exact: true }).click();
+  await page3.getByRole('button', { name: 'No AI' }).click();
+  const next3 = page3.getByText('Next', { exact: true });
+  await next3.click();
+  check('zip import loaded all 7 images', await page3.getByText('Uploaded Files (7)').isVisible());
+  await next3.click();
+  check('zip import lands in the Weekpack builder (not as text)', await page3.getByText('Configure Weekly Schedule').isVisible());
+  if (SHOTS) await page3.screenshot({ path: `${SHOTS}/8-zip-import-schedule.png`, fullPage: true });
+  await next3.click();
+  await page3.getByRole('button', { name: 'Upload Wallpack' }).click();
+  await page3.waitForURL(/\/packs\//, { timeout: 120_000 });
+  const zipSlug = new URL(page3.url()).pathname.split('/').pop();
+  const { data: zipVersion } = await admin
+    .from('pack_versions')
+    .select('kind, files:version_files!version_files_version_id_fkey(path)')
+    .eq('pack_id', (await admin.from('packs').select('id').eq('slug', zipSlug).single()).data.id)
+    .single();
+  check('zip import stored as a weekpack with 7 files', zipVersion.kind === 'days' && zipVersion.files.length === 7);
+
   check('no page errors in the browser', consoleErrors.length === 0, consoleErrors.join(' | '));
 } catch (e) {
   check('unexpected error', false, e.stack);

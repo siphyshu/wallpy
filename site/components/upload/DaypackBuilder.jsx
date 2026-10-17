@@ -53,7 +53,7 @@ export default function DaypackBuilder({ scheduleConfig, imageFiles, onConfigCha
         <h2 className="text-3xl font-serif font-bold mb-2 tracking-tight">Configure Daypack Schedule</h2>
         <p className="text-white/70 text-lg max-w-2xl mx-auto mb-4">
           Set up blocks through the day. Each block starts at sunrise, sunset or a set time, and runs until the next one starts.
-          <a href="#configuration-guide" className="underline text-blue-300 hover:text-blue-200 ml-1">See the configuration guide for tips.</a>
+          <a href="#configuration-guide" className="underline text-white/70 hover:text-white ml-1">See the configuration guide for tips.</a>
         </p>
       </div>
 
