@@ -96,8 +96,14 @@ export async function cleanup() {
   if (shas.size) {
     // Only delete blobs no remaining pack uses (another test could share none, but be safe).
     const list = [...shas];
-    const { data: inUse } = await admin.from('version_files').select('sha256').in('sha256', list);
-    const keep = new Set((inUse ?? []).map((r) => r.sha256));
+    const keep = new Set();
+    for (const column of ['sha256', 'thumb_sha256', 'preview_sha256']) {
+      const { data: inUse } = await admin.from('version_files').select(column).in(column, list);
+      (inUse ?? []).forEach((r) => keep.add(r[column]));
+    }
+    const { data: covers } = await admin.from('pack_versions').select('thumb_sha256, preview_sha256')
+      .or(`thumb_sha256.in.(${list}),preview_sha256.in.(${list})`);
+    (covers ?? []).forEach((r) => { keep.add(r.thumb_sha256); keep.add(r.preview_sha256); });
     const doomed = list.filter((s) => !keep.has(s));
     await admin.from('blobs').delete().in('sha256', doomed);
     const client = r2();

@@ -18,7 +18,7 @@ const Body = z.object({
       ticket: z.string().max(200).optional(),
     }))
     .min(1)
-    .max(PACK_LIMITS.maxFiles + 2),
+    .max(PACK_LIMITS.maxUploadBlobs),
 });
 
 /**

@@ -491,22 +491,28 @@ export type Database = {
         Row: {
           id: string
           path: string
+          preview_sha256: string | null
           sha256: string
           sort_order: number
+          thumb_sha256: string | null
           version_id: string
         }
         Insert: {
           id?: string
           path: string
+          preview_sha256?: string | null
           sha256: string
           sort_order?: number
+          thumb_sha256?: string | null
           version_id: string
         }
         Update: {
           id?: string
           path?: string
+          preview_sha256?: string | null
           sha256?: string
           sort_order?: number
+          thumb_sha256?: string | null
           version_id?: string
         }
         Relationships: [

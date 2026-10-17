@@ -130,6 +130,14 @@ try {
   const fixed = await manifest(slugs['Fix Me']);
   check('approved v2 is public with the new image',
     fixed.status === 200 && fixed.body.version === 2 && fixed.body.files.some((f) => f.path === 'stars.jpg'));
+  const { data: v2files } = await admin.from('version_files').select('path, sha256, thumb_sha256, preview_sha256')
+    .eq('version_id', (await admin.from('pack_versions').select('id').eq('pack_id',
+      (await admin.from('packs').select('id').eq('slug', slugs['Fix Me']).single()).data.id).eq('number', 2).single()).data.id);
+  const starsRow = v2files?.find((f) => f.path === 'stars.jpg');
+  check('the new image was uploaded with its own thumbnail and preview',
+    Boolean(starsRow?.thumb_sha256 && starsRow.preview_sha256 && starsRow.thumb_sha256 !== starsRow.sha256));
+  check('the manifest still gives originals, not renditions',
+    fixed.body.files.find((f) => f.path === 'stars.jpg')?.sha256 === stars.sha256);
 
   // ---- 2. update to a published pack ---------------------------------------
   await up.goto(`${BASE}/packs/${slugs['Update Me']}`, { waitUntil: 'networkidle' });

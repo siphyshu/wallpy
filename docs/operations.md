@@ -59,6 +59,19 @@ Do both together: R2 only adds CORS headers when a request has `Origin`, and the
 edge cache doesn't vary on it, so without step 2 a cached copy can lack them.
 `*` is fine: files are public and content-addressed.
 
+## Image renditions
+
+Uploads make a 640px thumbnail and a 1920px preview WebP of every image
+(`lib/packs/client-upload.ts`). Files stored without them (before 2026-10-17,
+or packs made through the API without renditions) can be backfilled; it's
+idempotent and dry-runs without `--apply`:
+
+```sh
+cd site && node --env-file=.env.local ../supabase/seed/backfill_file_renditions.mjs --apply [--only slug,slug]
+```
+
+Use `--only` while e2e suites may be running, so their throwaway packs are left alone.
+
 ## Moderation
 
 Make someone a moderator: `update public.profiles set role = 'moderator' where username = '...'`

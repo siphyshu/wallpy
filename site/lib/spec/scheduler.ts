@@ -78,3 +78,41 @@ export async function active(schedule: Schedule, nowMs: number, timezone: string
   const imageIndex = order[k];
   return { slot, image: s.images[imageIndex], imageIndex, slotStart: start, slotEnd: end };
 }
+
+/** A slot's run, from `from` to `to` (wall timestamps). */
+export type Segment = { slot: number; from: number; to: number };
+
+/**
+ * Each slot that applies on the wall day `day`, in order, from its start
+ * (rule 2) to the next applicable start, which may be the next day's first
+ * (rule 4). For listing a day's schedule.
+ */
+export function slotTimes(schedule: Schedule, day: number, location: Location | null = null): Segment[] {
+  const today = starts(schedule, day, location);
+  return today.map(([slot, start], i) => {
+    let end = today[i + 1]?.[1];
+    for (let ahead = 1; end === undefined && ahead < 8; ahead++) end = starts(schedule, day + ahead * DAY, location)[0]?.[1];
+    return { slot, from: start, to: end ?? start };
+  });
+}
+
+/**
+ * What shows through the wall day `day`, as runs covering it from midnight to
+ * midnight: the last slot of the most recent earlier day until the first start
+ * (rule 3), then each applicable slot until the next start. Zero-length runs
+ * (clamped starts) are left out. For drawing a day's timeline.
+ */
+export function daySegments(schedule: Schedule, day: number, location: Location | null = null): Segment[] {
+  const end = day + DAY;
+  const today = starts(schedule, day, location);
+  let carried: number | undefined;
+  for (let back = 1; carried === undefined && back < 8; back++) carried = starts(schedule, day - back * DAY, location).at(-1)?.[0];
+  const runs: Segment[] = [];
+  const first = today[0]?.[1] ?? end;
+  if (carried !== undefined && first > day) runs.push({ slot: carried, from: day, to: Math.min(first, end) });
+  today.forEach(([slot, start], i) => {
+    const to = Math.min(today[i + 1]?.[1] ?? end, end);
+    if (to > start) runs.push({ slot, from: start, to });
+  });
+  return runs;
+}

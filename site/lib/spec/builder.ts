@@ -10,9 +10,10 @@
 // is kept as text instead, so it's never reshaped without the uploader seeing.
 import toml from '@iarna/toml';
 import { WEEKDAYS, fallbackMinutes, everyMs } from '@/lib/spec/time';
+import { DAY_NAMES, describeDays, describeInterval, displayLabel, SOLAR_EVENTS, type BuilderKind } from '@/lib/spec/describe';
 import type { PackKind, Schedule, Slot, Weekday } from '@/lib/types';
 
-export type BuilderKind = 'daypack' | 'weekpack' | 'album';
+export { DAY_NAMES, describeDays, describeInterval, displayLabel, SOLAR_EVENTS, type BuilderKind };
 
 /** A slot being edited: always has an id (for React) and a label (for people). */
 export type BuilderSlot = {
@@ -31,15 +32,10 @@ export type BuilderConfig =
 
 export const BUILDER_KINDS: Record<PackKind, BuilderKind> = { timeblocks: 'daypack', days: 'weekpack', album: 'album' };
 
-export const SOLAR_EVENTS = ['dawn', 'sunrise', 'noon', 'sunset', 'dusk', 'midnight'] as const;
-
 /** Interval presets offered by the builders ("every …"). */
 export const INTERVAL_PRESETS = ['15m', '30m', '1h', '6h', '1d'] as const;
 
 const ALL_DAYS: Weekday[] = [...WEEKDAYS];
-export const DAY_NAMES: Record<Weekday, string> = {
-  mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
-};
 
 let counter = 0;
 export function newSlotId(): string {
@@ -63,38 +59,6 @@ export function startMinutes(at: string | undefined): number {
 /** Daypack blocks always show (and are written) in the order they start. */
 export function inTimeOrder(slots: BuilderSlot[]): BuilderSlot[] {
   return [...slots].sort((a, b) => startMinutes(a.at) - startMinutes(b.at));
-}
-
-/** "Mon–Fri", "Sat, Sun", "Every day": a group of weekdays in words. */
-export function describeDays(days: Weekday[] | undefined): string {
-  const set = new Set(days ?? ALL_DAYS);
-  if (set.size === 7) return 'Every day';
-  if (set.size === 0) return 'No days';
-  const idx = WEEKDAYS.map((d, i) => (set.has(d) ? i : -1)).filter((i) => i >= 0);
-  const runs: number[][] = [];
-  for (const i of idx) {
-    const run = runs[runs.length - 1];
-    if (run && run[run.length - 1] === i - 1) run.push(i);
-    else runs.push([i]);
-  }
-  const short = (i: number) => DAY_NAMES[WEEKDAYS[i]].slice(0, 3);
-  if (runs.length === 1 && runs[0].length === 1) return DAY_NAMES[WEEKDAYS[runs[0][0]]];
-  return runs.map((r) => (r.length >= 3 ? `${short(r[0])}–${short(r[r.length - 1])}` : r.map(short).join(', '))).join(', ');
-}
-
-/** "every 90m" → "1h 30m"; for buttons and summaries. */
-export function describeInterval(rotate: string): string {
-  const ms = everyMs(rotate.startsWith('every ') ? rotate : `every ${rotate}`);
-  if (ms === null) return rotate.replace(/^every /, '');
-  let minutes = Math.round(ms / 60_000);
-  const parts: string[] = [];
-  for (const [unit, size] of [['d', 1440], ['h', 60], ['m', 1]] as const) {
-    if (minutes >= size) {
-      parts.push(`${Math.floor(minutes / size)}${unit}`);
-      minutes %= size;
-    }
-  }
-  return parts.join(' ');
 }
 
 /**
@@ -122,15 +86,6 @@ export function intervalInRange(interval: string): boolean {
 function cleanLabel(name: string): string | undefined {
   const cleaned = name.replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 32);
   return /^[A-Za-z0-9]/.test(cleaned) ? cleaned : undefined;
-}
-
-/** A name for an unnamed slot: its start event ("Sunrise") or its days ("Mon–Fri"). */
-export function displayLabel(s: Pick<BuilderSlot, 'label' | 'at' | 'days'>, kind: BuilderKind, index: number): string {
-  if (s.label.trim()) return s.label;
-  if (kind === 'weekpack') return describeDays(s.days);
-  const event = s.at?.match(/^[a-z]+/)?.[0];
-  if (event && (SOLAR_EVENTS as readonly string[]).includes(event)) return event[0].toUpperCase() + event.slice(1);
-  return `Block ${index + 1}`;
 }
 
 // ---------------------------------------------------------------------------

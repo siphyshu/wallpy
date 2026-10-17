@@ -13,7 +13,7 @@ const Body = z.object({
       mime: z.enum(IMAGE_MIMES),
     }))
     .min(1)
-    .max(PACK_LIMITS.maxFiles + 2), // + thumbnail and preview renditions
+    .max(PACK_LIMITS.maxUploadBlobs),
 });
 
 /**

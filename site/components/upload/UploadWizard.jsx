@@ -36,8 +36,8 @@ function initialState(edit) {
       name: f.path,
       size: f.size,
       type: f.mime,
-      preview: f.url,
-      existing: { sha256: f.sha256, url: f.url },
+      preview: f.previewUrl,
+      existing: { sha256: f.sha256, url: f.url, thumbSha256: f.thumbSha256, previewSha256: f.previewSha256 },
     })),
     metadata: {
       title: base.title,

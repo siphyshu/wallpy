@@ -30,6 +30,11 @@ export default function GalleryCard({ wallpaper }: { wallpaper: PackCard }) {
               unoptimized={wallpaper.preview?.startsWith('http')}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
+            {wallpaper.category && (
+              <span className="absolute top-2 left-2 z-30 inline-flex items-center rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] font-medium text-white/90 backdrop-blur-sm">
+                {wallpaper.kindLabel}
+              </span>
+            )}
             <AiUseLabel aiUse={wallpaper.aiUse} className="absolute top-2 right-2 z-30 backdrop-blur-sm" />
           </div>
         </Link>
