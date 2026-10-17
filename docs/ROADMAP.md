@@ -40,6 +40,52 @@ design and feature work. Collected so far:
 - [ ] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders
 - [ ] Design pass across the site
 
+Walkthrough findings (2026-10-17):
+
+Visitor (home, gallery, pack page, profile)
+- [ ] Navbar "Docs" links to `/docs`, which 404s
+- [ ] Hero "Install Wallpy →" links to PyPI (the retired Python CLI); pack pages' "Install it first" links to `/#install`, but `<InstallSection />` is commented out in `app/page.tsx`
+- [ ] No navigation on phones: the navbar hides Docs/Gallery/Github below `md` and there's no menu button (`isMobileMenuOpen` is never used)
+- [ ] Gallery categories are a fixed list (`GalleryFilters.tsx`) but tags are free text, so chips only match exact tags: Zelda shows under Gaming only because its creator happened to type `gaming`; Ocean Hours isn't under Nature. Either pick tags from the category list at upload, or build the chips from tags in use
+- [ ] Gallery search, category and sort aren't in the URL (only `?tag=` on first load): back button and shared links lose them
+- [ ] Sort dropdown renders under the cards' "AI-generated" badge (z-index)
+- [ ] Pack page images are slow: only the cover gets a thumb/preview at upload (gallery cards are 20–60 KB, fine), so `PackImageGallery` runs every ~4 MB original through the Next optimizer; thumbnails sit blank on first view. Make a small preview for every image at upload
+- [ ] Pack page doesn't show the schedule, which is the point of a dynamic pack: what shows when (dawn → morning → dusk → night), ideally with a "now" marker like the CLI's sky strip
+- [ ] Gallery cards don't say what kind of pack it is (Daypack / Weekpack / Album)
+- [ ] Download counts show 0 everywhere; consider hiding at 0
+- [ ] 404 page is Next's default (black, unstyled)
+- [ ] Profile "Contact Email" field is public but only labelled "(optional)"; say it's shown on the profile
+- [ ] Profile shows "Published" status badges to visitors (only the owner needs them)
+- Fine: favourite while signed out → login with `?redirect=` back; `/upload` and `/edit` redirect to login; `/moderation` 404s for non-moderators; ZIP builds in the browser with hash checks and progress; CDN CORS allows localhost
+
+Accounts (sign-up, login, reset; read through, not submitted: they hit production)
+- [ ] Sign-up doesn't check the username: the DB requires `^[a-z0-9_]{3,30}$` and uniqueness (`handle_new_user` trigger), so "John Doe", "jd" or a taken name fail with Supabase's generic "Database error saving new user". Validate inline, check availability, and show the rule
+- [ ] After the email code, sign-up goes to `/gallery`, dropping any `?redirect=` (e.g. a visitor who hit Upload); a new creator also lands with an empty profile and no nudge to fill it in
+- [ ] Auth pages all have the generic site title ("Wallpy - Dynamic Wallpapers for your desktop")
+
+Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks passed)
+- [ ] Wizard uses blue steps/Next and a green-ish "Upload Wallpack", not the design system (white primary, `bg-white/10` secondary)
+- [ ] Wizard state is only in memory: a refresh or a stray link loses everything, with no "leave page?" warning
+- [ ] Next is disabled on Details with no reason shown (title, tags and the AI question are required; tags is easy to miss)
+- [ ] Details come before images; images first would let the cover, title and AI question follow from what was uploaded
+- [ ] The cover is always the first uploaded image; no way to pick it
+- [ ] Schedule step leads with the raw `schedule.toml` (a tall, mostly empty code box), an "Upload schedule file" panel and a long Configuration Guide; the builder and preview are what creators need. Collapse the TOML and the guide behind "Advanced"/"Help"
+- [ ] Daypack's time blocks scroll inside a fixed-height panel, so blocks below the fold are easy to miss
+- [ ] Review step shows the pack's size with a download icon ("⬇ 50 KB"), which reads like a download button; tags show as typed (#Test) though they're stored lowercase
+- [ ] No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile
+- [ ] "Waiting for review" doesn't say what happens next or how long it usually takes
+- [ ] Owners can't unlist or delete a published pack (the DB has `is_listed`; only declined packs can be deleted), or withdraw a version in review (already under Later)
+- [ ] No upload from a ready-made folder/zip (already listed above)
+
+Moderator (from the e2e screenshots)
+- [ ] An update shows only "Update · vN": no diff against the live version (images added/removed, schedule, title/tags/licence changes)
+- [ ] The queue card doesn't show the schedule or tags; the moderator has to open the pack page to judge them
+- [ ] No takedown/restore for published packs, though `moderate()` supports both; no way for visitors to report a pack
+- [ ] No moderation history (who approved/declined what, when)
+- [ ] Cover on the queue card stretches past 16:9 (flex row overrides `aspect-video`) and crops the image
+- Fine: decline needs a reason; the uploader sees the note; declined packs can't be resubmitted and can be deleted; approve publishes and lists in the gallery; v1 stays live while v2 is in review; a second pending version is refused; unchanged images aren't re-uploaded
+- Not yet walked: profile editing (avatar, cover, links)
+
 ## Go CLI: feature-complete (publish after the site)
 
 Goal: the CLI should feel delightful, crafted at every touchpoint from install
