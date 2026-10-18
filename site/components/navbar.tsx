@@ -193,7 +193,8 @@ const NavBar = () => {
         };
     }, [isMobileMenuOpen]);
 
-    const closeMenu = () => setIsMobileMenuOpen(false);
+    // Picking a menu item closes both the phone menu and the desktop dropdown.
+    const closeMenu = () => { setIsMobileMenuOpen(false); setDropdownOpen(false); };
     const isAuthenticated = !!user;
     const isModerator = profile?.role === 'moderator' || profile?.role === 'admin';
     const menuItem = 'px-4 py-3 rounded-xl hover:bg-white/10 transition-colors duration-200 flex items-center gap-3';

@@ -66,10 +66,10 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
         <div className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="pack-title" className="block text-sm font-medium mb-2">
               Title <span className="text-red-400">*</span>
             </label>
-            <input
+            <input id="pack-title"
               type="text"
               required
               value={metadata.title}
@@ -81,8 +81,8 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
-            <textarea
+            <label htmlFor="pack-description" className="block text-sm font-medium mb-2">Description</label>
+            <textarea id="pack-description"
               value={metadata.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
@@ -202,10 +202,10 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
           {!metadata.isOriginal && (
             <div className="space-y-4 p-4 bg-white/5 rounded-lg border border-white/10">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label htmlFor="pack-artist" className="block text-sm font-medium mb-2">
                   Original Creator <span className="text-red-400">*</span>
                 </label>
-                <input
+                <input id="pack-artist"
                   type="text"
                   required={!metadata.isOriginal}
                   value={metadata.authorName}
@@ -216,8 +216,8 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Source URL</label>
-                <input
+                <label htmlFor="pack-source-url" className="block text-sm font-medium mb-2">Source URL</label>
+                <input id="pack-source-url"
                   type="url"
                   value={metadata.authorUrl}
                   onChange={(e) => handleChange('authorUrl', e.target.value)}
@@ -260,8 +260,8 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
 
           {/* License */}
           <div>
-            <label className="block text-sm font-medium mb-2">License</label>
-            <select
+            <label htmlFor="pack-license" className="block text-sm font-medium mb-2">License</label>
+            <select id="pack-license"
               value={metadata.license}
               onChange={(e) => handleChange('license', e.target.value)}
               className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white transition-all"

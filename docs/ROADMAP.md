@@ -94,6 +94,14 @@ Profile editing (walked 2026-10-17 with a throwaway user; now `npm run test:e2e:
 - [x] `profiles.website` exists (filled for v1 users) but the profile neither shows nor edits it; links cover the same need (2026-10-17: moved into `links` as "Website", column dropped)
 - [ ] With no display name the profile shows an empty heading above `@username` (sign-up asks for a name, so mostly old/test accounts)
 
+Final walk (2026-10-18, after all batches; now `test:e2e:journey`, 15 steps across creator, moderator and visitor, clicking only)
+- [x] Signed-out visitors had no way to report (only signed-in saw "Report this pack"); now it links to sign-in and back, like favourites
+- [x] Takedown notice ended in a double full stop ("…takedown..")
+- [x] The desktop avatar menu stayed open after picking an item
+- [x] Wizard details labels weren't linked to their fields (screen readers couldn't name them)
+- [ ] A taken-down pack's owner sees the reason and a Delete button, but nothing about what happens next (fix and ask for a restore? appeal?). Needs a decision
+- [ ] Design pass leftovers: the blue "Explore the gallery" link on empty favourites; "Fill in your profile" sits right above "Edit Profile" (same action)
+
 ## Go CLI: feature-complete (publish after the site)
 
 Goal: the CLI should feel delightful, crafted at every touchpoint from install

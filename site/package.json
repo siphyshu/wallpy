@@ -19,7 +19,8 @@
     "test:e2e:owner": "node --env-file=.env.local tests/e2e/owner-ui.mjs",
     "test:e2e": "npm run test:e2e:api && npm run test:e2e:ui && npm run test:e2e:moderation && npm run test:e2e:versions && npm run test:e2e:builders && npm run test:e2e:profile && npm run test:e2e:owner && npm run test:e2e:reports && npm run test:e2e:notices",
     "test:e2e:reports": "node --env-file=.env.local tests/e2e/reports-ui.mjs",
-    "test:e2e:notices": "node --env-file=.env.local tests/e2e/notices-ui.mjs"
+    "test:e2e:notices": "node --env-file=.env.local tests/e2e/notices-ui.mjs",
+    "test:e2e:journey": "node --env-file=.env.local tests/e2e/journey-ui.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",

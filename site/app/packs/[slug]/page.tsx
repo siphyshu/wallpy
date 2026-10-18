@@ -32,6 +32,9 @@ const STATUS_NOTES: Partial<Record<VersionStatus, string>> = {
   rejected: 'This version was rejected. Submit a new version to try again.',
 };
 
+/** A moderator's note as a sentence: adds a full stop unless it already ends in one. */
+const sentence = (text: string) => (/[.!?]["')\]]?$/.test(text.trim()) ? text.trim() : `${text.trim()}.`);
+
 /** What the owner is told about their pack, and what they can do next. */
 function ownerNotice(
   pack: { isPublic: boolean; isListed: boolean; removedAt: string | null; removedReason: string | null; version: { id: string; number: number; status: VersionStatus } },
@@ -41,7 +44,7 @@ function ownerNotice(
     // Closed before it was ever published: declined in review.
     return pack.version.status === 'rejected'
       ? { text: `Declined by a moderator: "${pack.removedReason || 'no reason given'}" This pack can't be resubmitted.` }
-      : { text: `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.` };
+      : { text: `Taken down by a moderator: ${sentence(pack.removedReason || 'no reason given')}` };
   }
   if (!latest) return null;
   const isUpdate = latest.id !== pack.version.id;
@@ -113,7 +116,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
   const notice = isOwner
     ? ownerNotice(pack, latest)
     : !pack.isPublic && pack.removedAt
-      ? { text: `Taken down by a moderator: ${pack.removedReason || 'no reason given'}.` }
+      ? { text: `Taken down by a moderator: ${sentence(pack.removedReason || 'no reason given')}` }
       : !pack.isPublic ? { text: STATUS_NOTES[version.status] ?? '' } : null;
   // Owners can send a new version unless one is already in review.
   const canUpdate = isOwner && !pack.removedAt && latest?.status === 'approved';
@@ -218,6 +221,17 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
             {user && !isOwner && pack.isPublic && (
               <div className="mt-6 flex flex-col">
                 <ReportPackButton packId={pack.id} alreadyReported={reported} />
+              </div>
+            )}
+            {/* Reporting needs an account; like favouriting, sign in and come back. */}
+            {!user && pack.isPublic && (
+              <div className="mt-6 flex flex-col">
+                <Link
+                  href={`/auth/login?redirect=${encodeURIComponent(`/packs/${pack.slug}`)}`}
+                  className="self-start text-xs text-white/50 hover:text-white transition-colors"
+                >
+                  Report this pack
+                </Link>
               </div>
             )}
 
