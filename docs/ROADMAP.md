@@ -181,6 +181,10 @@ hidden `run` for the service.
 
 ## Before launch
 
+Next sessions (2026-10-20): (1) seed Jaiyank's new packs: each as a folder with `schedule.toml` + images, plus title, artist + link, licence, 1–2 categories and AI use; upload through the normal flow and approve, so they're real reviewed packs; (2) SEO (item below); (3) CLI release (section above).
+
+- [ ] Seed Jaiyank's new packs into production (he'll provide them)
+
 - [x] Cloudflare on `wallpy-cdn.siphyshu.me`: Cache Rule (eligible, respect origin TTL) **and** a response-header rule `Access-Control-Allow-Origin: *` (2026-10-20, via the API; verified MISS then HIT, CORS header on cached copies)
 - [ ] Remove the dev origins `http://localhost:3101`–`3110` from the `wallpy-public` CORS rules (kept for now while developing; Jaiyank, 2026-10-20)
 - [ ] Swap the temporary admin R2 token `wallpy-admin-setup` for a bucket-scoped `wallpy-site-prod` (kept for now while developing; Jaiyank, 2026-10-20)
