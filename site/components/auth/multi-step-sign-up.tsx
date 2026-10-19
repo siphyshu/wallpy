@@ -171,6 +171,10 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
                 <Button type="submit" className="w-full" disabled={isLoading || !canSubmit}>
                   {isLoading ? 'Signing up...' : 'Sign Up'}
                 </Button>
+                <p className="text-xs text-white/50 text-center">
+                  By signing up you agree to the <Link href="/terms" className="underline underline-offset-2 hover:text-white">terms</Link> and{' '}
+                  <Link href="/privacy" className="underline underline-offset-2 hover:text-white">privacy</Link> page.
+                </p>
               </form>
               <div className="mt-6 text-center text-sm text-white/70">
                 Already have an account?{" "}

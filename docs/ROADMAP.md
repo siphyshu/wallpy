@@ -185,11 +185,11 @@ hidden `run` for the service.
 - [ ] Remove the dev origins `http://localhost:3101`–`3110` from the `wallpy-public` CORS rules (keep `localhost:3000` only if still needed)
 - [ ] Swap the temporary admin R2 token `wallpy-admin-setup` for a bucket-scoped `wallpy-site-prod`
 - [ ] DNS: `wallpy.siphyshu.me` points at a dead IP; stale `*.siphyshu.me` wildcard
-- [ ] Deploy the site (host TBD) with production env vars
+- [ ] Deploy the site (host TBD) with production env vars; then name the host on `/privacy` ("Services that handle your data")
 - [x] Footer year updated to 2026 (2026-10-17)
 - [x] Replace trial / unlicensed fonts (Thunder, Megna trial) (2026-10-19: unused, deleted)
-- [ ] Privacy and terms pages, linked from the footer
-- [ ] Homepage hero art is from *The Wind Waker* (Nintendo): replace with art Wallpy has rights to, or credit it clearly, before launch
+- [x] Privacy and terms pages, linked from the footer and the sign-up form (2026-10-20: `/privacy`, `/terms`; accounts 13+, no governing-law clause; every statement matches the code: keep them in step)
+- [x] Homepage hero art: kept, credited to Matt Vince (the pack's artist) under the time switcher (Jaiyank, 2026-10-20)
 - [ ] Push the `monorepo` branch (only when asked)
 
 ## Later / ideas

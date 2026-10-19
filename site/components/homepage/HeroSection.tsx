@@ -89,8 +89,9 @@ const HeroSection = () => {
           ))}
         </div>
         <p className="text-xs text-white/70">
-          <Link href="/packs/zelda-wind-waker" className="underline underline-offset-2 decoration-white/30 hover:text-white">Zelda Wind Waker</Link>, a Daypack:
-          one island, four times of day. Wallpy switches at your real sunrise and sunset.
+          <Link href="/packs/zelda-wind-waker" className="underline underline-offset-2 decoration-white/30 hover:text-white">Zelda Wind Waker</Link>{' '}
+          by <a href="https://mattvince.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 decoration-white/30 hover:text-white">Matt Vince</a>,
+          a Daypack: one island, four times of day. Wallpy switches at your real sunrise and sunset.
         </p>
       </div>
     </section>

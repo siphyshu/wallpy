@@ -14,6 +14,8 @@ const Footer = () => {
           <a href={GITHUB} className={link} target="_blank" rel="noopener noreferrer">GitHub</a>
           <a href={`${GITHUB}/issues`} className={link} target="_blank" rel="noopener noreferrer">Report a problem</a>
           <a href="mailto:siphyshu@gmail.com" className={link}>siphyshu@gmail.com</a>
+          <Link href="/privacy" className={link}>Privacy</Link>
+          <Link href="/terms" className={link}>Terms</Link>
         </nav>
         <p>© 2026 Wallpy. All rights reserved.</p>
       </div>
