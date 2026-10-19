@@ -120,7 +120,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
         <CardHeader>
           <CardTitle className="text-4xl">Sign in</CardTitle>
           <CardDescription>
-            Upload packs, keep favourites and hear about your reviews.
+            Sign in to your Wallpy account to upload and manage your wallpaper packs
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -58,7 +58,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
       <div className="text-center mb-8">
         <h2 className="sr-only">Pack Information</h2>
         <p className="text-white/70">
-          Add details to help others find your pack.
+          Add details to help others discover your wallpack
         </p>
       </div>
 

@@ -20,7 +20,7 @@ here first.
 ## Page layout
 
 `<Page width>` sets the width, side gutters (16px, 24px from `sm`) and the top
-offset clear of the floating navbar. Pick by what the page holds:
+offset (176px, deliberately well clear of the floating navbar). Pick by what the page holds:
 
 | Width | Max | Pages |
 |---|---|---|
@@ -28,9 +28,10 @@ offset clear of the floating navbar. Pick by what the page holds:
 | `browse` | 1152px | gallery, moderation, 404 |
 | `wide` | 1280px | pack page, profile, upload wizard |
 
-`<PageHeader title description actions>`: centred serif title (48–60px), one
-line under it, actions (e.g. tabs) centred below. (Left-aligned was tried and
-rejected on 2026-10-19.) Every page has one,
+`<PageHeader title description actions>`: centred serif title (48–60px), the
+page's caption under it, actions (e.g. tabs) centred below. Keep the existing
+captions (Jaiyank's copy). Left-aligned headers were tried and rejected on
+2026-10-19. Every page has one,
 except the homepage (hero) and the pack page (the pack's name is the title).
 Sections inside a page use `<SectionTitle count>`.
 
@@ -47,8 +48,8 @@ Sections inside a page use `<SectionTitle count>`.
 
 ## Writing
 
-Name things the way people see them: a **pack** (not "wallpack"), **images**,
-the **schedule**. Buttons say what happens ("Upload pack", "Send back with
+Name things the way people see them: a **pack** or **wallpack** (both are
+used; the wizard is "Create wallpack"), **images**, the **schedule**. Buttons say what happens ("Upload pack", "Send back with
 note"). Errors say what's wrong and how to fix it. Sentence case everywhere
 except the wordmark.
 

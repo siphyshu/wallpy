@@ -115,7 +115,7 @@ export default function GalleryBrowser() {
         <div>
           <PageHeader
             title="Gallery"
-            description="Packs made by the community. Each one changes through the day, the week, or on its own schedule."
+            description="Discover and install beautiful wallpaper packs created by our community. Browse through our collection and find your perfect desktop background."
           />
 
           {/* Search and Filter Section */}

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 // Three page widths, chosen by what the page holds; every page shares the same
-// top offset (clear of the floating navbar) and side gutters.
+// top offset (176px, well clear of the floating navbar) and side gutters.
 const widths = {
   reading: 'max-w-3xl', // docs, notices, sign-in forms
   browse: 'max-w-6xl', // gallery, moderation
@@ -10,7 +10,7 @@ const widths = {
 };
 
 export function Page({ width = 'browse', className, children }: { width?: keyof typeof widths; className?: string; children: ReactNode }) {
-  return <main className={cn('mx-auto w-full px-4 sm:px-6 pt-32 pb-24', widths[width], className)}>{children}</main>;
+  return <main className={cn('mx-auto w-full px-4 sm:px-6 pt-44 pb-24', widths[width], className)}>{children}</main>;
 }
 
 /** The page's title block: a centred serif title, one line under it, actions (e.g. tabs) below. */

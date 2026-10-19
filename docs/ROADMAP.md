@@ -111,15 +111,18 @@ page (before) and the title comparison: https://claude.ai/artifact/VavD67B2KUoSo
 packs in every state, screenshots desktop 1280 + phone 390; `ONLY=role-page,...`
 and `OUTDIR=./after/` for a subset; cleans up after itself) and `sheet/montage.mjs`.
 
-Decided: centred page headers (left-aligned tried and rejected) with the new
-copy; three widths (reading 768 / browse 1152 / wide 1280); say "pack", not
-"wallpack"; navbar in Inter; takedowns final, support = GitHub issues +
+Decided: centred page headers (left-aligned tried and rejected); keep the
+original captions under titles (only some titles changed: Gallery, Notices,
+Moderation, "Create wallpack", Sign in, Create an account); keep the 176px top
+spacing and the original wizard progress indicator (circles + step name);
+three widths (reading 768 / browse 1152 / wide 1280); "pack" and "wallpack"
+both fine; navbar in Inter; takedowns final, support = GitHub issues +
 siphyshu@gmail.com; builders' grid layout and the full schedule.toml stay.
 
 Done
 - [x] Builder: schedule.toml always editable next to the builder; the builder dims (doesn't hide) when the text can't be shown; the Wallpack Preview keeps the last working schedule (`96f8133`)
 - [x] Shared components in `site/components/ui`: Button, Pill, Notice, Card, Input/Textarea, LinkTabs, Page/PageHeader/SectionTitle; `docs/design-system.md` (`c748216`)
-- [x] Page headers + widths + new titles on Gallery, Docs, Notices, Moderation, upload wizard (labelled progress bar; per-step headings now sr-only), sign in / sign up / password pages (`c748216`, centred in `b280dd5`)
+- [x] Page headers + widths + new titles on Gallery, Docs, Notices, Moderation, upload wizard (per-step headings now sr-only), sign in / sign up / password pages (`c748216`, centred in `b280dd5`)
 
 To do (in order)
 - [ ] Pack page (`app/packs/[slug]/page.tsx`, `components/packs/*`): `Page wide`; pack-kind badge to a neutral `Pill` (no blue); owner controls under a small "Your pack" label with consistent `Button`s; owner/status notices via `Notice`; takedown notice says it's final and points to GitHub issues + siphyshu@gmail.com; category/tag pills via `Pill`
@@ -127,7 +130,7 @@ To do (in order)
 - [ ] Homepage (`app/page.tsx`, `components/homepage/*`): hero subtitle copy ("macOS"; lead with what it does); install + gallery sections use the system buttons
 - [ ] Footer (`components/footer.tsx`): links to Docs, Gallery, GitHub, report a problem (GitHub issues), contact (siphyshu@gmail.com); copyright. Privacy/terms pages are a separate launch item (add under "Before launch")
 - [ ] Moderation cards (`app/moderation/page.tsx`): kind badge neutral; empty thumbnails fall back to the first image (or a neutral placeholder with the title); buttons via `Button`
-- [ ] Remaining off-palette colours: `grep -rEo "(bg|text|border)-(blue|green|purple|indigo|sky|cyan|emerald|teal|violet|pink|rose|orange|yellow)-" site/app site/components` (71 uses in 12 files at the start; builder previews' time-of-day tints may stay). Remaining "wallpack" wording in UI copy
+- [ ] Remaining off-palette colours: `grep -rEo "(bg|text|border)-(blue|green|purple|indigo|sky|cyan|emerald|teal|violet|pink|rose|orange|yellow)-" site/app site/components` (71 uses in 12 files at the start; builder previews' time-of-day tints may stay).
 - [ ] Auth forms: inputs to the one field style (`Input` already updated; check `components/auth/*` for local classes); 404 page onto `Page`/`PageHeader`
 - [ ] Inputs/buttons elsewhere still hand-styled: wizard nav (Previous/Next/Upload), FileUploader, ImportPack, ProfileCard edit form, ReportPackButton, PackOwnerControls, ReviewActions → `Button`/`Input`
 - [ ] Fonts: navbar to Inter (`components/navbar.tsx`: `font-serif` → sans, remove the unused Alegreya import/`testing`); delete `site/public/fonts/` (Thunder, Megna trial; unused); tick "Replace trial / unlicensed fonts" under Before launch

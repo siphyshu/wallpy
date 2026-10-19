@@ -106,7 +106,7 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
             <CardHeader>
               <CardTitle className="text-4xl">Create an account</CardTitle>
               <CardDescription>
-                Share packs with the community and keep your favourites.
+                Create your account to start sharing your dynamic wallpaper creations
               </CardDescription>
             </CardHeader>
             <CardContent>

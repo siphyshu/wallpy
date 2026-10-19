@@ -59,7 +59,7 @@ export default function DocsPage() {
       <Page width="reading">
         <PageHeader
           title="Docs"
-          description="Install Wallpy, use a pack, and how it keeps your wallpaper changing. Wallpy is a small command-line program that sets your wallpaper from a pack: through the day, the week or on a schedule of its own."
+          description="Wallpy is a small command-line program that sets your wallpaper from a pack and keeps it changing through the day, the week or on a schedule of its own."
         />
 
         <nav aria-label="On this page" className="flex flex-wrap gap-2 mb-14">

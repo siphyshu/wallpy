@@ -279,7 +279,6 @@ export default async function ModerationPage({ searchParams }: PageProps<'/moder
         <div>
           <PageHeader
             title="Moderation"
-            description="New packs and updates to review, reports from visitors, and every published pack."
             actions={
               <LinkTabs
                 label="Moderation sections"

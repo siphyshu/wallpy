@@ -32,7 +32,7 @@ export default async function NoticesPage() {
     <div className="relative min-h-screen overflow-x-hidden text-white bg-background">
       <Page width="reading">
         <div>
-          <PageHeader title="Notices" description="What moderators decided about your packs." />
+          <PageHeader title="Notices" />
 
           {notices.length === 0 ? (
             <p className="text-white/60 text-center" data-testid="notices-empty">
