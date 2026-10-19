@@ -54,7 +54,7 @@ try {
     if (createError) throw createError;
     const res = { body: created };
     const { data: pack } = await admin.from('packs').select('id').eq('slug', res.body.slug).single();
-    await admin.from('pack_versions').update({ categories: ['art'] }).eq('id', res.body.version_id);
+    await admin.from('pack_versions').update({ categories: ['illustration'] }).eq('id', res.body.version_id);
     if (submitIt) {
       const { error } = await asClient(user).rpc('moderate', { p_version: res.body.version_id, p_action: 'submit' });
       if (error) throw error;

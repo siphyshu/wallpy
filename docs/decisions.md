@@ -72,3 +72,4 @@ the why) whenever something is decided.
 | — | UI must match the existing design system: extend existing components and classes, check screenshots | User feedback |
 | 2026-10-19 | GitHub link only in the footer, not the navbar | The navbar is for getting around the site; installs go through Docs, and the repo sits in the footer next to "Report a problem" |
 | 2026-10-19 | Upload wizard order: Type → Images → Details → Schedule → Review | Images first: the cover is picked as the images go in, and details can follow from what was uploaded; a zip import skips to Details |
+| 2026-10-19 | Category list v2: Landscapes, Cities, Space, Anime, Games, Illustration, Photography, Pixel art, Minimal, Abstract (supersedes the 2026-10-17 list) | Nature overlapped Landscapes, "Art" fitted everything, Seasons is a theme (use a tag). One list kept (a subject/style split was offered and declined). Migrated: nature, seasons → landscapes; art → illustration |

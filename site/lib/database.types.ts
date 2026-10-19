@@ -687,16 +687,16 @@ export type Database = {
         | "decline"
         | "withdraw"
       pack_category:
-        | "nature"
         | "landscapes"
         | "cities"
         | "space"
         | "anime"
         | "games"
-        | "art"
+        | "illustration"
+        | "photography"
+        | "pixel-art"
         | "minimal"
         | "abstract"
-        | "seasons"
       pack_kind: "timeblocks" | "days" | "album"
       pack_license:
         | "personal-use"
@@ -858,16 +858,16 @@ export const Constants = {
         "withdraw",
       ],
       pack_category: [
-        "nature",
         "landscapes",
         "cities",
         "space",
         "anime",
         "games",
-        "art",
+        "illustration",
+        "photography",
+        "pixel-art",
         "minimal",
         "abstract",
-        "seasons",
       ],
       pack_kind: ["timeblocks", "days", "album"],
       pack_license: [

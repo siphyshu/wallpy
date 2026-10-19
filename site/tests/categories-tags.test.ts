@@ -23,7 +23,7 @@ describe('categories', () => {
     files: [{ path: 'a.jpg', sha256: 'a'.repeat(64) }],
   };
   it('matches the database list', () => {
-    expect(CATEGORY_IDS).toEqual(['nature', 'landscapes', 'cities', 'space', 'anime', 'games', 'art', 'minimal', 'abstract', 'seasons']);
+    expect(CATEGORY_IDS).toEqual(['landscapes', 'cities', 'space', 'anime', 'games', 'illustration', 'photography', 'pixel-art', 'minimal', 'abstract']);
     expect(isCategory('games')).toBe(true);
     expect(isCategory('gaming')).toBe(false);
   });
@@ -31,13 +31,13 @@ describe('categories', () => {
     expect(Submission.safeParse({ ...base, categories: [] }).success).toBe(false);
     expect(Submission.safeParse({ ...base }).success).toBe(false);
     expect(Submission.safeParse({ ...base, categories: ['memes'] }).success).toBe(false);
-    expect(Submission.safeParse({ ...base, categories: ['art', 'space', 'anime'] }).success).toBe(false);
-    expect(Submission.safeParse({ ...base, categories: ['art', 'art'] }).success).toBe(false);
-    const ok = Submission.safeParse({ ...base, categories: ['art', 'space'], tags: ['Big Sea', 'big sea'] });
+    expect(Submission.safeParse({ ...base, categories: ['illustration', 'space', 'anime'] }).success).toBe(false);
+    expect(Submission.safeParse({ ...base, categories: ['illustration', 'illustration'] }).success).toBe(false);
+    const ok = Submission.safeParse({ ...base, categories: ['illustration', 'space'], tags: ['Big Sea', 'big sea'] });
     expect(ok.success).toBe(true);
     if (ok.success) {
       const p = toRpcPayload(ok.data);
-      expect(p.categories).toEqual(['art', 'space']);
+      expect(p.categories).toEqual(['illustration', 'space']);
       expect(p.tags).toEqual(['big-sea']);
     }
   });

@@ -104,12 +104,12 @@ try {
   const schedule = { spec: 2, name: 'E2E Test Pack', slot: [
     { label: 'day', at: 'sunrise', images: ['sunrise.jpg'] }, { label: 'night', at: 'sunset', images: ['night.jpg'] }] };
   const base = {
-    title: 'E2E Test Pack', description: 'Automated test, deleted afterwards.', tags: ['Test Tag', 'test tag'], categories: ['art', 'space'], ai_use: 'none',
+    title: 'E2E Test Pack', description: 'Automated test, deleted afterwards.', tags: ['Test Tag', 'test tag'], categories: ['illustration', 'space'], ai_use: 'none',
     uploader_is_artist: true, schedule, files: [{ path: 'sunrise.jpg', sha256: sunrise.sha256 }, { path: 'night.jpg', sha256: night.sha256 }],
   };
   check('missing category is refused', (await api(alice, '/api/packs', { ...base, categories: [] })).status === 400);
   check('unknown category is refused', (await api(alice, '/api/packs', { ...base, categories: ['memes'] })).status === 400);
-  check('three categories are refused', (await api(alice, '/api/packs', { ...base, categories: ['art', 'space', 'anime'] })).status === 400);
+  check('three categories are refused', (await api(alice, '/api/packs', { ...base, categories: ['illustration', 'space', 'anime'] })).status === 400);
   check('missing AI answer is refused', (await api(alice, '/api/packs', { ...base, ai_use: undefined })).status === 400);
   const bad = await api(alice, '/api/packs', { ...base, schedule: { ...schedule, slot: [...schedule.slot].reverse() } });
   check('out-of-order schedule is refused by the spec validator', bad.status === 400, bad.body?.error);
@@ -118,7 +118,7 @@ try {
   const created = await api(alice, '/api/packs', base);
   check('valid submission is created and pending', created.status === 201 && created.body.status === 'pending', JSON.stringify(created.body));
   const { data: row } = await admin.from('packs').select('slug, owner_id, versions:pack_versions!pack_versions_pack_id_fkey(status, kind, ai_use, tags, categories)').eq('slug', created.body.slug).single();
-  check('stored as pending, kind derived, tags normalised + deduped, categories', row?.versions?.[0]?.status === 'pending' && row.versions[0].kind === 'timeblocks' && JSON.stringify(row.versions[0].tags) === '["test-tag"]' && JSON.stringify(row.versions[0].categories) === '["art","space"]', JSON.stringify(row?.versions));
+  check('stored as pending, kind derived, tags normalised + deduped, categories', row?.versions?.[0]?.status === 'pending' && row.versions[0].kind === 'timeblocks' && JSON.stringify(row.versions[0].tags) === '["test-tag"]' && JSON.stringify(row.versions[0].categories) === '["illustration","space"]', JSON.stringify(row?.versions));
   const pub = await fetch(`${BASE}/api/packs/${created.body.slug}/manifest`);
   check('pending pack is not public', pub.status === 404);
 } catch (e) {

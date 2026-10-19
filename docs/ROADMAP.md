@@ -94,6 +94,8 @@ Profile editing (walked 2026-10-17 with a throwaway user; now `npm run test:e2e:
 - [x] `profiles.website` exists (filled for v1 users) but the profile neither shows nor edits it; links cover the same need (2026-10-17: moved into `links` as "Website", column dropped)
 - [x] With no display name the profile shows an empty heading above `@username` (2026-10-19: `@username` is the heading then)
 
+- [x] Category list revised (2026-10-19): Nature merged into Landscapes, Art → Illustration, Seasons dropped (a tag now), Photography and Pixel art added; enum rebuilt in `20261019170000_categories_v2.sql`
+
 Final walk (2026-10-18, after all batches; now `test:e2e:journey`, 15 steps across creator, moderator and visitor, clicking only)
 - [x] Signed-out visitors had no way to report (only signed-in saw "Report this pack"); now it links to sign-in and back, like favourites
 - [x] Takedown notice ended in a double full stop ("…takedown..")

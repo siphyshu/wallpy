@@ -135,7 +135,7 @@ try {
     && await page2.getByText('Pick 1–2 categories').isVisible() && await page2.getByText('Answer the AI question').isVisible());
   const draftTitle = `E2E Draft ${runId}`;
   await page2.getByPlaceholder('Enter a descriptive title').fill(draftTitle);
-  await page2.getByRole('button', { name: 'Nature', exact: true }).click();
+  await page2.getByRole('button', { name: 'Landscapes', exact: true }).click();
   await page2.getByRole('button', { name: 'No AI' }).click();
   check('reasons clear once the fields are filled in', await page2.getByText('Add a title').count() === 0);
 
@@ -167,7 +167,7 @@ try {
   check('zip import prefills the title and jumps to the details step',
     await page3.getByPlaceholder('Enter a descriptive title').inputValue() === 'Colour Week');
   if (SHOTS) await page3.screenshot({ path: `${SHOTS}/7-zip-import-details.png`, fullPage: true });
-  await page3.getByRole('button', { name: 'Seasons', exact: true }).click();
+  await page3.getByRole('button', { name: 'Illustration', exact: true }).click();
   await page3.getByRole('button', { name: 'No AI' }).click();
   const next3 = page3.getByText('Next', { exact: true });
   await page3.getByText('Previous', { exact: true }).click();

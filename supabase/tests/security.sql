@@ -176,10 +176,12 @@ select pg_temp.expect_error('submit needs a category',
   '{23514}');
 select pg_temp.expect_error('unknown category rejected',
   $q$update public.pack_versions set categories = '{sunsets}' where title = 'Sunset'$q$, '{22P02}');
+select pg_temp.expect_error('retired category (nature, 2026-10-19) rejected',
+  $q$update public.pack_versions set categories = '{nature}' where title = 'Sunset'$q$, '{22P02}');
 select pg_temp.expect_error('more than two categories rejected',
-  $q$update public.pack_versions set categories = '{nature,space,art}' where title = 'Sunset'$q$, '{23514}');
+  $q$update public.pack_versions set categories = '{landscapes,space,illustration}' where title = 'Sunset'$q$, '{23514}');
 select pg_temp.expect_error('duplicate categories rejected',
-  $q$update public.pack_versions set categories = '{nature,nature}' where title = 'Sunset'$q$, '{23514}');
+  $q$update public.pack_versions set categories = '{landscapes,landscapes}' where title = 'Sunset'$q$, '{23514}');
 select pg_temp.expect_error('uppercase tags rejected',
   $q$update public.pack_versions set tags = '{Sunset}' where title = 'Sunset'$q$, '{23514}');
 select pg_temp.expect_error('tags with spaces rejected',
@@ -188,7 +190,7 @@ select pg_temp.expect_error('duplicate tags rejected',
   $q$update public.pack_versions set tags = '{sea,sea}' where title = 'Sunset'$q$, '{23514}');
 select pg_temp.expect_error('more than 10 tags rejected',
   $q$update public.pack_versions set tags = '{a,b,c,d,e,f,g,h,i,j,k}' where title = 'Sunset'$q$, '{23514}');
-update public.pack_versions set categories = '{nature,seasons}', tags = '{golden-hour}' where title = 'Sunset';
+update public.pack_versions set categories = '{landscapes,pixel-art}', tags = '{golden-hour}' where title = 'Sunset';
 select pg_temp.expect('kind is derived from the schedule', (select kind from public.pack_versions where title = 'Sunset') = 'album');
 select pg_temp.expect('owner submits',
   public.moderate((select v.id from public.pack_versions v join public.packs p on p.id = v.pack_id where p.slug = 'sunset'), 'submit') = 'pending');
@@ -225,7 +227,7 @@ select pg_temp.expect('owner can read review notes',
 
 -- v2 replaces v1 only once approved
 insert into public.pack_versions (pack_id, title, ai_use, categories, schedule)
-  select id, 'Sunset II', 'none', '{nature}', '{"spec":2,"name":"Sunset II","slot":[{"images":["a.jpg"],"rotate":"every 1h"}]}'
+  select id, 'Sunset II', 'none', '{landscapes}', '{"spec":2,"name":"Sunset II","slot":[{"images":["a.jpg"],"rotate":"every 1h"}]}'
   from public.packs where slug = 'sunset';
 insert into public.version_files (version_id, path, sha256) select id, 'a.jpg', repeat('a', 64) from public.pack_versions where title = 'Sunset II';
 select public.moderate((select id from public.pack_versions where title = 'Sunset II'), 'submit');
@@ -289,7 +291,7 @@ select pg_temp.expect('only moderators edit artists', exists (select 1 from publ
 create function pg_temp.payload(title text, images text[], files jsonb, submit boolean default true) returns jsonb
 language sql as $$
   select jsonb_build_object(
-    'slug', 'beach', 'title', title, 'tags', '["sea"]'::jsonb, 'categories', '["nature"]'::jsonb, 'ai_use', 'none', 'submit', submit,
+    'slug', 'beach', 'title', title, 'tags', '["sea"]'::jsonb, 'categories', '["landscapes"]'::jsonb, 'ai_use', 'none', 'submit', submit,
     'uploader_is_artist', true, 'files', files, 'cover', files -> 0 ->> 'path',
     'schedule', jsonb_build_object('spec', 2, 'name', title,
       'slot', jsonb_build_array(jsonb_build_object('images', to_jsonb(images), 'rotate', 'every 1h'))))
@@ -445,7 +447,7 @@ select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
 update public.pack_versions set categories = '{space}' where title = 'Sunset';
 select pg_temp.as_admin();
 select pg_temp.expect('others cannot change categories',
-  (select categories from public.pack_versions where title = 'Sunset') = '{nature,seasons}');
+  (select categories from public.pack_versions where title = 'Sunset') = '{landscapes,pixel-art}');
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
 select pg_temp.expect_error('owner cannot change categories of a published version',
   $q$update public.pack_versions set categories = '{space}' where title = 'Sunset'$q$);
@@ -453,7 +455,7 @@ select pg_temp.expect_error('create_pack rejects an unknown category',
   $q$select public.create_pack(pg_temp.payload('Cat', '{a.jpg}', '[{"path":"a.jpg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]') || '{"categories":["memes"]}')$q$,
   '{22P02}');
 select pg_temp.expect_error('create_pack rejects three categories',
-  $q$select public.create_pack(pg_temp.payload('Cat', '{a.jpg}', '[{"path":"a.jpg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]') || '{"categories":["art","space","anime"]}')$q$,
+  $q$select public.create_pack(pg_temp.payload('Cat', '{a.jpg}', '[{"path":"a.jpg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]') || '{"categories":["illustration","space","anime"]}')$q$,
   '{23514}');
 select pg_temp.expect_error('create_pack cannot submit without a category',
   $q$select public.create_pack(pg_temp.payload('Cat', '{a.jpg}', '[{"path":"a.jpg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]') || '{"categories":[]}')$q$,
