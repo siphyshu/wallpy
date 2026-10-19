@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Footer from '@/components/footer';
 import CopyCommand from '@/components/CopyCommand';
 import InstallOptions from '@/components/install/InstallOptions';
+import DocsContents from '@/components/docs/DocsContents';
 
 export const metadata = {
   title: 'Docs | Wallpy',
@@ -56,21 +57,18 @@ function Code({ children }: { children: React.ReactNode }) {
 export default function DocsPage() {
   return (
     <div className="min-h-screen text-white bg-background">
-      <Page width="reading">
+      {/* Wide enough for the contents beside the text; the text column stays 768px and centred. */}
+      <Page width="wide">
         <PageHeader
           title="Docs"
           description="Wallpy is a small command-line program that sets your wallpaper from a pack and keeps it changing through the day, the week or on a schedule of its own."
         />
 
-        <nav aria-label="On this page" className="flex flex-wrap justify-center gap-2 mb-14">
-          {SECTIONS.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="px-3 py-1 rounded-full bg-white/10 text-sm text-white/70 hover:bg-white/20 hover:text-white transition-colors">
-              {s.title}
-            </a>
-          ))}
-        </nav>
+        <DocsContents sections={SECTIONS} variant="chips" />
 
-        <div className="flex flex-col gap-16">
+        <div className="lg:grid lg:grid-cols-[1fr_minmax(0,48rem)_1fr] lg:gap-12">
+        <DocsContents sections={SECTIONS} variant="side" />
+        <div className="flex flex-col gap-16 max-w-3xl mx-auto lg:mx-0 w-full">
           <Section id="install" title="Install">
             <p className="text-white/70">One binary, no runtime to install first.</p>
             <Card>
@@ -183,6 +181,7 @@ export default function DocsPage() {
               <Code>wallpy use ./my-pack</Code> tries it on your desktop.
             </p>
           </Section>
+        </div>
         </div>
       </Page>
       <Footer />

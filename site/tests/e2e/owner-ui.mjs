@@ -107,14 +107,17 @@ try {
   const hideCard = me.locator('div.group', { hasText: hide.title });
   check('the owner sees it, badged Unlisted', await hideCard.getByText('Unlisted', { exact: true }).isVisible());
   await shot(me, 'owner-2-profile-cards');
-  await hideCard.getByRole('button', { name: 'List' }).click();
+  await hideCard.getByRole('button', { name: /^Actions for / }).click();
+  await hideCard.getByRole('menuitem', { name: 'List in the gallery' }).click();
   await hideCard.getByText('Published', { exact: true }).waitFor({ timeout: 15_000 });
   check('listing it again from the profile card', await waitFor(() => inGallery(hide.title)));
 
   // ---- 2. delete from the profile card ------------------------------------------
   const doomed = packs.Doomed;
   const doomedCard = me.locator('div.group', { hasText: doomed.title });
-  await doomedCard.getByRole('button', { name: 'Delete' }).click();
+  // Right-click opens the same menu as the ⋯ button.
+  await doomedCard.click({ button: 'right' });
+  await doomedCard.getByRole('menuitem', { name: 'Delete' }).click();
   const confirmDelete = doomedCard.getByRole('button', { name: 'Delete pack' });
   check('deleting needs the pack name typed', await confirmDelete.isDisabled());
   await doomedCard.getByLabel('Pack name').fill(doomed.slug);

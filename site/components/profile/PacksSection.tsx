@@ -68,7 +68,8 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
             return (
               <div
                 key={pack.id}
-                className="group block bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-4 hover:bg-white/10 transition-all duration-300 hover:shadow-lg hover:shadow-white/5 hover:-translate-y-1"
+                data-pack-card
+                className="group relative block has-[[aria-expanded=true]]:z-20 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-4 hover:bg-white/10 transition-all duration-300 hover:shadow-lg hover:shadow-white/5 hover:-translate-y-1"
               >
                 <Link href={pack.url} className="block">
                   <div className="relative aspect-video mb-4 rounded-lg overflow-hidden bg-white/5">
@@ -95,7 +96,6 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
                 </div>
                 {/* Owners manage their packs here too: unlist, withdraw from review, delete. */}
                 {canManage && type === 'uploaded' && (
-                  <div className="flex justify-end mt-3 pt-3 border-t border-white/10">
                     <PackOwnerControls
                       variant="card"
                       packId={pack.id}
@@ -105,7 +105,6 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
                       listed={pack.isListed}
                       pendingVersionId={pack.pendingVersionId}
                     />
-                  </div>
                 )}
               </div>
             );

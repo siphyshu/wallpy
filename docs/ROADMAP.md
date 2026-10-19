@@ -137,7 +137,9 @@ To do (in order)
 - [x] Docs: contents chips centred under the header
 
 - [x] Final (2026-10-19): typecheck, lint (0 errors), 165 unit, all 10 e2e suites (api 23, ui 26, moderation 17, versions 23, builders 28, profile 31, owner 27, reports 24, notices 9, journey 15); contact sheet recaptured with a Before/After toggle
-- [ ] Waiting on Jaiyank: hero subtitle copy ("MacOS"), navbar "Github" vs footer "GitHub", sticky docs contents (layout change)
+- [x] Profile pack cards: owner actions moved into a ⋯ menu on the cover (right-click the card opens it too); confirms still show inline on the card
+- [x] Docs: on desktop a sticky "On this page" list beside the text marks the current section; chips under the header below `lg`
+- [ ] Hero subtitle: left for the homepage redesign (Jaiyank, 2026-10-19)
 
 ## Go CLI: feature-complete (publish after the site)
 

@@ -45,6 +45,7 @@ Sections inside a page use `<SectionTitle count>`.
 | `Card` | Sets one object apart (a pack card, a form, a queue item). Don't nest cards |
 | `Input`, `Textarea`, `fieldClasses` | One field style everywhere; labels via `<Label htmlFor>` (every field has one) |
 | `LinkTabs` | Segmented tabs where each tab is a URL (moderation) |
+| Card menus | Actions on a card in a grid go in a ⋯ menu in the card's corner (right-click opens it too), not as always-visible buttons: see `PackOwnerControls` `variant="card"` |
 
 ## Writing
 
