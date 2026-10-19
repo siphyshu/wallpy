@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import GalleryCard from "@/components/gallery/GalleryCard";
 import type { PackCard } from "@/lib/types";
+import { buttonVariants } from '@/components/ui/button';
 
 /** Homepage showcase: the most downloaded public packs. */
 export default function Gallery() {
@@ -32,7 +33,7 @@ export default function Gallery() {
             : packs.map((pack) => <GalleryCard key={pack.id} wallpaper={pack} />)}
         </div>
 
-        <Link href="/gallery" className="inline-block mt-10 px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+        <Link href="/gallery" className={buttonVariants({ variant: 'secondary', className: 'mt-10' })}>
           Browse the gallery
         </Link>
       </div>

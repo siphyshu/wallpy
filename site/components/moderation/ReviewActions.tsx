@@ -2,23 +2,27 @@
 
 import { useState, useTransition } from 'react';
 import { moderateVersion } from '@/app/moderation/actions';
+import { Button, type ButtonVariant } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/input';
 
 type Mode = 'reject' | 'decline';
 
-const MODES: Record<Mode, { placeholder: string; missing: string; confirm: string; busy: string; className: string }> = {
+const MODES: Record<Mode, { placeholder: string; missing: string; confirm: string; busy: string; variant: ButtonVariant; className?: string }> = {
   reject: {
     placeholder: "What should the uploader change? They'll see this note.",
     missing: 'Say what needs to change.',
     confirm: 'Send back with note',
     busy: 'Sending…',
-    className: 'bg-amber-400/10 text-amber-200 border-amber-400/30 hover:bg-amber-400/20',
+    // Amber: the pack comes back to the uploader, not gone.
+    variant: 'secondary',
+    className: 'bg-amber-400/10 text-amber-200 border border-amber-400/30 hover:bg-amber-400/20',
   },
   decline: {
     placeholder: "Why is this pack declined? The uploader will see this, and can't resubmit.",
     missing: 'Say why the pack is declined.',
     confirm: 'Decline pack',
     busy: 'Declining…',
-    className: 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30',
+    variant: 'danger',
   },
 };
 
@@ -45,56 +49,43 @@ export default function ReviewActions({ versionId, slug, isUpdate = false }: { v
     });
   };
 
-  const secondary = 'px-4 py-2 rounded-lg text-sm font-medium bg-white/10 border border-white/20 hover:bg-white/20 transition-colors disabled:opacity-50';
-
   return (
     <div className="flex flex-col gap-3">
       {mode && (
-        <textarea
+        <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           maxLength={1000}
           autoFocus
           placeholder={MODES[mode].placeholder}
-          className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 text-sm resize-none"
+          aria-label={mode === 'reject' ? 'Note for the uploader' : 'Reason for declining'}
+          className="resize-none"
         />
       )}
       <div className="flex flex-wrap items-center gap-2">
         {mode ? (
           <>
-            <button
-              onClick={() => run(mode)}
-              disabled={pending}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${MODES[mode].className}`}
-            >
+            <Button onClick={() => run(mode)} disabled={pending} variant={MODES[mode].variant} className={MODES[mode].className}>
               {pending ? MODES[mode].busy : MODES[mode].confirm}
-            </button>
-            <button onClick={() => { setMode(null); setError(null); }} disabled={pending} className={secondary}>
+            </Button>
+            <Button variant="ghost" onClick={() => { setMode(null); setError(null); }} disabled={pending}>
               Cancel
-            </button>
+            </Button>
           </>
         ) : (
           <>
-            <button
-              onClick={() => run('approve')}
-              disabled={pending}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-black border border-white hover:bg-white/90 transition-colors disabled:opacity-50"
-            >
+            <Button onClick={() => run('approve')} disabled={pending}>
               {pending ? 'Publishing…' : 'Approve & publish'}
-            </button>
-            <button onClick={() => setMode('reject')} disabled={pending} className={secondary}>
+            </Button>
+            <Button variant="secondary" onClick={() => setMode('reject')} disabled={pending}>
               Request changes
-            </button>
+            </Button>
             {/* Updates to published packs can't be declined: request changes, or take the pack down. */}
             {!isUpdate && (
-              <button
-                onClick={() => setMode('decline')}
-                disabled={pending}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-              >
+              <Button variant="danger" onClick={() => setMode('decline')} disabled={pending}>
                 Decline
-              </button>
+              </Button>
             )}
           </>
         )}

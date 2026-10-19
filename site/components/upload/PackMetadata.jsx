@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CATEGORIES, MAX_CATEGORIES } from '@/lib/packs/categories';
 import { PACK_LIMITS, normalizeTag, parseTagList } from '@/lib/packs/limits';
+import { fieldClasses } from '@/components/ui/input';
 
 const AI_OPTIONS = [
   { id: 'none', label: 'No AI', help: 'Made without AI image tools.' },
@@ -74,7 +75,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
               required
               value={metadata.title}
               onChange={(e) => handleChange('title', e.target.value)}
-              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 transition-all"
+              className={`${fieldClasses} py-2.5`}
               placeholder="Enter a descriptive title"
             />
           </div>
@@ -86,7 +87,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
               value={metadata.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 transition-all resize-none"
+              className={`${fieldClasses} py-2.5 resize-none`}
               placeholder="Describe the theme, style, and what makes it special..."
             />
           </div>
@@ -132,7 +133,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
               autoComplete="off"
               value={metadata.tags}
               onChange={(e) => handleChange('tags', e.target.value)}
-              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 transition-all"
+              className={`${fieldClasses} py-2.5`}
               placeholder="sunset, pixel-art, studio-ghibli (comma separated)"
             />
             {suggestions.length > 0 && (
@@ -210,7 +211,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
                   required={!metadata.isOriginal}
                   value={metadata.authorName}
                   onChange={(e) => handleChange('authorName', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 transition-all"
+                  className={`${fieldClasses} py-2.5`}
                   placeholder="Name of the original creator"
                 />
               </div>
@@ -221,7 +222,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
                   type="url"
                   value={metadata.authorUrl}
                   onChange={(e) => handleChange('authorUrl', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 transition-all"
+                  className={`${fieldClasses} py-2.5`}
                   placeholder="https://example.com/artist"
                 />
               </div>
@@ -264,7 +265,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
             <select id="pack-license"
               value={metadata.license}
               onChange={(e) => handleChange('license', e.target.value)}
-              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white transition-all"
+              className={`${fieldClasses} py-2.5`}
             >
               {LICENSE_OPTIONS.map((option) => (
                 <option key={option.id} value={option.id} className="bg-[#1d1d1d]">{option.label}</option>

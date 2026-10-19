@@ -6,6 +6,7 @@ import toml from '@iarna/toml';
 import { kindOfSchedule, scheduleToConfig } from '@/lib/spec/builder';
 import { validateSchedule } from '@/lib/spec/validate';
 import { safeImageName } from '@/lib/packs/limits';
+import { buttonVariants } from '@/components/ui/button';
 
 const EXT_MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 
@@ -208,7 +209,7 @@ export default function ImportPack({ onImport }) {
               type="button"
               disabled={busy}
               onClick={() => folderInputRef.current?.click()}
-              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-sm font-medium disabled:opacity-50"
+              className={buttonVariants({ variant: 'secondary' })}
             >
               Choose a folder
             </button>
@@ -221,7 +222,7 @@ export default function ImportPack({ onImport }) {
               type="button"
               disabled={busy}
               onClick={() => zipInputRef.current?.click()}
-              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-sm font-medium disabled:opacity-50"
+              className={buttonVariants({ variant: 'secondary' })}
             >
               Choose a .zip file
             </button>

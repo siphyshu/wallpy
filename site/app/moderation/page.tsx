@@ -12,6 +12,9 @@ import { getCurrentProfile } from '@/lib/data/profiles';
 import { listHistory, listOpenReports, listPendingVersions, searchPublishedPacks, type PendingVersion } from '@/lib/data/moderation';
 import { categoryName } from '@/lib/packs/categories';
 import { reportReasonLabel } from '@/lib/moderation/review';
+import { Pill } from '@/components/ui/pill';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export const metadata = { title: 'Moderation | Wallpy' };
 
@@ -29,11 +32,16 @@ type Tab = (typeof TABS)[number]['id'];
 const CARD = 'bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-6';
 const date = (iso: string) => new Date(iso).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' });
 
-function Thumb({ href, url, alt }: { href: string; url: string | null; alt: string }) {
+function Thumb({ href, url, alt, small = false }: { href: string; url: string | null; alt: string; small?: boolean }) {
   // self-start: in a flex row the cover would otherwise stretch past 16:9.
   return (
-    <Link href={href} className="relative w-full md:w-72 self-start aspect-video rounded-lg overflow-hidden bg-white/5 shrink-0">
-      {url && <Image src={url} alt={alt} fill sizes="288px" className="object-cover" />}
+    <Link href={href} className={`relative w-full ${small ? 'md:w-40' : 'md:w-72'} self-start aspect-video rounded-lg overflow-hidden bg-white/5 shrink-0`}>
+      {url ? (
+        <Image src={url} alt={alt} fill sizes={small ? '160px' : '288px'} className="object-cover" />
+      ) : (
+        // No cover rendition (older packs): the title, not an empty box.
+        <span className="absolute inset-0 flex items-center justify-center p-3 text-center font-serif text-white/40 text-lg">{alt}</span>
+      )}
     </Link>
   );
 }
@@ -108,10 +116,8 @@ function QueueCard({ v }: { v: PendingVersion }) {
         <div className="flex-1 min-w-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Link href={`/packs/${v.slug}`} className="text-2xl font-serif hover:underline truncate">{v.title}</Link>
-            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">{v.kindLabel}</span>
-            {v.isUpdate && (
-              <span className="px-2 py-1 bg-white/10 text-white/70 rounded text-xs font-medium">Update · v{v.number}</span>
-            )}
+            <Pill>{v.kindLabel}</Pill>
+            {v.isUpdate && <Pill tone="outline">Update · v{v.number}</Pill>}
             <AiUseLabel aiUse={v.aiUse} />
           </div>
 
@@ -129,9 +135,9 @@ function QueueCard({ v }: { v: PendingVersion }) {
           {(v.categories.length > 0 || v.tags.length > 0) && (
             <div className="flex flex-wrap gap-1.5">
               {v.categories.map((c) => (
-                <span key={c} className="px-2.5 py-0.5 border border-white/20 bg-white/5 rounded-full text-xs">{categoryName(c)}</span>
+                <Pill key={c} tone="outline">{categoryName(c)}</Pill>
               ))}
-              {v.tags.map((t) => <span key={t} className="px-2 py-0.5 bg-white/10 rounded-full text-xs">#{t}</span>)}
+              {v.tags.map((t) => <Pill key={t}>#{t}</Pill>)}
             </div>
           )}
 
@@ -193,10 +199,8 @@ async function ReportsTab() {
               <div className="flex-1 min-w-0 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link href={`/packs/${p.slug}`} className="text-2xl font-serif hover:underline truncate">{p.title}</Link>
-                  <span className="px-2 py-1 bg-amber-400/10 text-amber-200 border border-amber-400/30 rounded-full text-xs font-medium">
-                    {p.reports.length} {p.reports.length === 1 ? 'report' : 'reports'}
-                  </span>
-                  {p.removed && <span className="px-2 py-1 bg-white/10 text-white/70 rounded-full text-xs">Taken down</span>}
+                  <Pill tone="amber">{p.reports.length} {p.reports.length === 1 ? 'report' : 'reports'}</Pill>
+                  {p.removed && <Pill tone="red">Taken down</Pill>}
                 </div>
                 <p className="text-sm text-white/60">
                   {p.owner ? <Link href={`/profile/${p.owner}`} className="hover:text-white">@{p.owner}</Link> : 'deleted user'}
@@ -204,7 +208,7 @@ async function ReportsTab() {
                 <ul className="flex flex-col gap-2">
                   {p.reports.map((r) => (
                     <li key={r.id} className="text-sm">
-                      <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs mr-2">{reportReasonLabel(r.reason)}</span>
+                      <Pill className="mr-2">{reportReasonLabel(r.reason)}</Pill>
                       <span className="text-white/50 text-xs">{r.reporter ? `@${r.reporter}` : 'deleted user'} · {date(r.at)}</span>
                       {r.note && <p className="text-white/70 mt-1">{r.note}</p>}
                     </li>
@@ -229,27 +233,20 @@ async function PublishedTab({ q }: { q: string }) {
     <>
       <form className="flex gap-2 mb-8 max-w-xl mx-auto" action="/moderation">
         <input type="hidden" name="tab" value="published" />
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search published packs by title"
-          className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 text-sm"
-        />
-        <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors">Search</button>
+        <Input name="q" defaultValue={q} placeholder="Search published packs by title" aria-label="Search published packs" className="flex-1" />
+        <Button type="submit">Search</Button>
       </form>
       {packs.length === 0 && <p className="text-white/70 text-center">No published packs match.</p>}
       <div className="flex flex-col gap-4">
         {packs.map((p) => (
           <article key={p.packId} className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-4" data-testid="published-card">
             <div className="flex flex-col md:flex-row gap-4">
-              <Link href={`/packs/${p.slug}`} className="relative w-full md:w-40 self-start aspect-video rounded overflow-hidden bg-white/5 shrink-0">
-                {p.thumbUrl && <Image src={p.thumbUrl} alt={p.title} fill sizes="160px" className="object-cover" />}
-              </Link>
+              <Thumb href={`/packs/${p.slug}`} url={p.thumbUrl} alt={p.title} small />
               <div className="flex-1 min-w-0 flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link href={`/packs/${p.slug}`} className="text-lg font-serif hover:underline truncate">{p.title}</Link>
-                  {p.removedAt && <span className="px-2 py-0.5 bg-red-500/20 text-red-300 rounded-full text-xs">Taken down</span>}
-                  {!p.isListed && <span className="px-2 py-0.5 bg-white/10 text-white/70 rounded-full text-xs">Unlisted</span>}
+                  {p.removedAt && <Pill tone="red">Taken down</Pill>}
+                  {!p.isListed && <Pill tone="outline">Unlisted</Pill>}
                 </div>
                 <p className="text-sm text-white/60">
                   {p.owner ? <Link href={`/profile/${p.owner}`} className="hover:text-white">@{p.owner}</Link> : 'deleted user'}

@@ -1,5 +1,6 @@
 import { IMAGE_MIMES, PACK_LIMITS, safeImageName } from '@/lib/packs/limits';
 import { useState, useRef } from 'react';
+import { buttonVariants } from '@/components/ui/button';
 
 export default function FileUploader({ files, onFilesChange, wallpackType, coverName, onCoverChange }) {
   const [dragActive, setDragActive] = useState(false);
@@ -201,7 +202,7 @@ export default function FileUploader({ files, onFilesChange, wallpackType, cover
           {/* Upload Button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full mt-4 px-4 py-3 bg-white text-black hover:bg-white/90 rounded-lg transition-colors font-medium"
+            className={buttonVariants({ size: 'lg', className: 'w-full mt-4' })}
           >
             Choose Files
           </button>

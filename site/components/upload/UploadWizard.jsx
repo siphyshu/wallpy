@@ -15,6 +15,7 @@ import { submitPack } from '@/lib/packs/client-upload';
 import { BUILDER_KINDS, configToSchedule, defaultConfig, scheduleToConfig } from '@/lib/spec/builder';
 import { validateSchedule } from '@/lib/spec/validate';
 import { parseTagList } from '@/lib/packs/limits';
+import { Button } from '@/components/ui/button';
 
 const DRAFT_VERSION = 1;
 
@@ -481,32 +482,20 @@ function WizardBody({ edit, draft }) {
 
           {/* Navigation */}
           <div className="flex justify-between items-center">
-            <button
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button size="lg" variant="secondary" onClick={handlePrevious} disabled={currentStep === 1}>
               Previous
-            </button>
+            </Button>
 
             <div className="flex flex-col items-end gap-2">
               <div className="flex space-x-4">
                 {currentStep < steps.length ? (
-                  <button
-                    onClick={handleNext}
-                    disabled={!canProceedToNext()}
-                    className="px-6 py-3 bg-white text-black hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <Button size="lg" onClick={handleNext} disabled={!canProceedToNext()}>
                     Next
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={!canProceedToNext() || isUploading}
-                    className="px-6 py-3 bg-white text-black hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <Button size="lg" onClick={handleSubmit} disabled={!canProceedToNext() || isUploading}>
                     {isUploading ? 'Uploading...' : edit ? `Submit version ${nextVersion}` : 'Upload Wallpack'}
-                  </button>
+                  </Button>
                 )}
               </div>
               {stepIssues().length > 0 && (

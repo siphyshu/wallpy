@@ -62,7 +62,7 @@ export default function DocsPage() {
           description="Wallpy is a small command-line program that sets your wallpaper from a pack and keeps it changing through the day, the week or on a schedule of its own."
         />
 
-        <nav aria-label="On this page" className="flex flex-wrap gap-2 mb-14">
+        <nav aria-label="On this page" className="flex flex-wrap justify-center gap-2 mb-14">
           {SECTIONS.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="px-3 py-1 rounded-full bg-white/10 text-sm text-white/70 hover:bg-white/20 hover:text-white transition-colors">
               {s.title}

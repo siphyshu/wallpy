@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Alegreya } from 'next/font/google';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -10,10 +9,6 @@ import type { User as AuthUser } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
 import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR } from '@/lib/data/profile-shape';
 import { User, Upload, LogOut, ShieldCheck, Menu, X, Bell } from 'lucide-react';
-
-const testing = Alegreya({
-    subsets: ['latin'],
-});
 
 const NavBar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -206,7 +201,7 @@ const NavBar = () => {
                  className={`fixed top-10 left-1/2 -translate-x-1/2 z-50
                             backdrop-blur-md text-white transition-colors duration-300
                             ${scrolled ? 'bg-black/40' : 'bg-transparent'}
-                            shadow-lg font-serif border-2 border-white/10
+                            shadow-lg text-sm font-medium border-2 border-white/10
                             px-4 py-3 rounded-2xl md:px-12 md:py-4 md:rounded-full
                             flex items-center justify-center w-auto`}>
                 <div className="flex items-center gap-4 md:gap-8">
@@ -271,7 +266,7 @@ const NavBar = () => {
                     id="mobile-menu"
                     className="md:hidden fixed top-28 left-4 right-4 z-50 mx-auto max-w-sm
                                bg-black/60 backdrop-blur-md text-white shadow-2xl border-2 border-white/10
-                               rounded-2xl p-2 font-serif text-lg flex flex-col"
+                               rounded-2xl p-2 text-base flex flex-col"
                 >
                     <Link href="/docs" className={menuItem} onClick={closeMenu}>Docs</Link>
                     <Link href="/gallery" className={menuItem} onClick={closeMenu}>Gallery</Link>
@@ -326,7 +321,7 @@ const NavBar = () => {
                         transform: 'translateX(-65%)'
                     }}
                 >
-                    <div className="backdrop-blur-md text-white shadow-2xl border-2 border-white/10 flex flex-col font-serif w-fit rounded-3xl py-4">
+                    <div className="backdrop-blur-md text-white shadow-2xl border-2 border-white/10 flex flex-col text-sm w-fit rounded-3xl py-4">
                         <Link
                             href={`/profile/${profile?.username}`}
                             className="px-6 py-2 hover:bg-white/10 transition-colors duration-200 rounded-2xl mx-2 font-medium flex items-center gap-3"

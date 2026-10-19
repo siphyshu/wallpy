@@ -127,14 +127,15 @@ Done
 - [x] Profile: `Page wide`, status `Pill` tones, `SectionTitle` (titles kept), owner/profile/delete-account buttons and fields on `Button` + `fieldClasses` (no blue focus ring), dusk-gradient empty cover, the nudge is a `Notice` without its own button (Edit Profile sits under it), download count hidden at 0
 
 To do (in order)
-- [ ] Homepage (`app/page.tsx`, `components/homepage/*`): hero subtitle copy ("macOS"; lead with what it does); install + gallery sections use the system buttons
-- [ ] Footer (`components/footer.tsx`): links to Docs, Gallery, GitHub, report a problem (GitHub issues), contact (siphyshu@gmail.com); copyright. Privacy/terms pages are a separate launch item (add under "Before launch")
-- [ ] Moderation cards (`app/moderation/page.tsx`): kind badge neutral; empty thumbnails fall back to the first image (or a neutral placeholder with the title); buttons via `Button`
-- [ ] Remaining off-palette colours: `grep -rEo "(bg|text|border)-(blue|green|purple|indigo|sky|cyan|emerald|teal|violet|pink|rose|orange|yellow)-" site/app site/components` (71 uses in 12 files at the start; builder previews' time-of-day tints may stay).
-- [ ] Auth forms: inputs to the one field style (`Input` already updated; check `components/auth/*` for local classes); 404 page onto `Page`/`PageHeader`
-- [ ] Inputs/buttons elsewhere still hand-styled: wizard nav (Previous/Next/Upload), FileUploader, ImportPack, ProfileCard edit form, ReportPackButton, PackOwnerControls, ReviewActions → `Button`/`Input`
-- [ ] Fonts: navbar to Inter (`components/navbar.tsx`: `font-serif` → sans, remove the unused Alegreya import/`testing`); delete `site/public/fonts/` (Thunder, Megna trial; unused); tick "Replace trial / unlicensed fonts" under Before launch
-- [ ] Docs page polish: sticky contents beside the text on desktop
+- [x] Homepage: "Browse the gallery" / "Read the docs" on `buttonVariants` (hero buttons and copy untouched)
+- [x] Footer: Docs, Gallery, GitHub, Report a problem (GitHub issues), siphyshu@gmail.com above the copyright
+- [x] Moderation: kind/category/tag/state pills via `Pill`; covers fall back to the title when there's no rendition; review, takedown and search controls on `Button`/`Textarea`/`Input`
+- [x] Off-palette colours: what's left carries meaning and stays (green success text, the pack schedule's sky tints, the violet AI label, the pink favourite heart, the builder guide's orange/purple icons kept on 2026-10-17)
+- [x] Auth forms already on `Input`/`Button`; 404 buttons and badge on the shared styles (its card layout kept)
+- [x] Wizard nav, Choose Files, import buttons and the details fields on `Button`/`fieldClasses`
+- [x] Fonts: navbar in Inter (unused Alegreya removed); `site/public/fonts/` (Thunder, Megna trial) deleted
+- [x] Docs: contents chips centred under the header
+
 - [ ] Final: typecheck, lint, unit, every e2e suite (incl. `journey`), recapture the whole contact sheet as "after" and republish it for Jaiyank
 
 ## Go CLI: feature-complete (publish after the site)
@@ -181,7 +182,8 @@ hidden `run` for the service.
 - [ ] DNS: `wallpy.siphyshu.me` points at a dead IP; stale `*.siphyshu.me` wildcard
 - [ ] Deploy the site (host TBD) with production env vars
 - [x] Footer year updated to 2026 (2026-10-17)
-- [ ] Replace trial / unlicensed fonts (Thunder, Megna trial)
+- [x] Replace trial / unlicensed fonts (Thunder, Megna trial) (2026-10-19: unused, deleted)
+- [ ] Privacy and terms pages, linked from the footer
 - [ ] Push the `monorepo` branch (only when asked)
 
 ## Later / ideas

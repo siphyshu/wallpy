@@ -2,12 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import { dismissReports, setPackRemoved } from '@/app/moderation/actions';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/input';
 
 type Mode = 'takedown' | 'restore';
-
-const BUTTON = 'px-4 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50';
-const SECONDARY = `${BUTTON} bg-white/10 border-white/20 hover:bg-white/20`;
-const DANGER = `${BUTTON} bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20`;
 
 /**
  * Moderator controls for a published pack: take it down (reason required; the
@@ -46,7 +44,7 @@ export default function PackModActions({ versionId, packId, slug, removed, openR
   return (
     <div className="flex flex-col gap-3">
       {mode && (
-        <textarea
+        <Textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={3}
@@ -55,28 +53,29 @@ export default function PackModActions({ versionId, packId, slug, removed, openR
           placeholder={mode === 'takedown'
             ? "Why is this pack taken down? The owner will see this."
             : 'Why is this pack restored? Kept in the moderation log.'}
-          className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 text-sm resize-none"
+          aria-label={mode === 'takedown' ? 'Reason for the takedown' : 'Reason for restoring'}
+          className="resize-none"
         />
       )}
       <div className="flex flex-wrap items-center gap-2">
         {mode ? (
           <>
-            <button onClick={confirm} disabled={pending} className={mode === 'takedown' ? DANGER : SECONDARY}>
+            <Button onClick={confirm} disabled={pending} variant={mode === 'takedown' ? 'danger' : 'secondary'}>
               {pending ? 'Saving…' : mode === 'takedown' ? 'Take down pack' : 'Restore pack'}
-            </button>
-            <button onClick={() => { setMode(null); setError(null); }} disabled={pending} className={SECONDARY}>Cancel</button>
+            </Button>
+            <Button variant="ghost" onClick={() => { setMode(null); setError(null); }} disabled={pending}>Cancel</Button>
           </>
         ) : (
           <>
             {removed ? (
-              <button onClick={() => setMode('restore')} disabled={pending} className={SECONDARY}>Restore</button>
+              <Button variant="secondary" onClick={() => setMode('restore')} disabled={pending}>Restore</Button>
             ) : (
-              <button onClick={() => setMode('takedown')} disabled={pending} className={DANGER}>Take down</button>
+              <Button variant="danger" onClick={() => setMode('takedown')} disabled={pending}>Take down</Button>
             )}
             {openReports > 0 && (
-              <button onClick={dismiss} disabled={pending} className={SECONDARY}>
+              <Button variant="secondary" onClick={dismiss} disabled={pending}>
                 {pending ? 'Dismissing…' : `Dismiss ${openReports === 1 ? 'report' : `${openReports} reports`}`}
-              </button>
+              </Button>
             )}
           </>
         )}
