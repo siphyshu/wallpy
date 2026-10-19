@@ -50,12 +50,12 @@ Read-only queries: `supabase/scripts/prod_sql.py query "select ..."`.
 - CORS allows `https://wallpy.siphyshu.me`, `http://localhost:3000` and, for parallel dev servers (worktrees), `http://localhost:3101`–`3110` (added 2026-10-17; remove before launch). Change it with the S3 API (`GetBucketCors`/`PutBucketCors`) using the R2 keys in `site/.env.local`.
 - Browser `fetch()`es of CDN files use `cache: 'reload'`: `<img>` tags cache copies without CORS headers.
 
-### Cloudflare cache (to do before launch)
+### Cloudflare cache (set up 2026-10-20)
 
 1. Caching → Cache Rules: hostname `wallpy-cdn.siphyshu.me` → eligible for cache, edge TTL from origin `Cache-Control`, browser TTL respect origin.
 2. Rules → Transform Rules → modify response header: set `Access-Control-Allow-Origin: *` for the same hostname.
 
-Do both together: R2 only adds CORS headers when a request has `Origin`, and the
+Both live on zone `siphyshu.me` (Rules → Cache Rules and Transform Rules, descriptions start "Wallpy CDN"). They go together: R2 only adds CORS headers when a request has `Origin`, and the
 edge cache doesn't vary on it, so without step 2 a cached copy can lack them.
 `*` is fine: files are public and content-addressed.
 
@@ -114,7 +114,7 @@ the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 
 - Vercel project `wallpy` (team siphyshu's projects). Pushing `main` deploys production; other branches get preview URLs. The local `.vercel/` link sits at the repo root.
 - Project root `site/`, production domain `wallpy.siphyshu.me` (DNS: `CNAME wallpy → cname.vercel-dns.com`, DNS only in Cloudflare).
-- Environment variables: everything in `site/.env.local` except `CLOUDFLARE_API_TOKEN`, plus `CRON_SECRET`.
+- Environment variables: everything in `site/.env.local`, plus `CRON_SECRET`.
 - `site/vercel.json` runs `/api/keepalive` daily (06:17 UTC): one public read so the Supabase free plan never pauses for inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`; other callers get 401 when the secret is set.
 
 ## Releases
