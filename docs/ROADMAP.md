@@ -38,7 +38,7 @@ design and feature work. Collected so far:
 - [x] Install section on the homepage: 3 steps (install with OS tabs, run `wallpy`, done) at `#install`; commands from `site/lib/install.ts`
 - [x] Pack pages say `wallpy download <slug>` (components/packs/InstallCommand.tsx): use `wallpy use <slug>`
 - [x] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders (2026-10-17: yes — a folder or .zip with schedule.toml + images, parsed and validated against the spec on step 1)
-- [ ] Design pass across the site
+- [ ] Design pass across the site (consistency + polish; contact sheet of every page reviewed 2026-10-19: shared components, page headers, widths, palette, inputs, footer, fonts, per-page items)
 
 Walkthrough findings (2026-10-17):
 
@@ -99,7 +99,7 @@ Final walk (2026-10-18, after all batches; now `test:e2e:journey`, 15 steps acro
 - [x] Takedown notice ended in a double full stop ("…takedown..")
 - [x] The desktop avatar menu stayed open after picking an item
 - [x] Wizard details labels weren't linked to their fields (screen readers couldn't name them)
-- [ ] A taken-down pack's owner sees the reason and a Delete button, but nothing about what happens next (fix and ask for a restore? appeal?). Needs a decision
+- [ ] A taken-down pack's owner sees the reason and a Delete button, but nothing about what happens next. Decided: final; say so and point to support (GitHub issues + email)
 - [ ] Design pass leftovers: the blue "Explore the gallery" link on empty favourites; "Fill in your profile" sits right above "Edit Profile" (same action)
 
 ## Go CLI: feature-complete (publish after the site)
