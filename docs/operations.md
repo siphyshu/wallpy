@@ -109,3 +109,13 @@ To publish (ask first; it's public and permanent):
 Tags `v*` version the CLI (the site isn't versioned). Binaries are unsigned:
 the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 (macOS) and code signing (Windows SmartScreen) are on the roadmap.
+
+## Hosting (Vercel)
+
+- Project root `site/`, production domain `wallpy.siphyshu.me` (DNS: `CNAME wallpy → cname.vercel-dns.com`, DNS only in Cloudflare).
+- Environment variables: everything in `site/.env.local` except `CLOUDFLARE_API_TOKEN`, plus `CRON_SECRET`.
+- `site/vercel.json` runs `/api/keepalive` daily (06:17 UTC): one public read so the Supabase free plan never pauses for inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`; other callers get 401 when the secret is set.
+
+## Releases
+
+- The Python CLI's last version is archived as tag/release `python-v2.25.0`. The Go CLI is versioned from `v3.0.0` (tags `v*`).

@@ -190,7 +190,9 @@ hidden `run` for the service.
 - [x] Replace trial / unlicensed fonts (Thunder, Megna trial) (2026-10-19: unused, deleted)
 - [x] Privacy and terms pages, linked from the footer and the sign-up form (2026-10-20: `/privacy`, `/terms`; accounts 13+, no governing-law clause; every statement matches the code: keep them in step)
 - [x] Homepage hero art: kept, credited to Matt Vince (the pack's artist) under the time switcher (Jaiyank, 2026-10-20)
-- [ ] Push the `monorepo` branch (only when asked)
+- [x] Push the `monorepo` branch (2026-10-20); old `main` archived as tag + release `python-v2.25.0`, `main` fast-forwarded to `monorepo`
+- [x] Supabase free plan pauses after ~a week idle: `/api/keepalive` (one public read) called daily by Vercel Cron (`site/vercel.json`); live once deployed
+- [ ] SEO (next session): sitemap.xml + robots.txt (public packs, categories, pages; not unlisted/moderation/upload), Open Graph share images per pack + home, category pages at real URLs (`/gallery/landscapes`), then per-OS pages (dynamic wallpapers for Windows / Linux / macOS) and a "Make a wallpack" guide
 
 ## Later / ideas
 
