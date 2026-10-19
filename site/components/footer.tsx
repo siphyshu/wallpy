@@ -3,9 +3,9 @@ import Link from "next/link";
 const GITHUB = 'https://github.com/siphyshu/wallpy';
 const link = 'hover:text-white transition-colors';
 
-const Footer = ( {isHome = false} ) => {
+const Footer = () => {
   return (
-    <footer className={`text-white/70 text-center ${isHome ? 'pt-32 bg-black/80' : 'pt-12 bg-background'}`}>
+    <footer className="text-white/70 text-center pt-12 bg-background">
       <div className="w-full h-[1px] bg-white/10"></div>
       <div className="px-6 py-16 flex flex-col items-center gap-6 text-sm">
         <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-6 gap-y-2">

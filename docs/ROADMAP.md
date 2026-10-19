@@ -141,7 +141,7 @@ To do (in order)
 - [x] Final (2026-10-19): typecheck, lint (0 errors), 165 unit, all 10 e2e suites (api 23, ui 26, moderation 17, versions 23, builders 28, profile 31, owner 27, reports 24, notices 9, journey 15); contact sheet recaptured with a Before/After toggle
 - [x] Profile pack cards: owner actions moved into a ⋯ menu on the cover (right-click the card opens it too); confirms still show inline on the card
 - [x] Docs: on desktop a sticky "On this page" list beside the text marks the current section; chips under the header below `lg`
-- [ ] Hero subtitle: left for the homepage redesign (Jaiyank, 2026-10-19)
+- [x] Homepage redesign (2026-10-19, direction A of six on the canvas https://claude.ai/artifact/Rw7anchvc9ZqgLKtTGAv55): hero keeps the headline and pill buttons, new subtitle, and a Dawn/Day/Dusk/Night switcher over crossfading images (steps on its own until clicked, not with reduced motion); "Three ways a pack changes" (Daypack, Weekpack, Album); "From the gallery" (top 3); the 3-step install; "Make your own wallpack"; a Questions FAQ (free, location, performance, monitors, own images, uninstall; answers checked against the CLI). One spacing rhythm: every section `py-12 md:py-16`. Hero images are ~100–150 KB WebP (were 4–5 MB JPEGs each, ~18 MB per first visit)
 
 ## Go CLI: feature-complete (publish after the site)
 
@@ -189,6 +189,7 @@ hidden `run` for the service.
 - [x] Footer year updated to 2026 (2026-10-17)
 - [x] Replace trial / unlicensed fonts (Thunder, Megna trial) (2026-10-19: unused, deleted)
 - [ ] Privacy and terms pages, linked from the footer
+- [ ] Homepage hero art is from *The Wind Waker* (Nintendo): replace with art Wallpy has rights to, or credit it clearly, before launch
 - [ ] Push the `monorepo` branch (only when asked)
 
 ## Later / ideas

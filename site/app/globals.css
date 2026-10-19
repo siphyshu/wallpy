@@ -19,18 +19,6 @@ body {
   font-family: var(--font-sans), var(--font-serif);
 }
 
-@keyframes daycycle {
-  0%  { background-image: url('/wallpapers/day.jpg'); }
-  25%  { background-image: url('/wallpapers/sunset.jpg'); }
-  50%  { background-image: url('/wallpapers/night.jpg'); }
-  75%  { background-image: url('/wallpapers/sunrise.jpg'); }
-  100% { background-image: url('/wallpapers/day.jpg'); } 
-}
-
-.animate-daycycle {
-  animation: daycycle 24s infinite;
-}
-
 @layer utilities {
   .no-scrollbar {
     -ms-overflow-style: none;

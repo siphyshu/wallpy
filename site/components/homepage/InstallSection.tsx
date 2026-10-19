@@ -19,9 +19,9 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 
 const InstallSection = () => {
   return (
-    <section id="install" className="relative py-24 px-6 bg-black/80 text-white scroll-mt-8">
+    <section id="install" className="relative py-12 md:py-16 px-4 sm:px-6 scroll-mt-8">
       <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <h2 className="text-3xl md:text-5xl font-serif mb-6">Install Wallpy in 3 steps</h2>
           <p className="text-white/80">One small program, no runtime. Works on macOS, Windows and Linux.</p>
         </div>

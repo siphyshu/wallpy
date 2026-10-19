@@ -11,19 +11,23 @@ export default function Gallery() {
   const [packs, setPacks] = useState<PackCard[] | null>(null);
 
   useEffect(() => {
-    fetch("/api/packs?sort=popular&limit=6")
+    fetch("/api/packs?sort=popular&limit=3")
       .then((r) => (r.ok ? r.json() : { packs: [] }))
       .then((d) => setPacks(d.packs))
       .catch(() => setPacks([]));
   }, []);
 
   return (
-    <section id="gallery" className="relative py-12 px-6 bg-black/80 text-white h-full">
-      <div className="max-w-5xl mx-auto text-center mb-40">
-        <h2 className="text-3xl md:text-5xl font-serif mb-6">Wallpy Gallery</h2>
-        <p className="text-white/80 mb-12">
-          Pick a wallpack made by the community, and install it with a single command.
-        </p>
+    <section id="gallery" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-16 flex flex-col gap-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-3xl md:text-5xl font-serif">From the gallery</h2>
+            <p className="text-white/70">Made by the community. Each one installs with a single command.</p>
+          </div>
+          <Link href="/gallery" className={buttonVariants({ variant: 'secondary' })}>
+            Browse the gallery
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-left">
           {packs === null
@@ -32,11 +36,6 @@ export default function Gallery() {
               ))
             : packs.map((pack) => <GalleryCard key={pack.id} wallpaper={pack} />)}
         </div>
-
-        <Link href="/gallery" className={buttonVariants({ variant: 'secondary', className: 'mt-10' })}>
-          Browse the gallery
-        </Link>
-      </div>
     </section>
   );
 }

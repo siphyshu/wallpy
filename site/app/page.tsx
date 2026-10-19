@@ -1,21 +1,21 @@
-"use client"
-
 import HeroSection from '@/components/homepage/HeroSection';
+import PackKindsSection from '@/components/homepage/PackKindsSection';
 import GallerySection from '@/components/homepage/GallerySection';
-import Footer from '@/components/footer';
 import InstallSection from '@/components/homepage/InstallSection';
+import CreateSection from '@/components/homepage/CreateSection';
+import FaqSection from '@/components/homepage/FaqSection';
+import Footer from '@/components/footer';
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-white">
-      <div className="fixed inset-0 z-[-10]">
-        <div className="w-full h-full bg-cover bg-center animate-daycycle bg-[url('/wallpapers/day.jpg')] priority" />
-      </div>
-      
+    <div className="relative min-h-screen overflow-x-hidden text-white bg-background">
       <HeroSection />
-      <InstallSection />
+      <PackKindsSection />
       <GallerySection />
-      <Footer isHome={true} />
+      <InstallSection />
+      <CreateSection />
+      <FaqSection />
+      <Footer />
     </div>
   );
 }

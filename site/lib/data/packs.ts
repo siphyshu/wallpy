@@ -78,7 +78,7 @@ function toCard(pack: PackRow, version: VersionSummaryRow | null | undefined): P
     slug: pack.slug,
     name: version?.title ?? pack.slug,
     url: `/packs/${pack.slug}`,
-    preview: blobUrl(version?.thumb?.sha256) || '/wallpapers/day.jpg',
+    preview: blobUrl(version?.thumb?.sha256) || '/wallpapers/hero/day.webp',
     blurhash: version?.thumb?.blurhash ?? null,
     author: c.name,
     author_url: c.url,
