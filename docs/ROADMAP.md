@@ -38,7 +38,7 @@ design and feature work. Collected so far:
 - [x] Install section on the homepage: 3 steps (install with OS tabs, run `wallpy`, done) at `#install`; commands from `site/lib/install.ts`
 - [x] Pack pages say `wallpy download <slug>` (components/packs/InstallCommand.tsx): use `wallpy use <slug>`
 - [x] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders (2026-10-17: yes — a folder or .zip with schedule.toml + images, parsed and validated against the spec on step 1)
-- [ ] Design pass across the site (consistency + polish; contact sheet of every page reviewed 2026-10-19: shared components, page headers, widths, palette, inputs, footer, fonts, per-page items)
+- [ ] Design pass across the site: see "Design pass (in progress)" below
 
 Walkthrough findings (2026-10-17):
 
@@ -100,7 +100,39 @@ Final walk (2026-10-18, after all batches; now `test:e2e:journey`, 15 steps acro
 - [x] The desktop avatar menu stayed open after picking an item
 - [x] Wizard details labels weren't linked to their fields (screen readers couldn't name them)
 - [ ] A taken-down pack's owner sees the reason and a Delete button, but nothing about what happens next. Decided: final; say so and point to support (GitHub issues + email)
-- [ ] Design pass leftovers: the blue "Explore the gallery" link on empty favourites; "Fill in your profile" sits right above "Edit Profile" (same action)
+
+### Design pass (in progress, started 2026-10-19)
+
+Scope (Jaiyank): consistency + polish, done directly in the main thread (no
+subagents). Rules: [design-system.md](design-system.md). Contact sheet of every
+page (before) and the title comparison: https://claude.ai/artifact/VavD67B2KUoSotfBYsdoX2
+(private). Recapture with the scratch scripts in this session's scratchpad
+`sheet/capture.mjs` (seeds a creator/moderator/reporter with Harbour Lights
+packs in every state, screenshots desktop 1280 + phone 390; `ONLY=role-page,...`
+and `OUTDIR=./after/` for a subset; cleans up after itself) and `sheet/montage.mjs`.
+
+Decided: centred page headers (left-aligned tried and rejected) with the new
+copy; three widths (reading 768 / browse 1152 / wide 1280); say "pack", not
+"wallpack"; navbar in Inter; takedowns final, support = GitHub issues +
+siphyshu@gmail.com; builders' grid layout and the full schedule.toml stay.
+
+Done
+- [x] Builder: schedule.toml always editable next to the builder; the builder dims (doesn't hide) when the text can't be shown; the Wallpack Preview keeps the last working schedule (`96f8133`)
+- [x] Shared components in `site/components/ui`: Button, Pill, Notice, Card, Input/Textarea, LinkTabs, Page/PageHeader/SectionTitle; `docs/design-system.md` (`c748216`)
+- [x] Page headers + widths + new titles on Gallery, Docs, Notices, Moderation, upload wizard (labelled progress bar; per-step headings now sr-only), sign in / sign up / password pages (`c748216`, centred in `b280dd5`)
+
+To do (in order)
+- [ ] Pack page (`app/packs/[slug]/page.tsx`, `components/packs/*`): `Page wide`; pack-kind badge to a neutral `Pill` (no blue); owner controls under a small "Your pack" label with consistent `Button`s; owner/status notices via `Notice`; takedown notice says it's final and points to GitHub issues + siphyshu@gmail.com; category/tag pills via `Pill`
+- [ ] Profile (`app/profile/[username]/page.tsx`, `components/profile/*`): `Page wide`; status pills via `Pill` tones (published green, in review/changes amber, declined/taken down red, unlisted/draft outline); owner card buttons via `Button sm`; nicer empty cover (gradient, not a grey block with an icon); drop the duplicate "Fill in your profile" button (the notice's action opens the editor, or keep only "Edit Profile"); empty favourites link not blue; `SectionTitle` for "Packs" / "Favourites"
+- [ ] Homepage (`app/page.tsx`, `components/homepage/*`): hero subtitle copy ("macOS"; lead with what it does); install + gallery sections use the system buttons
+- [ ] Footer (`components/footer.tsx`): links to Docs, Gallery, GitHub, report a problem (GitHub issues), contact (siphyshu@gmail.com); copyright. Privacy/terms pages are a separate launch item (add under "Before launch")
+- [ ] Moderation cards (`app/moderation/page.tsx`): kind badge neutral; empty thumbnails fall back to the first image (or a neutral placeholder with the title); buttons via `Button`
+- [ ] Remaining off-palette colours: `grep -rEo "(bg|text|border)-(blue|green|purple|indigo|sky|cyan|emerald|teal|violet|pink|rose|orange|yellow)-" site/app site/components` (71 uses in 12 files at the start; builder previews' time-of-day tints may stay). Remaining "wallpack" wording in UI copy
+- [ ] Auth forms: inputs to the one field style (`Input` already updated; check `components/auth/*` for local classes); 404 page onto `Page`/`PageHeader`
+- [ ] Inputs/buttons elsewhere still hand-styled: wizard nav (Previous/Next/Upload), FileUploader, ImportPack, ProfileCard edit form, ReportPackButton, PackOwnerControls, ReviewActions → `Button`/`Input`
+- [ ] Fonts: navbar to Inter (`components/navbar.tsx`: `font-serif` → sans, remove the unused Alegreya import/`testing`); delete `site/public/fonts/` (Thunder, Megna trial; unused); tick "Replace trial / unlicensed fonts" under Before launch
+- [ ] Docs page polish: sticky contents beside the text on desktop
+- [ ] Final: typecheck, lint, unit, every e2e suite (incl. `journey`), recapture the whole contact sheet as "after" and republish it for Jaiyank
 
 ## Go CLI: feature-complete (publish after the site)
 
