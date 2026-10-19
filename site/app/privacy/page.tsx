@@ -60,7 +60,7 @@ export default function PrivacyPage() {
             <ul>
               <li><a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a>: the database, accounts and sign-in emails.</li>
               <li><a href="https://www.cloudflare.com" target="_blank" rel="noopener noreferrer">Cloudflare</a>: storing and delivering images.</li>
-              <li>The company that hosts this website, which handles every request to it.</li>
+              <li><a href="https://vercel.com" target="_blank" rel="noopener noreferrer">Vercel</a>: hosting this website, which handles every request to it.</li>
             </ul>
             <p>They process data only to run Wallpy. Nothing is shared with anyone else, except where the law requires it.</p>
           </LegalSection>

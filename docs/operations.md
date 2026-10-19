@@ -112,6 +112,7 @@ the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 
 ## Hosting (Vercel)
 
+- Vercel project `wallpy` (team siphyshu's projects). Pushing `main` deploys production; other branches get preview URLs. The local `.vercel/` link sits at the repo root.
 - Project root `site/`, production domain `wallpy.siphyshu.me` (DNS: `CNAME wallpy → cname.vercel-dns.com`, DNS only in Cloudflare).
 - Environment variables: everything in `site/.env.local` except `CLOUDFLARE_API_TOKEN`, plus `CRON_SECRET`.
 - `site/vercel.json` runs `/api/keepalive` daily (06:17 UTC): one public read so the Supabase free plan never pauses for inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`; other callers get 401 when the secret is set.

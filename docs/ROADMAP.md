@@ -182,16 +182,16 @@ hidden `run` for the service.
 ## Before launch
 
 - [ ] Cloudflare on `wallpy-cdn.siphyshu.me`: Cache Rule (eligible, respect origin TTL) **and** a response-header rule `Access-Control-Allow-Origin: *` (both together; see operations.md)
-- [ ] Remove the dev origins `http://localhost:3101`–`3110` from the `wallpy-public` CORS rules (keep `localhost:3000` only if still needed)
-- [ ] Swap the temporary admin R2 token `wallpy-admin-setup` for a bucket-scoped `wallpy-site-prod`
-- [ ] DNS: `wallpy.siphyshu.me` points at a dead IP; stale `*.siphyshu.me` wildcard
-- [ ] Deploy the site (host TBD) with production env vars; then name the host on `/privacy` ("Services that handle your data")
+- [ ] Remove the dev origins `http://localhost:3101`–`3110` from the `wallpy-public` CORS rules (kept for now while developing; Jaiyank, 2026-10-20)
+- [ ] Swap the temporary admin R2 token `wallpy-admin-setup` for a bucket-scoped `wallpy-site-prod` (kept for now while developing; Jaiyank, 2026-10-20)
+- [x] DNS: `wallpy.siphyshu.me` points at a dead IP; stale `*.siphyshu.me` wildcard (2026-10-20: `CNAME wallpy → cname.vercel-dns.com`, wildcard removed)
+- [x] Deploy the site (2026-10-20: Vercel project `wallpy`, root `site/`, production branch `main`, https://wallpy.siphyshu.me; Supabase Site URL + redirect list updated; Vercel named on `/privacy`)
 - [x] Footer year updated to 2026 (2026-10-17)
 - [x] Replace trial / unlicensed fonts (Thunder, Megna trial) (2026-10-19: unused, deleted)
 - [x] Privacy and terms pages, linked from the footer and the sign-up form (2026-10-20: `/privacy`, `/terms`; accounts 13+, no governing-law clause; every statement matches the code: keep them in step)
 - [x] Homepage hero art: kept, credited to Matt Vince (the pack's artist) under the time switcher (Jaiyank, 2026-10-20)
 - [x] Push the `monorepo` branch (2026-10-20); old `main` archived as tag + release `python-v2.25.0`, `main` fast-forwarded to `monorepo`
-- [x] Supabase free plan pauses after ~a week idle: `/api/keepalive` (one public read) called daily by Vercel Cron (`site/vercel.json`); live once deployed
+- [x] Supabase free plan pauses after ~a week idle: `/api/keepalive` (one public read) called daily by Vercel Cron (`site/vercel.json`), registered on the live project
 - [ ] SEO (next session): sitemap.xml + robots.txt (public packs, categories, pages; not unlisted/moderation/upload), Open Graph share images per pack + home, category pages at real URLs (`/gallery/landscapes`), then per-OS pages (dynamic wallpapers for Windows / Linux / macOS) and a "Make a wallpack" guide
 
 ## Later / ideas
