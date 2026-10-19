@@ -13,7 +13,7 @@ export function Page({ width = 'browse', className, children }: { width?: keyof 
   return <main className={cn('mx-auto w-full px-4 sm:px-6 pt-32 pb-24', widths[width], className)}>{children}</main>;
 }
 
-/** The page's title block: a serif title, an optional line under it, actions on the right. */
+/** The page's title block: a centred serif title, one line under it, actions (e.g. tabs) below. */
 export function PageHeader({ title, description, eyebrow, actions, className }: {
   title: ReactNode;
   description?: ReactNode;
@@ -22,13 +22,11 @@ export function PageHeader({ title, description, eyebrow, actions, className }: 
   className?: string;
 }) {
   return (
-    <header className={cn('mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between', className)}>
-      <div className="flex flex-col gap-3 min-w-0">
-        {eyebrow && <div className="text-xs uppercase tracking-wider text-white/50">{eyebrow}</div>}
-        <h1 className="font-serif text-5xl md:text-6xl leading-none text-balance">{title}</h1>
-        {description && <p className="text-white/70 max-w-2xl text-pretty">{description}</p>}
-      </div>
-      {actions && <div className="flex flex-wrap gap-2 shrink-0">{actions}</div>}
+    <header className={cn('mb-12 flex flex-col items-center gap-4 text-center', className)}>
+      {eyebrow && <div className="text-xs uppercase tracking-wider text-white/50">{eyebrow}</div>}
+      <h1 className="font-serif text-5xl md:text-6xl leading-none text-balance">{title}</h1>
+      {description && <p className="text-white/70 max-w-2xl text-pretty">{description}</p>}
+      {actions && <div className="flex flex-wrap justify-center gap-2 mt-2">{actions}</div>}
     </header>
   );
 }

@@ -48,8 +48,8 @@ export default function UploadProgress({
   };
 
   return (
-    <div className="max-w-2xl">
-      <div className="text-left mb-10">
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-10">
         <h2 className="sr-only">Review & Upload</h2>
         <p className="text-white/70">
           Final check before publishing
@@ -164,7 +164,7 @@ export default function UploadProgress({
 
       {/* Upload Status */}
       {error ? (
-        <div className="bg-red-500/10 rounded-xl border border-red-500/30 p-5 max-w-lg">
+        <div className="bg-red-500/10 rounded-xl border border-red-500/30 p-5 max-w-lg mx-auto">
           <div className="flex items-center gap-3 text-red-400">
             <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
             <div>
@@ -174,7 +174,7 @@ export default function UploadProgress({
           </div>
         </div>
       ) : isUploading ? (
-        <div className="bg-white/5 rounded-xl border border-white/10 p-5 max-w-lg">
+        <div className="bg-white/5 rounded-xl border border-white/10 p-5 max-w-lg mx-auto">
           <div className="flex justify-between text-sm mb-3">
             <span className="text-white/70">{status}</span>
             <span className="font-medium">{progress}%</span>

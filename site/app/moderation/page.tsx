@@ -163,7 +163,7 @@ async function QueueTab() {
   const pending = await listPendingVersions();
   return (
     <>
-      <p className="text-white/70 mb-6">
+      <p className="text-white/70 text-center mb-8">
         {pending.length === 0
           ? 'Nothing waiting for review.'
           : `${pending.length} ${pending.length === 1 ? 'pack is' : 'packs are'} waiting, oldest first.`}
@@ -180,7 +180,7 @@ async function ReportsTab() {
   const history = await listHistory(reported.map((r) => r.packId));
   return (
     <>
-      <p className="text-white/70 mb-6">
+      <p className="text-white/70 text-center mb-8">
         {reported.length === 0
           ? 'No open reports.'
           : `${reported.length} ${reported.length === 1 ? 'pack has' : 'packs have'} open reports, most reported first.`}
@@ -237,7 +237,7 @@ async function PublishedTab({ q }: { q: string }) {
         />
         <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors">Search</button>
       </form>
-      {packs.length === 0 && <p className="text-white/70">No published packs match.</p>}
+      {packs.length === 0 && <p className="text-white/70 text-center">No published packs match.</p>}
       <div className="flex flex-col gap-4">
         {packs.map((p) => (
           <article key={p.packId} className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-4" data-testid="published-card">

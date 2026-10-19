@@ -442,7 +442,7 @@ function WizardBody({ edit, draft }) {
           )}
 
           {/* Progress: every step named; done steps ticked, the current one white. */}
-          <ol className="mb-12 grid grid-cols-5 gap-2" aria-label="Steps">
+          <ol className="mb-12 mx-auto max-w-3xl grid grid-cols-5 gap-2" aria-label="Steps">
             {steps.map((step) => {
               const state = currentStep > step.id ? 'done' : currentStep === step.id ? 'current' : 'todo';
               return (

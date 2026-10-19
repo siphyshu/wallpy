@@ -120,9 +120,9 @@ export default function GalleryBrowser() {
 
           {/* Search and Filter Section */}
           <div className="mb-8">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
               <div className="flex-1 w-full">
-                <div className="flex gap-3 items-center max-w-2xl">
+                <div className="flex gap-3 items-center max-w-2xl mx-auto">
                   <div className="flex-1">
                     <GallerySearch
                       searchQuery={searchInput}
@@ -199,7 +199,7 @@ export default function GalleryBrowser() {
               onCategoryChange={changeCategory}
             />
             {tag && (
-              <div className="mt-4 flex">
+              <div className="mt-4 flex justify-center">
                 <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 pl-3 pr-1 py-1 text-sm text-white">
                   Tagged #{tag}
                   <button

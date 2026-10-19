@@ -6,7 +6,7 @@ export default function GalleryFilters({ selectedCategory, onCategoryChange }: {
 
   return (
     // One row: wraps on wide screens, scrolls sideways on phones.
-    <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap">
+    <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap sm:justify-center">
       {chips.map((category) => (
         <button
           key={category.id}

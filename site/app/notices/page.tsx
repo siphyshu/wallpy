@@ -35,7 +35,7 @@ export default async function NoticesPage() {
           <PageHeader title="Notices" description="What moderators decided about your packs." />
 
           {notices.length === 0 ? (
-            <p className="text-white/60" data-testid="notices-empty">
+            <p className="text-white/60 text-center" data-testid="notices-empty">
               Nothing yet. You&apos;ll hear here when a moderator reviews one of your packs.
             </p>
           ) : (

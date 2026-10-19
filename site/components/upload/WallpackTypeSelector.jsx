@@ -44,8 +44,8 @@ const wallpackTypes = [
 
 export default function WallpackTypeSelector({ selectedType, onSelect }) {
   return (
-    <div className="max-w-5xl">
-      <div className="text-left mb-8">
+    <div className="max-w-5xl mx-auto">
+      <div className="text-center mb-8">
         <h2 className="sr-only">Choose Your Wallpack Type</h2>
         <p className="text-white/80">
           Select the type of wallpack you want to create. Each type has different scheduling capabilities.

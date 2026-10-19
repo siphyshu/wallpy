@@ -28,8 +28,9 @@ offset clear of the floating navbar. Pick by what the page holds:
 | `browse` | 1152px | gallery, moderation, 404 |
 | `wide` | 1280px | pack page, profile, upload wizard |
 
-`<PageHeader title description actions>`: left-aligned serif title (48–60px),
-one line under it, actions on the right (below on phones). Every page has one,
+`<PageHeader title description actions>`: centred serif title (48–60px), one
+line under it, actions (e.g. tabs) centred below. (Left-aligned was tried and
+rejected on 2026-10-19.) Every page has one,
 except the homepage (hero) and the pack page (the pack's name is the title).
 Sections inside a page use `<SectionTitle count>`.
 

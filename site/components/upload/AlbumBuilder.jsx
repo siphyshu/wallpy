@@ -71,9 +71,9 @@ export default function AlbumBuilder({
   return (
     <div className="space-y-10">
       {/* Main Title */}
-      <div className="text-left">
+      <div className="text-center">
         <h2 className="sr-only">Configure Album</h2>
-        <p className="text-white/70 max-w-2xl">
+        <p className="text-white/70 max-w-2xl mx-auto">
           Organize your image collection and set rotation preferences
         </p>
       </div>

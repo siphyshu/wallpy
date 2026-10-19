@@ -54,11 +54,11 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
   };
 
   return (
-    <div className="max-w-3xl">
-      <div className="text-left mb-8">
+    <div className="max-w-3xl mx-auto">
+      <div className="text-center mb-8">
         <h2 className="sr-only">Pack Information</h2>
         <p className="text-white/70">
-          Add details to help others discover your wallpack
+          Add details to help others find your pack.
         </p>
       </div>
 
@@ -275,7 +275,7 @@ export default function PackMetadata({ metadata, onMetadataChange }) {
       </div>
 
       {/* Subtle guidelines */}
-      <p className="text-xs text-white/40 mt-6 max-w-lg">
+      <p className="text-center text-xs text-white/40 mt-6 max-w-lg mx-auto">
         By uploading, you confirm you have rights to share this content and agree to credit original creators.
       </p>
     </div>
