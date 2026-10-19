@@ -1,3 +1,5 @@
+import { Page, PageHeader } from '@/components/ui/page';
+import { LinkTabs } from '@/components/ui/tabs';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -161,7 +163,7 @@ async function QueueTab() {
   const pending = await listPendingVersions();
   return (
     <>
-      <p className="text-white/70 text-center mb-8">
+      <p className="text-white/70 mb-6">
         {pending.length === 0
           ? 'Nothing waiting for review.'
           : `${pending.length} ${pending.length === 1 ? 'pack is' : 'packs are'} waiting, oldest first.`}
@@ -178,7 +180,7 @@ async function ReportsTab() {
   const history = await listHistory(reported.map((r) => r.packId));
   return (
     <>
-      <p className="text-white/70 text-center mb-8">
+      <p className="text-white/70 mb-6">
         {reported.length === 0
           ? 'No open reports.'
           : `${reported.length} ${reported.length === 1 ? 'pack has' : 'packs have'} open reports, most reported first.`}
@@ -235,7 +237,7 @@ async function PublishedTab({ q }: { q: string }) {
         />
         <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors">Search</button>
       </form>
-      {packs.length === 0 && <p className="text-white/70 text-center">No published packs match.</p>}
+      {packs.length === 0 && <p className="text-white/70">No published packs match.</p>}
       <div className="flex flex-col gap-4">
         {packs.map((p) => (
           <article key={p.packId} className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-4" data-testid="published-card">
@@ -272,32 +274,26 @@ export default async function ModerationPage({ searchParams }: PageProps<'/moder
   const q = typeof params.q === 'string' ? params.q : '';
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-      <section className="relative mt-20 pt-24 px-6 min-h-screen">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-6xl font-serif mb-6">Moderation</h1>
-            <nav className="inline-flex gap-1 p-1 rounded-full bg-white/5 border border-white/10" aria-label="Moderation sections">
-              {TABS.map((t) => (
-                <Link
-                  key={t.id}
-                  href={t.id === 'queue' ? '/moderation' : `/moderation?tab=${t.id}`}
-                  aria-current={tab === t.id ? 'page' : undefined}
-                  className={`px-4 py-1.5 rounded-full text-sm transition-colors ${
-                    tab === t.id ? 'bg-white text-black font-medium' : 'text-white/70 hover:bg-white/10'
-                  }`}
-                >
-                  {t.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+    <div className="relative min-h-screen overflow-x-hidden text-white bg-background">
+      <Page width="browse">
+        <div>
+          <PageHeader
+            title="Moderation"
+            description="New packs and updates to review, reports from visitors, and every published pack."
+            actions={
+              <LinkTabs
+                label="Moderation sections"
+                current={tab}
+                tabs={TABS.map((t) => ({ id: t.id, label: t.label, href: t.id === 'queue' ? '/moderation' : `/moderation?tab=${t.id}` }))}
+              />
+            }
+          />
 
           {tab === 'queue' && <QueueTab />}
           {tab === 'reports' && <ReportsTab />}
           {tab === 'published' && <PublishedTab q={q} />}
         </div>
-      </section>
+      </Page>
       <Footer />
     </div>
   );

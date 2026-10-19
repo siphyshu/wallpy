@@ -1,16 +1,17 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
+/** The glass card: sets one object apart from the page. */
 export function Card({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('rounded-lg border border-white/20 bg-white/5 backdrop-blur-md shadow-lg', className)} {...props} />;
+  return <div className={cn('rounded-lg border border-white/10 bg-white/5 backdrop-blur-md', className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />;
+  return <div className={cn('flex flex-col gap-1.5 p-6', className)} {...props} />;
 }
 
-export function CardTitle({ className, ...props }: ComponentProps<'h3'>) {
-  return <h3 className={cn('text-2xl font-semibold leading-none tracking-tight text-white', className)} {...props} />;
+export function CardTitle({ className, ...props }: ComponentProps<'h2'>) {
+  return <h2 className={cn('font-serif text-3xl leading-tight text-white', className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: ComponentProps<'p'>) {

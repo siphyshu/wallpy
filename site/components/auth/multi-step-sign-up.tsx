@@ -104,9 +104,9 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
         {step === 1 && (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl font-serif">Join Wallpy</CardTitle>
-              <CardDescription className="w-[70%]">
-                Create your account to start sharing your dynamic wallpaper creations
+              <CardTitle className="text-4xl">Create an account</CardTitle>
+              <CardDescription>
+                Share packs with the community and keep your favourites.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -187,8 +187,8 @@ export default function MultiStepSignUp({ className, ...props }: ComponentProps<
         {step === 2 && (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl font-serif">Enter OTP</CardTitle>
-              <CardDescription className="w-[70%]">
+              <CardTitle className="text-4xl">Check your email</CardTitle>
+              <CardDescription>
                 Enter the code sent to your email to verify your account
               </CardDescription>
             </CardHeader>

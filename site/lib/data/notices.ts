@@ -1,3 +1,4 @@
+import type { PillTone } from '@/components/ui/pill';
 import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/database.types';
 
@@ -22,12 +23,12 @@ export const NOTICE_LABELS: Record<NoticeAction, string> = {
   restore: 'Restored',
 };
 
-export const NOTICE_PILL: Record<NoticeAction, string> = {
-  approve: 'bg-green-500/20 text-green-300 border-green-500/30',
-  restore: 'bg-green-500/20 text-green-300 border-green-500/30',
-  reject: 'bg-amber-400/10 text-amber-200 border-amber-400/30',
-  decline: 'bg-red-500/20 text-red-300 border-red-500/30',
-  takedown: 'bg-red-500/20 text-red-300 border-red-500/30',
+export const NOTICE_TONE: Record<NoticeAction, PillTone> = {
+  approve: 'green',
+  restore: 'green',
+  reject: 'amber',
+  decline: 'red',
+  takedown: 'red',
 };
 
 type NoticeRow = Database['public']['Functions']['my_notices']['Returns'][number];

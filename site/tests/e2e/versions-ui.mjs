@@ -83,7 +83,7 @@ try {
   await shot(up, 'v-1-pack-rejected');
   await up.getByRole('link', { name: 'Make changes' }).click();
   await up.waitForURL(`**/packs/${slugs['Fix Me']}/edit`);
-  await up.getByText('Update Wallpack').waitFor();
+  await up.getByRole('heading', { level: 1, name: /^Update / }).waitFor();
   check('edit page repeats the note', await up.getByText(/Changes requested on version 1/).isVisible());
   check('no false "builder can\'t show this" warning', !(await up.getByText(/options the builder can't show/).isVisible()));
   check('details are filled in from version 1',

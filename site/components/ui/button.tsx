@@ -1,42 +1,45 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
+// See docs/design-system.md. One primary (white) action per area; secondary
+// for the rest; danger only for destructive actions.
 const variants = {
-  default: 'bg-white/10 text-white hover:bg-white/20 border border-white/20 backdrop-blur-sm',
-  destructive: 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 backdrop-blur-sm',
-  outline: 'border border-white/20 text-white hover:bg-white/10 backdrop-blur-sm',
-  secondary: 'bg-white/5 text-white hover:bg-white/10 border border-white/10 backdrop-blur-sm',
-  ghost: 'text-white hover:bg-white/10',
-  link: 'text-white underline-offset-4 hover:underline',
+  primary: 'bg-white text-black hover:bg-white/90',
+  secondary: 'bg-white/10 text-white hover:bg-white/20',
+  ghost: 'text-white/70 hover:text-white hover:bg-white/10',
+  danger: 'bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30',
+  link: 'text-white/80 underline underline-offset-4 decoration-white/30 hover:text-white hover:decoration-white',
 };
 
 const sizes = {
-  default: 'h-10 px-4 py-2',
-  sm: 'h-9 rounded-md px-3',
-  lg: 'h-11 rounded-md px-8',
-  icon: 'h-10 w-10',
+  sm: 'h-8 px-3 text-xs gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-11 px-6 text-base gap-2',
+  icon: 'h-9 w-9',
 };
 
-type Variant = keyof typeof variants;
-type Size = keyof typeof sizes;
+export type ButtonVariant = keyof typeof variants;
+export type ButtonSize = keyof typeof sizes;
 
 /** Button classes, for styling other elements (e.g. a <Link>) as a button. */
-export function buttonVariants({ variant = 'default', size = 'default', className }: {
-  variant?: Variant;
-  size?: Size;
+export function buttonVariants({ variant = 'primary', size = 'md', className }: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   className?: string;
 } = {}) {
   return cn(
-    'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex items-center justify-center rounded-lg font-medium whitespace-nowrap transition-colors',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    'disabled:pointer-events-none disabled:opacity-50',
+    variant !== 'link' && sizes[size],
     variants[variant],
-    sizes[size],
     className,
   );
 }
 
-export function Button({ className, variant, size, ...props }: ComponentProps<'button'> & {
-  variant?: Variant;
-  size?: Size;
+export function Button({ className, variant, size, type = 'button', ...props }: ComponentProps<'button'> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 }) {
-  return <button className={buttonVariants({ variant, size, className })} {...props} />;
+  return <button type={type} className={buttonVariants({ variant, size, className })} {...props} />;
 }

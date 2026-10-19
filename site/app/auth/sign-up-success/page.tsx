@@ -24,7 +24,7 @@ export default function SignUpSuccessPage() {
                 <Link href="/auth/login" className={buttonVariants({ className: "w-full" })}>
                   Back to Sign In
                 </Link>
-                <Link href="/" className={buttonVariants({ variant: "outline", className: "w-full" })}>
+                <Link href="/" className={buttonVariants({ variant: "secondary", className: "w-full" })}>
                   Go to Homepage
                 </Link>
               </div>

@@ -118,9 +118,9 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
     <div className={`flex flex-col gap-6 ${className}`} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-serif">Welcome Back</CardTitle>
-          <CardDescription className="w-[70%]">
-            Sign in to your Wallpy account to upload and manage your wallpaper packs
+          <CardTitle className="text-4xl">Sign in</CardTitle>
+          <CardDescription>
+            Upload packs, keep favourites and hear about your reviews.
           </CardDescription>
         </CardHeader>
         <CardContent>

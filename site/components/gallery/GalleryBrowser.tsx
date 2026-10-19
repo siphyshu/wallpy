@@ -8,6 +8,7 @@ import { normalizeTag } from '@/lib/packs/limits';
 import type { PackSort } from '@/lib/data/packs';
 import GalleryGrid from '@/components/gallery/GalleryGrid';
 import GalleryFilters from '@/components/gallery/GalleryFilters';
+import { Page, PageHeader } from '@/components/ui/page';
 import GallerySearch from '@/components/gallery/GallerySearch';
 import Footer from '@/components/footer';
 
@@ -109,22 +110,19 @@ export default function GalleryBrowser() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-      <section className="relative mt-20 pt-24 px-6 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-serif mb-6">Wallpy Gallery</h1>
-            <p className="text-white/80 text-lg max-w-2xl mx-auto">
-              Discover and install beautiful wallpaper packs created by our community.
-              Browse through our collection and find your perfect desktop background.
-            </p>
-          </div>
+    <div className="relative min-h-screen overflow-x-hidden text-white bg-background">
+      <Page width="browse">
+        <div>
+          <PageHeader
+            title="Gallery"
+            description="Packs made by the community. Each one changes through the day, the week, or on its own schedule."
+          />
 
           {/* Search and Filter Section */}
           <div className="mb-8">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
-              <div className="flex-1 max-w-2xl">
-                <div className="flex gap-4 items-center">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex-1 w-full">
+                <div className="flex gap-3 items-center max-w-2xl">
                   <div className="flex-1">
                     <GallerySearch
                       searchQuery={searchInput}
@@ -201,7 +199,7 @@ export default function GalleryBrowser() {
               onCategoryChange={changeCategory}
             />
             {tag && (
-              <div className="mt-4 flex justify-center">
+              <div className="mt-4 flex">
                 <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 pl-3 pr-1 py-1 text-sm text-white">
                   Tagged #{tag}
                   <button
@@ -231,7 +229,7 @@ export default function GalleryBrowser() {
             />
           </div>
         </div>
-      </section>
+      </Page>
 
       <Footer />
     </div>

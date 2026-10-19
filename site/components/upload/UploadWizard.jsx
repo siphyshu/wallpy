@@ -1,5 +1,8 @@
 "use client"
 
+import { Page, PageHeader } from '@/components/ui/page';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
@@ -162,11 +165,11 @@ function WizardBody({ edit, draft }) {
   const [uploadError, setUploadError] = useState(null);
 
   const steps = [
-    { id: 1, title: 'Choose Type', description: 'Select wallpack type' },
-    { id: 2, title: 'Metadata', description: 'Add pack information' },
-    { id: 3, title: 'Upload Files', description: 'Upload your images' },
-    { id: 4, title: 'Configure Schedule', description: 'Set up display schedule' },
-    { id: 5, title: 'Upload', description: 'Upload to Wallpy' }
+    { id: 1, title: 'Type', description: 'Choose the kind of pack' },
+    { id: 2, title: 'Details', description: 'Name, categories, credit' },
+    { id: 3, title: 'Images', description: 'Add your images' },
+    { id: 4, title: 'Schedule', description: 'When each image shows' },
+    { id: 5, title: 'Review', description: 'Check and send for review' }
   ];
 
   // The cover is whatever was explicitly chosen, falling back to the first
@@ -409,73 +412,49 @@ function WizardBody({ edit, draft }) {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-      <section className="relative mt-20 pt-24 px-6 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-serif mb-6">{edit ? 'Update Wallpack' : 'Create Wallpack'}</h1>
-            <p className="text-white/80 text-lg max-w-2xl mx-auto">
-              {!edit
-                ? 'Create and share your dynamic wallpaper packs with the Wallpy community.'
+    <div className="relative min-h-screen overflow-x-hidden text-white bg-background">
+      <Page width="wide">
+        <div>
+          <PageHeader
+            title={edit ? `Update ${edit.base.title}` : 'New pack'}
+            description={
+              !edit
+                ? `Step ${currentStep} of ${steps.length} · ${steps[currentStep - 1].title}: ${steps[currentStep - 1].description.toLowerCase()}.`
                 : edit.isPublic
                   ? `Changes go to review as version ${nextVersion}. Version ${edit.base.number} stays live until it's approved.`
-                  : `Make your changes, then send version ${nextVersion} back for review.`}
-            </p>
-          </div>
+                  : `Make your changes, then send version ${nextVersion} back for review.`
+            }
+            actions={hasUnsavedWork && (
+              <Button variant="ghost" size="sm" onClick={handleStartOver}>Start over</Button>
+            )}
+          />
 
           {restoredPending > 0 && (
-            <div className="max-w-3xl mx-auto mb-12">
-              <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-                Welcome back — we restored your draft. Your images need adding again ({restoredPending} missing): drop the same files back in on the Upload Files step and they&apos;ll slot back into place.
-              </div>
-            </div>
+            <Notice className="mb-8">
+              We restored your draft. Your images need adding again ({restoredPending} missing): drop the same files back in on the Images step and they&apos;ll slot back into place.
+            </Notice>
           )}
 
           {edit?.latest.notes && (
-            <div className="max-w-3xl mx-auto mb-12 flex flex-col gap-3">
-              <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-                <span className="font-medium">Changes requested on version {edit.latest.number}:</span> &ldquo;{edit.latest.notes}&rdquo;
-              </div>
-            </div>
+            <Notice className="mb-8">
+              <span className="font-medium">Changes requested on version {edit.latest.number}:</span> &ldquo;{edit.latest.notes}&rdquo;
+            </Notice>
           )}
 
-          {/* Progress Steps */}
-          <div className="mb-12">
-            <div className="flex items-center justify-center">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
-                    currentStep >= step.id
-                      ? 'bg-white border-white text-black'
-                      : 'border-white/30 text-white/50'
-                  }`}>
-                    {currentStep > step.id ? (
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <span className="text-sm font-medium">{step.id}</span>
-                    )}
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`w-16 h-0.5 mx-2 ${
-                      currentStep > step.id ? 'bg-white' : 'bg-white/30'
-                    }`} />
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="text-center mt-4">
-              <h2 className="text-xl font-medium">{steps[currentStep - 1].title}</h2>
-              <p className="text-white/60">{steps[currentStep - 1].description}</p>
-              {hasUnsavedWork && (
-                <button type="button" onClick={handleStartOver} className="mt-2 text-xs text-white/40 hover:text-white/70 underline">
-                  Start over
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Progress: every step named; done steps ticked, the current one white. */}
+          <ol className="mb-12 grid grid-cols-5 gap-2" aria-label="Steps">
+            {steps.map((step) => {
+              const state = currentStep > step.id ? 'done' : currentStep === step.id ? 'current' : 'todo';
+              return (
+                <li key={step.id} aria-current={state === 'current' ? 'step' : undefined} className="flex flex-col gap-2 min-w-0">
+                  <span className={`h-1 rounded-full ${state === 'todo' ? 'bg-white/15' : 'bg-white'}`} />
+                  <span className={`text-xs sm:text-sm truncate ${state === 'current' ? 'text-white font-medium' : state === 'done' ? 'text-white/70' : 'text-white/40'}`}>
+                    <span className="hidden sm:inline">{step.id}. </span>{step.title}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
 
           {/* Current Step Content */}
           <div className="mb-8">
@@ -520,7 +499,7 @@ function WizardBody({ edit, draft }) {
             </div>
           </div>
         </div>
-      </section>
+      </Page>
 
       <Footer />
     </div>

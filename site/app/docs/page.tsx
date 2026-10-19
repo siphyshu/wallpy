@@ -1,3 +1,4 @@
+import { Page, PageHeader } from '@/components/ui/page';
 import Link from 'next/link';
 import Footer from '@/components/footer';
 import CopyCommand from '@/components/CopyCommand';
@@ -54,15 +55,12 @@ function Code({ children }: { children: React.ReactNode }) {
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen text-white">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-36 pb-12">
-        <header className="mb-10">
-          <h1 className="text-5xl md:text-6xl font-serif mb-4">Docs</h1>
-          <p className="text-white/80 text-lg">
-            Wallpy is a small command-line program that sets your wallpaper from a pack and keeps
-            it changing through the day, the week or on a schedule of its own.
-          </p>
-        </header>
+    <div className="min-h-screen text-white bg-background">
+      <Page width="reading">
+        <PageHeader
+          title="Docs"
+          description="Install Wallpy, use a pack, and how it keeps your wallpaper changing. Wallpy is a small command-line program that sets your wallpaper from a pack: through the day, the week or on a schedule of its own."
+        />
 
         <nav aria-label="On this page" className="flex flex-wrap gap-2 mb-14">
           {SECTIONS.map((s) => (
@@ -186,7 +184,7 @@ export default function DocsPage() {
             </p>
           </Section>
         </div>
-      </div>
+      </Page>
       <Footer />
     </div>
   );

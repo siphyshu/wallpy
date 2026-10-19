@@ -138,11 +138,11 @@ export default function FileUploader({ files, onFilesChange, wallpackType, cover
   const instructions = getUploadInstructions();
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-serif font-bold mb-4">{instructions.title}</h2>
-        <p className="text-white/80 text-lg mb-4">{instructions.description}</p>
-        <div className="flex items-center justify-center space-x-6 text-sm text-white/60">
+    <div className="max-w-5xl">
+      <div className="text-left mb-8">
+        <h2 className="sr-only">{instructions.title}</h2>
+        <p className="text-white/80 mb-4">{instructions.description}</p>
+        <div className="flex items-center gap-6 flex-wrap text-sm text-white/60">
           <span>• Max file size: 30 MB</span>
           <span>• Supported: JPG, PNG, WebP</span>
           <span>• Max files: {PACK_LIMITS.maxFiles}</span>

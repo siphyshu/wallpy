@@ -187,7 +187,7 @@ export default function ImportPack({ onImport }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-8">
+    <div className="max-w-5xl mt-8">
       <div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-6">
         <h3 className="text-lg font-bold mb-1">Already have a pack ready?</h3>
         <p className="text-sm text-white/60 mb-4">

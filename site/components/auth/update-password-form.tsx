@@ -50,7 +50,7 @@ export function UpdatePasswordForm({ className, ...props }: ComponentProps<'div'
     <div className={`flex flex-col gap-6 ${className}`} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-serif">Set New Password</CardTitle>
+          <CardTitle className="text-4xl">Choose a new password</CardTitle>
           <CardDescription>
             Enter your new password below
           </CardDescription>

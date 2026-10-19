@@ -1,6 +1,6 @@
 export default function GallerySearch({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (query: string) => void }) {
   return (
-    <div className="relative max-w-2xl mx-auto">
+    <div className="relative w-full">
       <div className="relative">
         <input
           type="text"

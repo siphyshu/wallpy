@@ -1,8 +1,10 @@
+import { Page, PageHeader } from '@/components/ui/page';
+import { Pill } from '@/components/ui/pill';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Footer from '@/components/footer';
 import { getCurrentProfile } from '@/lib/data/profiles';
-import { listMyNotices, markNoticesSeen, NOTICE_LABELS, NOTICE_PILL } from '@/lib/data/notices';
+import { listMyNotices, markNoticesSeen, NOTICE_LABELS, NOTICE_TONE } from '@/lib/data/notices';
 
 export const metadata = { title: 'Notices | Wallpy' };
 
@@ -27,13 +29,13 @@ export default async function NoticesPage() {
   await markNoticesSeen(me.id);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-      <section className="relative mt-20 pt-24 px-6 min-h-screen">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-serif mb-8 text-center">Notices</h1>
+    <div className="relative min-h-screen overflow-x-hidden text-white bg-background">
+      <Page width="reading">
+        <div>
+          <PageHeader title="Notices" description="What moderators decided about your packs." />
 
           {notices.length === 0 ? (
-            <p className="text-white/60 text-center" data-testid="notices-empty">
+            <p className="text-white/60" data-testid="notices-empty">
               Nothing yet. You&apos;ll hear here when a moderator reviews one of your packs.
             </p>
           ) : (
@@ -41,21 +43,19 @@ export default async function NoticesPage() {
               {notices.map((n) => (
                 <li key={n.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-5 flex flex-col gap-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Link href={`/packs/${n.slug}`} className="text-lg font-serif hover:underline">
+                    <Link href={`/packs/${n.slug}`} className="text-base font-medium underline decoration-white/30 underline-offset-4 hover:decoration-white">
                       {n.title}
                     </Link>
                     <span className="text-xs text-white/40 shrink-0">{timeAgo(n.at)}</span>
                   </div>
-                  <span className={`inline-flex self-start px-2.5 py-1 rounded-full text-xs font-medium border ${NOTICE_PILL[n.action]}`}>
-                    {NOTICE_LABELS[n.action]}
-                  </span>
+                  <Pill tone={NOTICE_TONE[n.action]} className="self-start">{NOTICE_LABELS[n.action]}</Pill>
                   {n.notes && <p className="text-sm text-white/70">&ldquo;{n.notes}&rdquo;</p>}
                 </li>
               ))}
             </ul>
           )}
         </div>
-      </section>
+      </Page>
       <Footer />
     </div>
   );

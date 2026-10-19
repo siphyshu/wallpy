@@ -48,7 +48,7 @@ export function ForgotPasswordForm({ className, ...props }: ComponentProps<'div'
       <div className={`flex flex-col gap-6 ${className}`} {...props}>
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-serif">Check Your Email</CardTitle>
+            <CardTitle className="text-4xl">Check your email</CardTitle>
             <CardDescription>
               We&apos;ve sent you a password reset link
             </CardDescription>
@@ -70,7 +70,7 @@ export function ForgotPasswordForm({ className, ...props }: ComponentProps<'div'
     <div className={`flex flex-col gap-6 ${className}`} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-serif">Reset Password</CardTitle>
+          <CardTitle className="text-4xl">Reset your password</CardTitle>
           <CardDescription>
             Enter your email address and we&apos;ll send you a link to reset your password
           </CardDescription>
