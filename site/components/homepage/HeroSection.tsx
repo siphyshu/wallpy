@@ -59,8 +59,8 @@ const HeroSection = () => {
           <span className="font-bold">for your desktop.</span>
         </h1>
         <p className="max-w-xl text-base md:text-lg text-white/85 text-pretty">
-          Wallpapers that follow the sun, the days of the week, or a schedule of their own. One small
-          program for macOS, Windows and Linux.
+          Wallpapers that follow the sun, the days of the week, or a schedule of their own. A small
+          command-line app for macOS, Windows and Linux.
         </p>
         <div className="mt-2 flex justify-center gap-4 flex-wrap">
           <Link href="/gallery" className="px-6 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-gray-200">

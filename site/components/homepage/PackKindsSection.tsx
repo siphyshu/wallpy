@@ -7,7 +7,9 @@ const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 function Kind({ kind, title, visual, children }: { kind: string; title: string; visual: ReactNode; children: ReactNode }) {
   return (
     <article className="flex flex-col gap-3.5 p-6 rounded-lg border border-white/10 bg-white/5">
-      {visual}
+      {/* Every picture is a quarter of the card's width tall (4 squares, 3 at 4:3),
+          so the labels below line up across the cards. */}
+      <div className="aspect-[4/1]">{visual}</div>
       <Pill className="self-start">{kind}</Pill>
       <h3 className="text-xl font-medium">{title}</h3>
       <p className="text-sm leading-relaxed text-white/70">{children}</p>
@@ -30,9 +32,9 @@ export default function PackKindsSection() {
           kind="Daypack"
           title="Follows the sun"
           visual={
-            <div className="grid grid-cols-4 gap-1 rounded-md overflow-hidden">
+            <div className="h-full grid grid-cols-4 gap-1 rounded-md overflow-hidden">
               {['dawn', 'day', 'dusk', 'night'].map((t) => (
-                <div key={t} className="relative aspect-square">
+                <div key={t} className="relative">
                   <Image src={`/wallpapers/hero/${t}.webp`} alt="" fill sizes="120px" className="object-cover" />
                 </div>
               ))}
@@ -45,17 +47,22 @@ export default function PackKindsSection() {
           kind="Weekpack"
           title="A look for each day"
           visual={
-            <div className="grid grid-cols-7 gap-1" aria-hidden>
-              {DAYS.map((d, i) => (
-                <span
-                  key={i}
-                  className={`aspect-square rounded flex items-center justify-center text-[11px] ${
-                    i === 3 ? 'bg-white text-black font-semibold' : 'bg-white/10 text-white/60'
-                  }`}
-                >
-                  {d}
-                </span>
-              ))}
+            <div className="h-full flex flex-col gap-1">
+              <div className="grid grid-cols-7 gap-1" aria-hidden>
+                {DAYS.map((d, i) => (
+                  <span
+                    key={i}
+                    className={`h-5 rounded flex items-center justify-center text-[10px] ${
+                      i === 3 ? 'bg-white text-black font-semibold' : 'bg-white/10 text-white/60'
+                    }`}
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
+              <div className="relative flex-1 rounded-md overflow-hidden">
+                <Image src="/wallpapers/tokyo-street.jpg" alt="" fill sizes="320px" className="object-cover" />
+              </div>
             </div>
           }
         >
@@ -65,9 +72,9 @@ export default function PackKindsSection() {
           kind="Album"
           title="A slideshow on a timer"
           visual={
-            <div className="grid grid-cols-3 gap-1 rounded-md overflow-hidden">
+            <div className="h-full grid grid-cols-3 gap-1 rounded-md overflow-hidden">
               {['greasy-diner.jpg', 'mystery-shack-porch.jpg', 'deku-tree.jpg'].map((f) => (
-                <div key={f} className="relative aspect-[4/3]">
+                <div key={f} className="relative">
                   <Image src={`/wallpapers/${f}`} alt="" fill sizes="160px" className="object-cover" />
                 </div>
               ))}

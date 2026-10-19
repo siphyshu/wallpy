@@ -12,8 +12,8 @@ export default function Home() {
       <HeroSection />
       <PackKindsSection />
       <GallerySection />
-      <InstallSection />
       <CreateSection />
+      <InstallSection />
       <FaqSection />
       <Footer />
     </div>
