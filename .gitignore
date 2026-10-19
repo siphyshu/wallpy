@@ -9,3 +9,6 @@ playground.ipynb
 tree.txt
 dist/
 .DS_Store
+
+.vercel
+.env*
