@@ -151,7 +151,7 @@ hidden `run` for the service.
 
 ## Later / ideas
 
-- Weekday pills on Daypack blocks (weekend variants of a time block); the format allows it, the builder doesn't (use Edit as text)
+- Weekday pills on Daypack blocks (weekend variants of a time block); the format allows it, the builder doesn't (edit schedule.toml directly)
 - ~~Withdraw a version that's in review~~ (done 2026-10-17)
 - Garbage-collect R2 blobs no version uses (deleting a pack keeps its images)
 - Keep moderation history when an owner deletes a declined pack (deleting cascades it today)

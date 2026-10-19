@@ -107,8 +107,9 @@ try {
   await up.getByRole('combobox').first().click();
   await up.getByRole('option', { name: 'Sunset' }).click();
   await up.getByRole('button', { name: 'Add', exact: true }).click();
-  await up.locator('pre code').filter({ hasText: 'stars.jpg' }).waitFor({ timeout: 10_000 });
-  check('schedule preview includes the new image', (await up.locator('pre code').innerText()).includes('"night.jpg", "stars.jpg"'));
+  const editor = up.getByLabel('schedule.toml');
+  await up.waitForFunction(() => document.querySelector('textarea[aria-label="schedule.toml"]')?.value.includes('stars.jpg'), null, { timeout: 10_000 });
+  check('schedule preview includes the new image', (await editor.inputValue()).includes('"night.jpg", "stars.jpg"'));
   await shot(up, 'v-4-edit-schedule');
   await next.click();
 

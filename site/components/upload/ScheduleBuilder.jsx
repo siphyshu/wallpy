@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon, CalendarIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { DocumentDuplicateIcon, ArrowDownTrayIcon, PlusIcon, PhotoIcon, SunIcon, DocumentTextIcon, CalendarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import DaypackBuilder from './DaypackBuilder';
 import WeekpackBuilder from './WeekpackBuilder';
 import AlbumBuilder from './AlbumBuilder';
@@ -13,13 +13,19 @@ import { validateSchedule } from '@/lib/spec/validate';
 const TYPE_NAMES = { daypack: 'Daypack', weekpack: 'Weekpack', album: 'Album' };
 
 /**
- * The schedule step: a builder for the pack's template, or (for schedules the
- * builder can't show) the schedule.toml as text. Either way the Schedule
- * Preview is exactly what's submitted, checked by the same validator as the server.
+ * The schedule step: the builder for the pack's template and its schedule.toml,
+ * side by side and both editable. Text the builder can show exactly flows into
+ * the builder as you type; text it can't (options the builder doesn't have, or
+ * a typo mid-edit) is kept as text, and the builder waits, dimmed, at its last
+ * state. The Schedule Preview is exactly what's submitted, checked by the same
+ * validator as the server; the Wallpack Preview keeps the last schedule that
+ * worked, so it never blinks out while you edit.
  */
 export default function ScheduleBuilder({ wallpackType, files, config, onConfigChange, metadata }) {
   const imageFiles = useMemo(() => files.filter(f => f.type.startsWith('image/')), [files]);
   const [copied, setCopied] = useState(false);
+  // Raw text while the person is typing (so it isn't reformatted under the cursor).
+  const [draft, setDraft] = useState(null);
   const meta = useMemo(() => ({
     name: metadata?.title || 'Untitled',
     author: metadata?.isOriginal ? undefined : metadata?.authorName,
@@ -38,7 +44,27 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
   }, [config, wallpackType, meta, imageFiles]);
 
   const isText = config?.mode === 'text';
-  const canUseBuilder = isText && schedule && fitsBuilder(wallpackType, schedule);
+
+  // Remember the last builder state and the last schedule worth previewing, so
+  // neither disappears while the text has an error.
+  const [lastBuilder, setLastBuilder] = useState(isText ? null : config);
+  if (config && !isText && config !== lastBuilder) setLastBuilder(config);
+  const usable = schedule && schedule.slot.length > 0 && schedule.slot.every((s) => (s.images?.length ?? 0) > 0);
+  const [lastGood, setLastGood] = useState(usable ? schedule : null);
+  if (usable && schedule !== lastGood) setLastGood(schedule);
+  const shown = usable ? schedule : lastGood;
+
+  const editText = (text) => {
+    let parsed = null;
+    try { parsed = configToSchedule(wallpackType, { mode: 'text', text }, meta); } catch { /* mid-edit */ }
+    if (parsed && fitsBuilder(wallpackType, parsed)) {
+      setDraft(text);
+      onConfigChange(scheduleToConfig(wallpackType, parsed));
+    } else {
+      setDraft(null);
+      onConfigChange({ mode: 'text', text });
+    }
+  };
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(tomlString);
@@ -67,38 +93,24 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
     );
   }
 
-  const builderProps = { scheduleConfig: config, imageFiles, onConfigChange };
-  const previewable = schedule && schedule.slot.length > 0;
+  const builderConfig = isText ? lastBuilder : config;
+  const builderProps = { scheduleConfig: builderConfig, imageFiles, onConfigChange };
 
   return (
     <div className="max-w-7xl mx-auto">
-      {isText ? (
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-serif font-bold mb-2 tracking-tight">Edit Schedule as Text</h2>
-          <p className="text-white/70 text-lg mb-6">
-            You&apos;re editing <span className="font-mono">schedule.toml</span> directly. The format is in the configuration guide below.
-          </p>
-          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70 flex flex-col sm:flex-row sm:items-center gap-3">
-            <p className="flex-1 text-left">
-              {canUseBuilder
-                ? `This schedule fits the ${TYPE_NAMES[wallpackType]} builder.`
-                : `The ${TYPE_NAMES[wallpackType]} builder can't show this schedule${schedule ? ' (it uses options the builder doesn\u2019t have)' : ''}, so it stays as text.`}
-            </p>
-            <button
-              onClick={() => onConfigChange(scheduleToConfig(wallpackType, schedule))}
-              disabled={!canUseBuilder}
-              className="shrink-0 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Back to builder
-            </button>
-          </div>
+      {isText && (
+        <div className="max-w-6xl mx-auto mb-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+          {schedule
+            ? `This schedule uses options the ${TYPE_NAMES[wallpackType]} builder doesn't have, so it's kept as text. Edit it in the schedule.toml below; remove those options to use the builder again.`
+            : 'The schedule.toml has an error. The builder will catch up as soon as it’s valid again.'}
         </div>
-      ) : (
-        <>
+      )}
+      {builderConfig && (
+        <div inert={isText} className={isText ? 'opacity-40 transition-opacity' : 'transition-opacity'} aria-hidden={isText || undefined}>
           {wallpackType === 'daypack' && <DaypackBuilder {...builderProps} />}
           {wallpackType === 'weekpack' && <WeekpackBuilder {...builderProps} />}
           {wallpackType === 'album' && <AlbumBuilder {...builderProps} />}
-        </>
+        </div>
       )}
 
       {/* Schedule Preview, Upload, and Day Preview */}
@@ -109,25 +121,14 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold">Schedule Preview</h3>
             <div className="flex gap-2 items-center">
-              {!isText && (
-                <button
-                  onClick={() => onConfigChange({ mode: 'text', text: tomlString })}
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors flex items-center gap-2"
-                  title="Edit schedule.toml directly"
-                >
-                  <PencilSquareIcon className="w-4 h-4" />
-                  Edit as text
-                </button>
-              )}
               <button
                 onClick={handleCopy}
                 className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors flex items-center gap-2"
                 title="Copy TOML"
               >
                 <DocumentDuplicateIcon className="w-4 h-4" />
-                Copy
+                {copied ? 'Copied' : 'Copy'}
               </button>
-              {copied && <span className="text-xs text-green-400 ml-1">Copied!</span>}
               <button
                 onClick={handleDownload}
                 className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm font-medium border border-white/20 shadow transition-colors flex items-center gap-2"
@@ -138,34 +139,36 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
               </button>
             </div>
           </div>
-          <div className="bg-black/20 rounded-lg flex-1 flex flex-col overflow-x-auto overflow-y-auto scrollbar">
-            {isText ? (
-              <textarea
-                aria-label="schedule.toml"
-                value={config.text}
-                onChange={(e) => onConfigChange({ mode: 'text', text: e.target.value })}
-                spellCheck={false}
-                className="flex-1 w-full min-h-[320px] text-white/80 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent resize-none scrollbar"
-              />
-            ) : (
-              <pre className="flex-1 w-full text-white/80 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent overflow-x-auto overflow-y-auto scrollbar">
-                <code>{tomlString}</code>
-              </pre>
-            )}
+          <div className="bg-black/20 rounded-lg flex-1 flex flex-col overflow-x-auto overflow-y-auto scrollbar focus-within:ring-1 focus-within:ring-white/20">
+            <textarea
+              aria-label="schedule.toml"
+              value={isText ? config.text : (draft ?? tomlString)}
+              onChange={(e) => editText(e.target.value)}
+              onBlur={() => setDraft(null)}
+              spellCheck={false}
+              className="flex-1 w-full min-h-[320px] text-white/80 text-sm font-mono p-4 rounded-lg outline-none border-none bg-transparent resize-none scrollbar"
+            />
           </div>
           {tomlError ? (
             <p className="text-xs text-red-400 mt-2">{tomlError}</p>
           ) : (
             <p className="text-xs text-white/60 mt-2">
-              This is the schedule.toml in your wallpack{isText ? '. Name and author come from the pack details.' : ''}
+              This is the schedule.toml in your wallpack. Edit it here or with the builder; name and author come from the pack details.
             </p>
           )}
         </div>
 
         <div className="col-span-1 flex flex-col gap-8">
-          {previewable && wallpackType === 'daypack' && <DayPreview schedule={schedule} imageFiles={imageFiles} />}
-          {previewable && wallpackType === 'weekpack' && <WeekPreview schedule={schedule} imageFiles={imageFiles} />}
-          {previewable && wallpackType === 'album' && <AlbumPreview schedule={schedule} imageFiles={imageFiles} />}
+          {shown && (
+            <div className="flex flex-col gap-2">
+              {shown !== schedule && (
+                <p className="text-xs text-amber-200/80">Showing the last version that worked while you fix the schedule.</p>
+              )}
+              {wallpackType === 'daypack' && <DayPreview schedule={shown} imageFiles={imageFiles} />}
+              {wallpackType === 'weekpack' && <WeekPreview schedule={shown} imageFiles={imageFiles} />}
+              {wallpackType === 'album' && <AlbumPreview schedule={shown} imageFiles={imageFiles} />}
+            </div>
+          )}
           <ScheduleUploader onConfigChange={onConfigChange} wallpackType={wallpackType} />
         </div>
       </div>
@@ -387,7 +390,7 @@ export default function ScheduleBuilder({ wallpackType, files, config, onConfigC
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Load a spec 2 schedule.toml, or use &ldquo;Edit as text&rdquo; for options the builder doesn&apos;t have</p>
+                    <p>Edit schedule.toml directly for options the builder doesn&apos;t have, or load a spec 2 file</p>
                   </div>
                 </div>
               </div>

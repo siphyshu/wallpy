@@ -34,7 +34,7 @@ try {
     await page.screenshot({ path: `${process.env.SHOTS}/${name}.png`, fullPage: true });
   };
   const next = page.getByText('Next', { exact: true });
-  const toml = () => page.locator('pre code').innerText();
+  const toml = () => page.getByLabel('schedule.toml').inputValue();
   const block = (name) => page.getByRole('region', { name, exact: true });
 
   async function start(type, title, files) {
@@ -94,12 +94,21 @@ try {
     dayToml.indexOf('"dawn"') < dayToml.indexOf('"noon"') && dayToml.indexOf('"noon"') < dayToml.indexOf('"sunset-45m"') && dayToml.indexOf('"sunset-45m"') < dayToml.indexOf('"21:30"'));
   await shot('b-1-daypack');
 
-  // Edit as text and come back.
-  await page.getByRole('button', { name: 'Edit as text' }).click();
-  check('Edit as text shows the editor', await page.getByLabel('schedule.toml').isVisible());
-  check('a schedule the builder can show can go back', await page.getByRole('button', { name: 'Back to builder' }).isEnabled());
-  await page.getByRole('button', { name: 'Back to builder' }).click();
-  check('back in the builder', await block('Dawn').isVisible());
+  // schedule.toml is editable next to the builder: text the builder can show
+  // flows into it; text it can't (or a typo) keeps the builder dimmed and the
+  // preview on its last good schedule.
+  const editor = page.getByLabel('schedule.toml');
+  const good = await editor.inputValue();
+  await editor.fill(good.replace('label = "Dawn"', 'label = "First light"'));
+  check('editing the text updates the builder', await block('First light').isVisible());
+  await editor.fill(good.replace('[[slot]]', '[[slot'));
+  check('a typo keeps the builder on screen, dimmed', await page.getByText(/builder will catch up/).isVisible() && await page.locator('[inert]').count() === 1);
+  check('the preview stays while the text is broken', await page.getByText('Wallpack Preview').isVisible());
+  check('…and says it shows the last working version', await page.getByText(/last version that worked/).isVisible());
+  await shot('b-1b-text-error');
+  await editor.fill(good);
+  await editor.blur();
+  check('fixing the text brings the builder back', await page.getByRole('button', { name: /Add Time Block/ }).isEnabled());
 
   const day = await submitAndLoad();
   check('daypack stored as a pending timeblocks pack', day.status === 'pending' && day.kind === 'timeblocks');
