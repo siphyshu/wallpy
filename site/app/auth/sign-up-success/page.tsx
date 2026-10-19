@@ -1,14 +1,13 @@
 import Link from 'next/link';
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import AuthShell from '@/components/auth/AuthShell';
 
 export const metadata = { title: 'Check your email | Wallpy' };
 
 export default function SignUpSuccessPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-      <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-md">
+    <AuthShell scene="dawn">
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-serif">Check Your Email</CardTitle>
@@ -30,8 +29,6 @@ export default function SignUpSuccessPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 } 
