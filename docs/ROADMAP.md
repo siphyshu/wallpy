@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-17 (CLI feature-complete; site next)
+Last updated: 2026-10-20 (packs seeded; SEO and CLI release next)
 
 ## Goal
 
@@ -183,7 +183,7 @@ hidden `run` for the service.
 
 Next sessions (2026-10-20): (1) seed Jaiyank's new packs: each as a folder with `schedule.toml` + images, plus title, artist + link, licence, 1–2 categories and AI use; upload through the normal flow and approve, so they're real reviewed packs; (2) SEO (item below); (3) CLI release (section above).
 
-- [ ] Seed Jaiyank's new packs into production (he'll provide them)
+- [x] Seed Jaiyank's new packs into production (2026-10-20: Deku Tree, A Day in the Village, Desert Sands, Watchmaker House, Mystery Shack Porch new; Tokyo Street v2 with 16 frames; Greasy Diner v2 credited to Disney Television Animation. Frames from the full-size HEIC originals; `site/scripts/seed-packs.mjs`, see operations.md "Seed real packs")
 
 - [x] Cloudflare on `wallpy-cdn.siphyshu.me`: Cache Rule (eligible, respect origin TTL) **and** a response-header rule `Access-Control-Allow-Origin: *` (2026-10-20, via the API; verified MISS then HIT, CORS header on cached copies)
 - [ ] Remove the dev origins `http://localhost:3101`–`3110` from the `wallpy-public` CORS rules (kept for now while developing; Jaiyank, 2026-10-20)

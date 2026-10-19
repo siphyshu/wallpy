@@ -82,6 +82,24 @@ Make someone a moderator: `update public.profiles set role = 'moderator' where u
 `samples/` (see its README) has a Daypack and a Weekpack for trying workflows by
 hand; `node samples/make.mjs` regenerates them.
 
+## Seed real packs
+
+For adding curated packs to production in bulk (2026-10-20: six packs and two
+new versions). Build a folder per pack (`schedule.toml` spec 2 with name,
+author, description + `images/`), check each with `wallpy check <folder>`, set
+the details in `PACKS` at the top of `site/scripts/seed-packs.mjs`, then
+`cd site && node --env-file=.env.local scripts/seed-packs.mjs --dir <folder>`
+(`--only slug,...`, `--no-approve`). It signs in as siphyshu with an admin
+magic-link token (no email, no password), uploads through the live API exactly
+as the wizard does (originals + 640/1920 WebP renditions), submits, and
+approves with `moderate()`. Entries with `slug` submit a new version of that
+pack. The 2026-10-20 pack folders are kept in `_src/seed-packs-2026-10-20/`.
+
+macOS dynamic wallpapers (`.heic`) hold every frame plus their timings:
+`site/scripts/heic-frames.swift` extracts them (instructions at the top).
+Dynamic Wallpaper Club (dynamicwallpaper.club) hosts the full-size originals of
+most popular packs; its 1600px previews are what older packs were made from.
+
 ## Refresh the CLI's city list
 
 `internal/geo/cities.tsv.gz` comes from GeoNames. To refresh it, download
