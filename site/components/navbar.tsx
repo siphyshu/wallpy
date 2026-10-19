@@ -217,7 +217,6 @@ const NavBar = () => {
                     <div className="flex items-center gap-4 md:gap-8">
                         <Link href="/docs" className="hidden md:inline hover:underline whitespace-nowrap">Docs</Link>
                         <Link href="/gallery" className="hidden md:inline hover:underline whitespace-nowrap">Gallery</Link>
-                        <Link href="https://github.com/siphyshu/wallpy" className="hidden md:inline hover:underline whitespace-nowrap">Github</Link>
                         {loading ? (
                             <div className="w-9 h-9 rounded-full bg-white/10 animate-pulse"></div>
                         ) : isAuthenticated ? (
@@ -270,7 +269,6 @@ const NavBar = () => {
                 >
                     <Link href="/docs" className={menuItem} onClick={closeMenu}>Docs</Link>
                     <Link href="/gallery" className={menuItem} onClick={closeMenu}>Gallery</Link>
-                    <Link href="https://github.com/siphyshu/wallpy" className={menuItem} onClick={closeMenu}>Github</Link>
                     {isAuthenticated && (
                         <>
                             <div className="h-px bg-white/10 my-2 mx-2" />
