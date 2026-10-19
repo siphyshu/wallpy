@@ -17,7 +17,7 @@ import { validateSchedule } from '@/lib/spec/validate';
 import { parseTagList } from '@/lib/packs/limits';
 import { Button } from '@/components/ui/button';
 
-const DRAFT_VERSION = 1;
+const DRAFT_VERSION = 2; // 2: images before details (step numbers changed)
 
 function draftKey(edit) {
   return edit ? `wallpy-upload-draft:edit:${edit.slug}` : 'wallpy-upload-draft:new';
@@ -166,8 +166,8 @@ function WizardBody({ edit, draft }) {
 
   const steps = [
     { id: 1, title: 'Choose Type', description: 'Select wallpack type' },
-    { id: 2, title: 'Metadata', description: 'Add pack information' },
-    { id: 3, title: 'Upload Files', description: 'Upload your images' },
+    { id: 2, title: 'Upload Files', description: 'Upload your images' },
+    { id: 3, title: 'Metadata', description: 'Add pack information' },
     { id: 4, title: 'Configure Schedule', description: 'Set up display schedule' },
     { id: 5, title: 'Upload', description: 'Upload to Wallpy' }
   ];
@@ -232,11 +232,11 @@ function WizardBody({ edit, draft }) {
     switch (currentStep) {
       case 1:
         return wallpackType !== null;
-      case 2:
+      case 3:
         return packMetadata.title.trim() !== '' && packMetadata.categories.length >= 1 && packMetadata.categories.length <= 2
           && packMetadata.aiUse !== null
           && (packMetadata.isOriginal || packMetadata.authorName.trim() !== '');
-      case 3:
+      case 2:
         return uploadedFiles.length > 0 && !uploadedFiles.some((f) => f.needsReupload);
       case 4:
       case 5:
@@ -252,7 +252,7 @@ function WizardBody({ edit, draft }) {
     switch (currentStep) {
       case 1:
         return wallpackType ? [] : ['Choose a wallpack type'];
-      case 2: {
+      case 3: {
         const issues = [];
         if (!packMetadata.title.trim()) issues.push('Add a title');
         if (packMetadata.categories.length < 1 || packMetadata.categories.length > 2) issues.push('Pick 1–2 categories');
@@ -260,7 +260,7 @@ function WizardBody({ edit, draft }) {
         if (!packMetadata.isOriginal && !packMetadata.authorName.trim()) issues.push('Credit the artist');
         return issues;
       }
-      case 3: {
+      case 2: {
         const issues = [];
         if (uploadedFiles.length === 0) issues.push('Add at least one image');
         if (uploadedFiles.some((f) => f.needsReupload)) issues.push('Add your images back in (same file names slot back in)');
@@ -303,7 +303,7 @@ function WizardBody({ edit, draft }) {
     setCoverName(built[0]?.name ?? null);
     setPackMetadata((m) => ({ ...m, title: schedule.name && schedule.name !== 'Untitled' ? schedule.name : m.title }));
     setScheduleConfig(scheduleToConfig(type, schedule));
-    setCurrentStep(2);
+    setCurrentStep(3);
   };
 
   const handleSubmit = async () => {
@@ -365,14 +365,14 @@ function WizardBody({ edit, draft }) {
             <ImportPack onImport={handleImport} />
           </>
         );
-      case 2:
+      case 3:
         return (
           <PackMetadata
             metadata={packMetadata}
             onMetadataChange={setPackMetadata}
           />
         );
-      case 3:
+      case 2:
         return (
           <FileUploader
             files={uploadedFiles}
@@ -403,6 +403,7 @@ function WizardBody({ edit, draft }) {
             scheduleConfig={scheduleConfig}
             metadata={packMetadata}
             onEditStep={setCurrentStep}
+            detailsStep={3}
             error={uploadError}
           />
         );

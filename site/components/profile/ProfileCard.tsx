@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { uploadProfileImage } from '@/lib/upload-client';
 import { errorMessage } from '@/lib/utils';
+import { PROFILE_UPDATED_EVENT } from '@/lib/data/profile-shape';
 import { checkProfileFields, profileSaveError, PROFILE_IMAGE_MAX_BYTES } from '@/lib/profile-fields';
 import type { ChangeEvent } from 'react';
 import type { Database } from '@/lib/database.types';
@@ -172,6 +173,7 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
       setEditing(false);
       setAvatarFile(null);
       setCoverFile(null);
+      window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
       router.refresh();
     } catch (err) {
       setError(profileSaveError(errorMessage(err)));
@@ -423,8 +425,15 @@ export default function ProfileCard({ user, isCurrentUser }: { user: Profile; is
             </div>
           ) : (
             <>
-              <div className="text-xl font-serif font-bold text-white drop-shadow-sm">{user.name}</div>
-              <div className="text-white/70 font-mono text-sm">@{user.username}</div>
+              {/* No display name (older accounts): the username is the heading. */}
+              {user.name?.trim() ? (
+                <>
+                  <div className="text-xl font-serif font-bold text-white drop-shadow-sm">{user.name}</div>
+                  <div className="text-white/70 font-mono text-sm">@{user.username}</div>
+                </>
+              ) : (
+                <div className="text-white font-mono">@{user.username}</div>
+              )}
               {user.bio && (
                 <div className="mt-3 text-white/80 text-sm leading-relaxed max-w-xs mx-auto drop-shadow-sm">
                   {user.bio}

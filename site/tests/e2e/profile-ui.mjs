@@ -139,6 +139,9 @@ try {
   await shot(me, 'profile-2-editing-1440');
   await me.getByRole('button', { name: 'Save' }).click();
   await me.getByRole('button', { name: 'Edit Profile' }).waitFor({ timeout: 30_000 });
+  const navAvatar = me.locator('nav').getByRole('img', { name: `Profile Tester ${runId}` });
+  check('the navbar avatar and name follow the save without a reload',
+    await navAvatar.waitFor({ timeout: 10_000 }).then(async () => !(await navAvatar.getAttribute('src')).includes('avatar_placeholder'), () => false));
 
   await me.reload({ waitUntil: 'networkidle' });
   const { data: row } = await admin.from('profiles').select('*').eq('id', owner.id).single();

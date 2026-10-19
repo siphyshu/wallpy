@@ -41,13 +41,13 @@ try {
     await page.goto(`${BASE}/upload`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: type, exact: true }).click();
     await next.click();
+    await page.locator('input[type=file]').setInputFiles(files);
+    await page.getByText(`Uploaded Files (${files.length})`).waitFor();
+    await next.click();
     await page.getByPlaceholder('Enter a descriptive title').fill(title);
     await page.getByPlaceholder(/comma separated/).fill('e2e');
     await page.getByRole('button', { name: 'Abstract', exact: true }).click();
     await page.getByRole('button', { name: 'No AI' }).click();
-    await next.click();
-    await page.locator('input[type=file]').setInputFiles(files);
-    await page.getByText(`Uploaded Files (${files.length})`).waitFor();
     await next.click();
   }
   async function submitAndLoad(buttonName = 'Upload Wallpack') {

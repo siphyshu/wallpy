@@ -12,6 +12,7 @@ export default function UploadProgress({
   scheduleConfig, 
   metadata,
   onEditStep,
+  detailsStep,
   error
 }) {
   const imageFiles = files.filter(f => f.type?.startsWith('image/'));
@@ -118,7 +119,7 @@ export default function UploadProgress({
                 <h3 className="text-2xl font-serif font-bold">{metadata.title || 'Untitled Pack'}</h3>
                 {onEditStep && (
                   <button
-                    onClick={() => onEditStep(2)}
+                    onClick={() => onEditStep(detailsStep)}
                     aria-label="Edit details"
                     className="p-1 text-white/40 hover:text-white transition-colors"
                   >

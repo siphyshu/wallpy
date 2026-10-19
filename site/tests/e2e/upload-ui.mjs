@@ -64,8 +64,15 @@ try {
   await shot('1-type');
   await page.getByText('Next', { exact: true }).click();
 
-  // 2. details
+  // 2. files
   const next = page.getByText('Next', { exact: true });
+  await page.locator('input[type=file]').setInputFiles(images);
+  await page.getByText('Uploaded Files (3)').waitFor();
+  check('file names are made spec-safe', await page.getByText('Sunset 01 final.jpg').first().isVisible());
+  await shot('2-files');
+  await next.click();
+
+  // 3. details
   await page.getByPlaceholder('Enter a descriptive title').fill(`E2E Album ${runId}`);
   await page.getByPlaceholder(/comma separated/).fill('Test, Gradients, test');
   check('Next stays disabled until the AI question is answered', await next.isDisabled());
@@ -75,14 +82,7 @@ try {
   await page.getByRole('button', { name: 'Minimal', exact: true }).click();
   check('a third category can\'t be picked', await page.getByRole('button', { name: 'Space', exact: true }).isDisabled());
   check('one or two categories enable Next', await next.isEnabled());
-  await shot('2-details');
-  await next.click();
-
-  // 3. files
-  await page.locator('input[type=file]').setInputFiles(images);
-  await page.getByText('Uploaded Files (3)').waitFor();
-  check('file names are made spec-safe', await page.getByText('Sunset 01 final.jpg').first().isVisible());
-  await shot('3-files');
+  await shot('3-details');
   await next.click();
 
   // 4. schedule
@@ -124,27 +124,28 @@ try {
   await page2.getByRole('button', { name: 'Daypack', exact: true }).click();
   await page2.getByText('Next', { exact: true }).click();
 
-  check('step 2 lists what\'s missing', await page2.getByText('Add a title').isVisible()
+  check('step 2 says images are missing', await page2.getByText('Add at least one image').isVisible());
+  await page2.locator('input[type=file]').setInputFiles(images.slice(0, 2));
+  await page2.getByText('Uploaded Files (2)').waitFor();
+  await page2.getByRole('button', { name: 'Cover', exact: true }).last().click();
+  check('chosen cover is marked', await page2.getByRole('button', { name: '★ Cover', exact: true }).count() === 1);
+  await page2.getByText('Next', { exact: true }).click();
+
+  check('step 3 lists what\'s missing', await page2.getByText('Add a title').isVisible()
     && await page2.getByText('Pick 1–2 categories').isVisible() && await page2.getByText('Answer the AI question').isVisible());
   const draftTitle = `E2E Draft ${runId}`;
   await page2.getByPlaceholder('Enter a descriptive title').fill(draftTitle);
   await page2.getByRole('button', { name: 'Nature', exact: true }).click();
   await page2.getByRole('button', { name: 'No AI' }).click();
   check('reasons clear once the fields are filled in', await page2.getByText('Add a title').count() === 0);
-  await page2.getByText('Next', { exact: true }).click();
-
-  await page2.locator('input[type=file]').setInputFiles(images.slice(0, 2));
-  await page2.getByText('Uploaded Files (2)').waitFor();
-  await page2.getByRole('button', { name: 'Cover', exact: true }).last().click();
-  check('chosen cover is marked', await page2.getByRole('button', { name: '★ Cover', exact: true }).count() === 1);
 
   await page2.reload({ waitUntil: 'networkidle' });
-  check('draft restores past step 1', await page2.getByText('Uploaded Files (2)').isVisible());
-  check('draft says images need adding again', await page2.getByText(/Your images need adding again/).isVisible());
-  check('cover choice is restored from the draft', await page2.getByRole('button', { name: '★ Cover', exact: true }).count() === 1);
-  await page2.getByText('Previous', { exact: true }).click();
+  check('draft restores past step 1', await page2.getByPlaceholder('Enter a descriptive title').isVisible());
   check('title restored from the draft', await page2.getByPlaceholder('Enter a descriptive title').inputValue() === draftTitle);
-  await page2.getByText('Next', { exact: true }).click();
+  check('draft says images need adding again', await page2.getByText(/Your images need adding again/).isVisible());
+  await page2.getByText('Previous', { exact: true }).click();
+  check('images step lists the files to re-add', await page2.getByText('Uploaded Files (2)').isVisible());
+  check('cover choice is restored from the draft', await page2.getByRole('button', { name: '★ Cover', exact: true }).count() === 1);
 
   await page2.locator('input[type=file]').setInputFiles(images.slice(0, 2));
   check('re-adding the same files clears "needs adding again"', await page2.getByText('Needs adding again').count() === 0);
@@ -169,8 +170,9 @@ try {
   await page3.getByRole('button', { name: 'Seasons', exact: true }).click();
   await page3.getByRole('button', { name: 'No AI' }).click();
   const next3 = page3.getByText('Next', { exact: true });
-  await next3.click();
+  await page3.getByText('Previous', { exact: true }).click();
   check('zip import loaded all 7 images', await page3.getByText('Uploaded Files (7)').isVisible());
+  await next3.click();
   await next3.click();
   check('zip import lands in the Weekpack builder (not as text)', await page3.getByText('Configure Weekly Schedule').isVisible());
   if (SHOTS) await page3.screenshot({ path: `${SHOTS}/8-zip-import-schedule.png`, fullPage: true });

@@ -86,19 +86,19 @@ try {
   await up.getByRole('heading', { level: 1, name: /^Update / }).waitFor();
   check('edit page repeats the note', await up.getByText(/Changes requested on version 1/).isVisible());
   check('no false "builder can\'t show this" warning', !(await up.getByText(/options the builder can't show/).isVisible()));
-  check('details are filled in from version 1',
-    await up.getByPlaceholder('Enter a descriptive title').inputValue() === `Fix Me ${runId}`
-    && await up.getByRole('button', { name: 'Abstract', exact: true }).getAttribute('aria-pressed') === 'true');
-  await shot(up, 'v-2-edit-details');
   const next = up.getByText('Next', { exact: true });
-  await next.click();
-
   check('existing images are listed, marked as already in the pack',
     await up.getByText('Already in the pack', { exact: false }).count() === 2);
   const stars = await makeImage('Stars', '10,10,40');
   await up.locator('input[type=file]').setInputFiles([{ name: 'stars.jpg', mimeType: 'image/jpeg', buffer: stars.bytes }]);
   await up.getByText('Uploaded Files (3)').waitFor();
-  await shot(up, 'v-3-edit-files');
+  await shot(up, 'v-2-edit-files');
+  await next.click();
+
+  check('details are filled in from version 1',
+    await up.getByPlaceholder('Enter a descriptive title').inputValue() === `Fix Me ${runId}`
+    && await up.getByRole('button', { name: 'Abstract', exact: true }).getAttribute('aria-pressed') === 'true');
+  await shot(up, 'v-3-edit-details');
   await next.click();
 
   // Schedule: add stars.jpg to the second block (the builder names unnamed blocks after their start).
@@ -146,8 +146,8 @@ try {
   await up.getByRole('link', { name: 'Upload a new version' }).click();
   await up.waitForURL(`**/packs/${slugs['Update Me']}/edit`);
   check('edit page explains v1 stays live', await up.getByText(/Version 1 stays live until it's approved/).isVisible());
+  await next.click(); // images → details
   await up.getByPlaceholder('Enter a descriptive title').fill(`Updated Pack ${runId}`);
-  await next.click();
   await next.click();
   await next.click();
   const presigns = [];

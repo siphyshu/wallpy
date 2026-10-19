@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User as AuthUser } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
-import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR } from '@/lib/data/profile-shape';
+import { PROFILE_COLUMNS, toProfile, DEFAULT_AVATAR, PROFILE_UPDATED_EVENT } from '@/lib/data/profile-shape';
 import { User, Upload, LogOut, ShieldCheck, Menu, X, Bell } from 'lucide-react';
 
 const NavBar = () => {
@@ -72,6 +72,13 @@ const NavBar = () => {
 
         getInitialSession();
 
+        // The navbar loads the profile once; reload it when you save yours.
+        const onProfileUpdated = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) await loadProfile(session.user.id);
+        };
+        window.addEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
+
         // Listen for auth changes. The callback must stay synchronous: supabase-js
         // runs it while holding its auth lock, and any Supabase call awaited in
         // here waits on that same lock -- a deadlock that froze every other auth
@@ -119,6 +126,7 @@ const NavBar = () => {
             subscription.unsubscribe();
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('resize', checkMobile);
+            window.removeEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
         };
     }, [supabase]);
 

@@ -71,3 +71,4 @@ the why) whenever something is decided.
 | 2026-10-15 | Monorepo: `cli/ site/ spec/ supabase/` | The spec is shared by site and CLI |
 | — | UI must match the existing design system: extend existing components and classes, check screenshots | User feedback |
 | 2026-10-19 | GitHub link only in the footer, not the navbar | The navbar is for getting around the site; installs go through Docs, and the repo sits in the footer next to "Report a problem" |
+| 2026-10-19 | Upload wizard order: Type → Images → Details → Schedule → Review | Images first: the cover is picked as the images go in, and details can follow from what was uploaded; a zip import skips to Details |

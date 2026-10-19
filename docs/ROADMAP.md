@@ -33,12 +33,12 @@ feature-complete too (the CLI downloads from wallpy.siphyshu.me, which isn't
 live yet). Next: walk the site's user flows end to end with Jaiyank, then
 design and feature work. Collected so far:
 
-- [ ] Walk every user flow end to end (visitor, creator, moderator) and list what's missing or rough
+- [x] Walk every user flow end to end (visitor, creator, moderator) and list what's missing or rough
 - [x] CLI docs on the site: `/docs` (install per OS, get started, commands, how it works, uninstall, make a pack), checked against the CLI code; content kept in step with cli/README.md
 - [x] Install section on the homepage: 3 steps (install with OS tabs, run `wallpy`, done) at `#install`; commands from `site/lib/install.ts`
 - [x] Pack pages say `wallpy download <slug>` (components/packs/InstallCommand.tsx): use `wallpy use <slug>`
 - [x] Decide: can creators upload a ready-made pack folder or zip (schedule.toml + images)? Today only the builders (2026-10-17: yes — a folder or .zip with schedule.toml + images, parsed and validated against the spec on step 1)
-- [ ] Design pass across the site: see "Design pass (in progress)" below
+- [x] Design pass across the site (2026-10-19): see "Design pass" below
 
 Walkthrough findings (2026-10-17):
 
@@ -69,13 +69,13 @@ Creator (from the e2e suites' screenshots: ui, builders, versions; 75/75 checks 
 - [x] Wizard uses blue steps/Next and a green-ish "Upload Wallpack", not the design system (white primary, `bg-white/10` secondary) (2026-10-17: step circles/lines, Next, Upload Wallpack, Choose Files, type-selector highlights and the Configuration Guide's blue/green icons moved to white/neutral; builder previews, success/error text and the orange/purple guide icons kept their colour)
 - [x] Wizard state is only in memory: a refresh or a stray link loses everything, with no "leave page?" warning (2026-10-17: draft in localStorage — type, metadata, schedule config, cover and step — keyed by slug when editing; `beforeunload` warns while there's unsaved work; "Start over" clears it; cleared after a successful submit)
 - [x] Next is disabled on Details with no reason shown (title, tags and the AI question are required; tags is easy to miss) (2026-10-17: a list of what's missing shows under the nav on steps 1–3; schedule step problems already showed in the Schedule Preview)
-- [ ] Details come before images; images first would let the cover, title and AI question follow from what was uploaded
+- [x] Details come before images; images first would let the cover, title and AI question follow from what was uploaded (2026-10-19: steps are now Type → Images → Details → Schedule → Review; a zip import lands on Details; drafts saved before the change are dropped, `DRAFT_VERSION` 2)
 - [x] The cover is always the first uploaded image; no way to pick it (2026-10-17: a "Cover" pill on each image in the Upload Files step; editing keeps the existing cover selected; `keepRenditions` still works when it's unchanged)
-- [ ] Schedule step leads with the raw `schedule.toml` (a tall, mostly empty code box), an "Upload schedule file" panel and a long Configuration Guide; the builder and preview are what creators need. Collapse the TOML and the guide behind "Advanced"/"Help"
-- [ ] Daypack's time blocks scroll inside a fixed-height panel, so blocks below the fold are easy to miss
+- [x] ~~Schedule step leads with the raw `schedule.toml`~~ kept: the full TOML, grid and Configuration Guide stay (Jaiyank, 2026-10-17 and 2026-10-19). Original note: (a tall, mostly empty code box), an "Upload schedule file" panel and a long Configuration Guide; the builder and preview are what creators need. Collapse the TOML and the guide behind "Advanced"/"Help"
+- [x] ~~Daypack's time blocks scroll inside a fixed-height panel~~ kept: the fixed panel is part of the builder's grid layout (Jaiyank, 2026-10-19)
 - [x] Review step shows the pack's size with a download icon ("⬇ 50 KB"), which reads like a download button; tags show as typed (#Test) though they're stored lowercase (2026-10-17: plain text "50 KB, 3 images"; the tags preview already used the normalised, stored form)
 - [x] No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile (2026-10-17: in-site notices -- a dot on the navbar avatar, a `/notices` list of approved/changes requested/declined/taken down/restored with the moderator's note, newest first; opening it marks everything read) No notifications: creators aren't told (email or in-site) when a pack is approved, sent back or declined; they have to check their profile
-- [ ] "Waiting for review" doesn't say what happens next or how long it usually takes
+- [x] "Waiting for review" doesn't say what happens next or how long it usually takes (2026-10-19: the pack-page notice says a moderator will check it and a notice follows; no time promised until there's a review target)
 - [x] Owners can't unlist or delete a published pack (the DB has `is_listed`; only declined packs can be deleted), or withdraw a version in review (already under Later) (2026-10-17: Unlist/List, Withdraw and Delete on the owner's pack page and profile cards, each confirmed; delete needs the pack name typed. Unlisted packs keep their link and installs. Delete account at the bottom of the profile edit form)
 - [x] No upload from a ready-made folder/zip (already listed above) (2026-10-17: drop a folder or a .zip with schedule.toml + images on step 1; parsed, type detected, validated against the spec, title prefilled, then straight to the details step)
 
@@ -89,19 +89,19 @@ Moderator (from the e2e screenshots)
 Profile editing (walked 2026-10-17 with a throwaway user; now `npm run test:e2e:profile`, 28 checks)
 - Fine: name, bio, links, contact email, avatar and cover save, survive a reload and show to signed-out visitors; images land in `profiles/<id>/`
 - [x] Fixed: a link without `https://` or a malformed contact email failed the DB check with a raw constraint error; now checked first with a clear message (`lib/profile-fields.ts`), scheme added for bare domains. Link URLs were silently cut at 100 characters (DB allows 300), name at 50 (DB 60). Images over 5 MB only failed on Save; now on picking. "Add Link" was blue; now the `bg-white/10` secondary pill
-- [ ] Navbar avatar doesn't update after saving a new one until the page reloads (it loads the profile once on mount)
+- [x] Navbar avatar doesn't update after saving a new one until the page reloads (2026-10-19: saving fires `PROFILE_UPDATED_EVENT`; the navbar reloads the profile)
 - [x] No way to remove an avatar or cover once set (only replace); replaced files stay in R2 under `profiles/<id>/` (2026-10-17: remove buttons in the edit form; removed and replaced files are deleted from R2)
 - [x] `profiles.website` exists (filled for v1 users) but the profile neither shows nor edits it; links cover the same need (2026-10-17: moved into `links` as "Website", column dropped)
-- [ ] With no display name the profile shows an empty heading above `@username` (sign-up asks for a name, so mostly old/test accounts)
+- [x] With no display name the profile shows an empty heading above `@username` (2026-10-19: `@username` is the heading then)
 
 Final walk (2026-10-18, after all batches; now `test:e2e:journey`, 15 steps across creator, moderator and visitor, clicking only)
 - [x] Signed-out visitors had no way to report (only signed-in saw "Report this pack"); now it links to sign-in and back, like favourites
 - [x] Takedown notice ended in a double full stop ("…takedown..")
 - [x] The desktop avatar menu stayed open after picking an item
 - [x] Wizard details labels weren't linked to their fields (screen readers couldn't name them)
-- [ ] A taken-down pack's owner sees the reason and a Delete button, but nothing about what happens next. Decided: final; say so and point to support (GitHub issues + email)
+- [x] A taken-down pack's owner sees the reason and a Delete button, but nothing about what happens next. Decided: final; say so and point to support (GitHub issues + email)
 
-### Design pass (in progress, started 2026-10-19)
+### Design pass (done 2026-10-19)
 
 Scope (Jaiyank): consistency + polish, done directly in the main thread (no
 subagents). Rules: [design-system.md](design-system.md). Contact sheet of every

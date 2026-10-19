@@ -8,6 +8,9 @@ export const PROFILE_COLUMNS =
 
 export const DEFAULT_AVATAR = '/avatar_placeholder.png';
 
+/** Fired on window after you save your profile, so the navbar's avatar and name follow. */
+export const PROFILE_UPDATED_EVENT = 'wallpy:profile-updated';
+
 type ProfileRow = Pick<
   Database['public']['Tables']['profiles']['Row'],
   'id' | 'username' | 'display_name' | 'bio' | 'links' | 'contact_email' | 'avatar_key' | 'cover_key' | 'role' | 'created_at'

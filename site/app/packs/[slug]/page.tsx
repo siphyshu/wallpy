@@ -30,6 +30,9 @@ const LICENSES: Record<PackLicense, string> = {
   other: 'Other',
 };
 
+/** What happens after a version is submitted; owners see it while they wait. */
+const REVIEW_NEXT = "A moderator will check it, and you'll get a notice when it's approved or sent back with a note.";
+
 const STATUS_NOTES: Partial<Record<VersionStatus, string>> = {
   draft: 'This is a draft. Only you can see it until you submit it for review.',
   pending: 'Waiting for review. Only you and moderators can see it for now.',
@@ -71,7 +74,10 @@ function ownerNotice(
     };
   }
   if (latest.status === 'pending' && isUpdate) {
-    return { text: `Version ${latest.number} is waiting for review. Version ${pack.version.number} stays live until it's approved.` };
+    return { text: `Version ${latest.number} is waiting for review. ${REVIEW_NEXT} Version ${pack.version.number} stays live until then.` };
+  }
+  if (latest.status === 'pending') {
+    return { text: `Waiting for review. ${REVIEW_NEXT} Until it's approved, only you and moderators can see it.` };
   }
   if (latest.status === 'draft') {
     return {

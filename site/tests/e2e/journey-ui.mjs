@@ -73,7 +73,8 @@ try {
     await t.fill(title);
     await c.getByRole('button', { name: 'Cities', exact: true }).click();
     await c.getByRole('button', { name: 'No AI', exact: true }).click();
-    for (let i = 0; i < 3; i++) {
+    // Import lands on details (step 3): Next → schedule → review.
+    for (let i = 0; i < 2; i++) {
       await c.getByRole('button', { name: 'Next', exact: true }).click();
       await c.waitForTimeout(500);
     }
