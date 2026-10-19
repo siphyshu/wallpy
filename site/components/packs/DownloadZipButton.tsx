@@ -4,6 +4,7 @@ import { useState } from 'react';
 import JSZip from 'jszip';
 import toml from '@iarna/toml';
 import { errorMessage } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import type { Manifest } from '@/lib/types';
 
 async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
@@ -62,13 +63,9 @@ export default function DownloadZipButton({ slug }: { slug: string }) {
 
   return (
     <div className="flex flex-col gap-1">
-      <button
-        onClick={download}
-        disabled={state.busy}
-        className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center disabled:opacity-60"
-      >
+      <Button variant="secondary" onClick={download} disabled={state.busy}>
         {state.busy ? `Downloading ${state.done}/${state.total || '…'}` : `Download ZIP`}
-      </button>
+      </Button>
       {state.error && <p className="text-sm text-red-400">{state.error}</p>}
     </div>
   );

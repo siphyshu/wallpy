@@ -16,6 +16,10 @@ import { getPackBySlug } from '@/lib/data/packs';
 import { categoryName } from '@/lib/packs/categories';
 import { latestVersion } from '@/lib/data/editing';
 import { createClient } from '@/lib/supabase/server';
+import { Page } from '@/components/ui/page';
+import { Notice } from '@/components/ui/notice';
+import { Pill, pillClasses } from '@/components/ui/pill';
+import { buttonVariants } from '@/components/ui/button';
 import type { PackLicense, VersionStatus } from '@/lib/types';
 
 const LICENSES: Record<PackLicense, string> = {
@@ -32,6 +36,15 @@ const STATUS_NOTES: Partial<Record<VersionStatus, string>> = {
   rejected: 'This version was rejected. Submit a new version to try again.',
 };
 
+/** Takedowns are final; the owner can still ask why. */
+const TAKEDOWN_HELP = (
+  <>
+    {' '}Takedowns are final. Questions?{' '}
+    <a href="https://github.com/siphyshu/wallpy/issues" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-white">Open an issue</a>
+    {' '}or email <a href="mailto:siphyshu@gmail.com" className="underline underline-offset-2 hover:text-white">siphyshu@gmail.com</a>.
+  </>
+);
+
 /** A moderator's note as a sentence: adds a full stop unless it already ends in one. */
 const sentence = (text: string) => (/[.!?]["')\]]?$/.test(text.trim()) ? text.trim() : `${text.trim()}.`);
 
@@ -39,12 +52,12 @@ const sentence = (text: string) => (/[.!?]["')\]]?$/.test(text.trim()) ? text.tr
 function ownerNotice(
   pack: { isPublic: boolean; isListed: boolean; removedAt: string | null; removedReason: string | null; version: { id: string; number: number; status: VersionStatus } },
   latest: { id: string; number: number; status: VersionStatus; notes: string | null } | null,
-): { text: string; action?: 'edit'; actionLabel?: string } | null {
+): { text: string; action?: 'edit'; actionLabel?: string; takedown?: boolean } | null {
   if (pack.removedAt) {
     // Closed before it was ever published: declined in review.
     return pack.version.status === 'rejected'
       ? { text: `Declined by a moderator: "${pack.removedReason || 'no reason given'}" This pack can't be resubmitted.` }
-      : { text: `Taken down by a moderator: ${sentence(pack.removedReason || 'no reason given')}` };
+      : { text: `Taken down by a moderator: ${sentence(pack.removedReason || 'no reason given')}`, takedown: true };
   }
   if (!latest) return null;
   const isUpdate = latest.id !== pack.version.id;
@@ -122,28 +135,26 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
   const canUpdate = isOwner && !pack.removedAt && latest?.status === 'approved';
 
   return (
-    <div className="min-h-screen bg-background/80 text-white mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-24">
+    <div className="min-h-screen bg-background/80 text-white">
+      <Page width="wide">
         {notice?.text && (
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-            <p className="flex-1">{notice.text}</p>
-            {notice.action === 'edit' && (
-              <Link
-                href={`/packs/${pack.slug}/edit`}
-                className="shrink-0 self-start sm:self-auto px-4 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 transition-colors"
-              >
+          <Notice
+            tone={pack.removedAt ? 'red' : 'amber'}
+            className="mb-6"
+            action={notice.action === 'edit' && (
+              <Link href={`/packs/${pack.slug}/edit`} className={buttonVariants({ size: 'sm' })}>
                 {notice.actionLabel ?? 'Make changes'}
               </Link>
             )}
-          </div>
+          >
+            <p>{notice.text}{'takedown' in notice && notice.takedown && TAKEDOWN_HELP}</p>
+          </Notice>
         )}
         <PackView files={pack.files} schedule={version.schedule} kind={version.kind} details={
           <div className="md:w-1/3">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-4xl font-serif">{version.title}</h1>
-              <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
-                {pack.kindLabel}
-              </span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2">
+              <h1 className="text-4xl font-serif text-balance">{version.title}</h1>
+              <Pill>{pack.kindLabel}</Pill>
             </div>
 
             <div className="flex items-center gap-2 mb-4">
@@ -177,12 +188,12 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
             {(version.categories.length > 0 || version.tags.length > 0) && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {version.categories.map((c) => (
-                  <Link key={c} href={`/gallery?category=${c}`} className="px-3 py-1 border border-white/20 bg-white/5 rounded-full text-sm hover:bg-white/10">
+                  <Link key={c} href={`/gallery?category=${c}`} className={pillClasses({ tone: 'outline', className: 'hover:bg-white/10 hover:text-white transition-colors' })}>
                     {categoryName(c)}
                   </Link>
                 ))}
                 {version.tags.map((tag) => (
-                  <Link key={tag} href={`/gallery?tag=${tag}`} className="px-2 py-1 bg-white/10 rounded-full text-sm hover:bg-white/20">
+                  <Link key={tag} href={`/gallery?tag=${tag}`} className={pillClasses({ className: 'hover:bg-white/20 hover:text-white transition-colors' })}>
                     #{tag}
                   </Link>
                 ))}
@@ -237,7 +248,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
 
             {isModerator && (pack.isPublic || (pack.removedAt && version.status === 'approved')) && (
               <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-3" data-testid="moderate-pack">
-                <p className="text-xs uppercase tracking-wide text-white/50">Moderator</p>
+                <p className="text-xs uppercase tracking-wider text-white/50">Moderator</p>
                 <PackModActions versionId={version.id} packId={pack.id} slug={pack.slug} removed={Boolean(pack.removedAt)} />
                 <ModerationHistory entries={history} />
               </div>
@@ -245,12 +256,10 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
 
             {isOwner && (
               <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-4" data-testid="manage-pack">
+                <p className="text-xs uppercase tracking-wider text-white/50">Your pack</p>
                 {canUpdate && (
                   <div className="flex flex-col gap-2">
-                    <Link
-                      href={`/packs/${pack.slug}/edit`}
-                      className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-white/80 text-center"
-                    >
+                    <Link href={`/packs/${pack.slug}/edit`} className={buttonVariants({ variant: 'secondary' })}>
                       Upload a new version
                     </Link>
                     <p className="text-xs text-white/50">
@@ -272,7 +281,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
             )}
           </div>
         } />
-      </div>
+      </Page>
       <Footer />
     </div>
   );

@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { deletePack, setPackListed, withdrawVersion, type OwnerActionResult } from '@/app/packs/actions';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 type Props = {
   packId: string;
@@ -21,13 +23,6 @@ type Props = {
 
 type Confirm = 'unlist' | 'delete' | 'withdraw' | null;
 
-const PILL = 'whitespace-nowrap text-xs px-2 py-1 rounded-full border transition-colors disabled:opacity-50';
-const PILL_SECONDARY = `${PILL} bg-white/10 text-white/70 border-white/20 hover:bg-white/20`;
-const PILL_DANGER = `${PILL} bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30`;
-const BUTTON = 'px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50';
-const BUTTON_SECONDARY = `${BUTTON} bg-white/10 text-white/80 hover:bg-white/20`;
-const BUTTON_DANGER = `${BUTTON} bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30`;
-
 /** Unlist / list, withdraw from review, and delete, each behind a confirm. */
 export default function PackOwnerControls({ packId, slug, name, published, listed, pendingVersionId, variant, afterDelete }: Props) {
   const router = useRouter();
@@ -36,6 +31,7 @@ export default function PackOwnerControls({ packId, slug, name, published, liste
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const card = variant === 'card';
+  const size = card ? 'sm' : 'md';
 
   const run = (action: () => Promise<OwnerActionResult>, onDone?: () => void) => startTransition(async () => {
     setError(null);
@@ -75,26 +71,21 @@ export default function PackOwnerControls({ packId, slug, name, published, liste
       <div className={`flex flex-col gap-2 ${card ? 'mt-3 w-full' : ''}`} data-confirm={confirm}>
         <p className={`${card ? 'text-xs' : 'text-sm'} ${danger ? 'text-red-300' : 'text-amber-200'}`}>{confirmText[confirm]}</p>
         {confirm === 'delete' && published && (
-          <input
+          <Input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             placeholder={slug}
             aria-label="Pack name"
             autoFocus
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
           />
         )}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onConfirm}
-            disabled={pending || (danger && !nameMatches)}
-            className={danger ? (card ? PILL_DANGER : BUTTON_DANGER) : (card ? PILL_SECONDARY : BUTTON_SECONDARY)}
-          >
+          <Button size={size} variant={danger ? 'danger' : 'secondary'} onClick={onConfirm} disabled={pending || (danger && !nameMatches)}>
             {pending ? 'Working…' : { unlist: 'Unlist', withdraw: 'Withdraw', delete: 'Delete pack' }[confirm]}
-          </button>
-          <button onClick={() => setConfirm(null)} disabled={pending} className={card ? PILL_SECONDARY : BUTTON_SECONDARY}>
+          </Button>
+          <Button size={size} variant="ghost" onClick={() => setConfirm(null)} disabled={pending}>
             Cancel
-          </button>
+          </Button>
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
@@ -102,24 +93,20 @@ export default function PackOwnerControls({ packId, slug, name, published, liste
   }
 
   const listToggle = published && (listed ? (
-    <button onClick={() => open('unlist')} className={card ? PILL_SECONDARY : BUTTON_SECONDARY}>Unlist</button>
+    <Button size={size} variant="secondary" onClick={() => open('unlist')}>Unlist</Button>
   ) : (
-    <button onClick={() => run(() => setPackListed(packId, true))} disabled={pending} className={card ? PILL_SECONDARY : BUTTON_SECONDARY}>
+    <Button size={size} variant="secondary" onClick={() => run(() => setPackListed(packId, true))} disabled={pending}>
       {pending ? 'Listing…' : card ? 'List' : 'List in the gallery'}
-    </button>
+    </Button>
   ));
   const withdraw = pendingVersionId && (
-    <button onClick={() => open('withdraw')} className={card ? PILL_SECONDARY : BUTTON_SECONDARY}>Withdraw</button>
+    <Button size={size} variant="secondary" onClick={() => open('withdraw')}>Withdraw</Button>
   );
+  // Calm until hovered; the confirm step is the red one.
   const remove = (
-    <button
-      onClick={() => open('delete')}
-      className={card
-        ? `${PILL} bg-white/10 text-white/70 border-white/20 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30`
-        : `${BUTTON} bg-white/10 text-white/80 hover:bg-red-500/20 hover:text-red-300`}
-    >
+    <Button size={size} variant="secondary" onClick={() => open('delete')} className="hover:bg-red-500/20 hover:text-red-300">
       Delete
-    </button>
+    </Button>
   );
 
   return (

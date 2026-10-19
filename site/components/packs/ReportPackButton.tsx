@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { reportPack } from '@/app/packs/actions';
 import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@/lib/moderation/review';
-
-const BUTTON = 'px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/input';
 
 /** "Report this pack": a reason, an optional note, sent to the moderators. Signed-in visitors only. */
 export default function ReportPackButton({ packId, alreadyReported }: { packId: string; alreadyReported: boolean }) {
@@ -49,7 +49,7 @@ export default function ReportPackButton({ packId, alreadyReported }: { packId: 
             role="radio"
             aria-checked={reason === r.id}
             onClick={() => setReason(r.id)}
-            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+            className={`px-3 py-1 rounded-full text-sm border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               reason === r.id ? 'bg-white text-black border-white' : 'bg-white/5 border-white/20 text-white/80 hover:bg-white/10'
             }`}
           >
@@ -57,21 +57,22 @@ export default function ReportPackButton({ packId, alreadyReported }: { packId: 
           </button>
         ))}
       </div>
-      <textarea
+      <Textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={3}
         maxLength={REPORT_NOTE_MAX}
+        aria-label="Note for moderators"
         placeholder="Anything moderators should know (optional). Only moderators see reports."
-        className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/30 text-white placeholder-white/40 text-sm resize-none"
+        className="resize-none"
       />
       <div className="flex items-center gap-2">
-        <button onClick={send} disabled={pending} className={`${BUTTON} bg-white text-black font-medium hover:bg-white/90`}>
+        <Button onClick={send} disabled={pending}>
           {pending ? 'Sending…' : 'Send report'}
-        </button>
-        <button onClick={() => { setOpen(false); setError(null); }} disabled={pending} className={`${BUTTON} bg-white/10 text-white/80 hover:bg-white/20`}>
+        </Button>
+        <Button variant="ghost" onClick={() => { setOpen(false); setError(null); }} disabled={pending}>
           Cancel
-        </button>
+        </Button>
         <span className="ml-auto text-xs text-white/40">{note.length}/{REPORT_NOTE_MAX}</span>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
