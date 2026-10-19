@@ -136,7 +136,8 @@ To do (in order)
 - [x] Fonts: navbar in Inter (unused Alegreya removed); `site/public/fonts/` (Thunder, Megna trial) deleted
 - [x] Docs: contents chips centred under the header
 
-- [ ] Final: typecheck, lint, unit, every e2e suite (incl. `journey`), recapture the whole contact sheet as "after" and republish it for Jaiyank
+- [x] Final (2026-10-19): typecheck, lint (0 errors), 165 unit, all 10 e2e suites (api 23, ui 26, moderation 17, versions 23, builders 28, profile 31, owner 27, reports 24, notices 9, journey 15); contact sheet recaptured with a Before/After toggle
+- [ ] Waiting on Jaiyank: hero subtitle copy ("MacOS"), navbar "Github" vs footer "GitHub", sticky docs contents (layout change)
 
 ## Go CLI: feature-complete (publish after the site)
 
