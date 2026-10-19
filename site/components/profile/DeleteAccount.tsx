@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { buttonVariants } from '@/components/ui/button';
+import { fieldClasses } from '@/components/ui/input';
 
 /** The bottom of the profile edit form: delete your account, confirmed by typing your username. */
 export default function DeleteAccount({ username }: { username: string }) {
@@ -82,7 +84,7 @@ export default function DeleteAccount({ username }: { username: string }) {
           onChange={(e) => setTyped(e.target.value)}
           aria-label="Username"
           placeholder={username}
-          className="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
+          className={`${fieldClasses} mt-1 h-10 py-2`}
         />
       </label>
       {error && <p className="text-xs text-red-400">{error}</p>}
@@ -91,7 +93,7 @@ export default function DeleteAccount({ username }: { username: string }) {
           type="button"
           onClick={remove}
           disabled={!ready || busy}
-          className="flex-1 px-4 py-2 rounded-full text-sm font-medium bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={buttonVariants({ variant: 'danger', className: 'flex-1' })}
         >
           {busy ? 'Deleting…' : 'Delete account'}
         </button>
@@ -99,7 +101,7 @@ export default function DeleteAccount({ username }: { username: string }) {
           type="button"
           onClick={() => { setOpen(false); setTyped(''); setKeepPublished(null); setError(null); }}
           disabled={busy}
-          className="flex-1 px-4 py-2 rounded-full text-sm font-medium bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
+          className={buttonVariants({ variant: 'secondary', className: 'flex-1' })}
         >
           Cancel
         </button>

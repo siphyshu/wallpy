@@ -124,9 +124,9 @@ Done
 - [x] Shared components in `site/components/ui`: Button, Pill, Notice, Card, Input/Textarea, LinkTabs, Page/PageHeader/SectionTitle; `docs/design-system.md` (`c748216`)
 - [x] Page headers + widths + new titles on Gallery, Docs, Notices, Moderation, upload wizard (per-step headings now sr-only), sign in / sign up / password pages (`c748216`, centred in `b280dd5`)
 - [x] Pack page: `Page wide`, neutral kind pill, category/tag pills, `Notice` (red for takedowns/declines, with "Takedowns are final" + GitHub issues/email), "Your pack" label, owner controls / report form / ZIP on `Button` + fields
+- [x] Profile: `Page wide`, status `Pill` tones, `SectionTitle` (titles kept), owner/profile/delete-account buttons and fields on `Button` + `fieldClasses` (no blue focus ring), dusk-gradient empty cover, the nudge is a `Notice` without its own button (Edit Profile sits under it), download count hidden at 0
 
 To do (in order)
-- [ ] Profile (`app/profile/[username]/page.tsx`, `components/profile/*`): `Page wide`; status pills via `Pill` tones (published green, in review/changes amber, declined/taken down red, unlisted/draft outline); owner card buttons via `Button sm`; nicer empty cover (gradient, not a grey block with an icon); drop the duplicate "Fill in your profile" button (the notice's action opens the editor, or keep only "Edit Profile"); empty favourites link not blue; `SectionTitle` for "Packs" / "Favourites"
 - [ ] Homepage (`app/page.tsx`, `components/homepage/*`): hero subtitle copy ("macOS"; lead with what it does); install + gallery sections use the system buttons
 - [ ] Footer (`components/footer.tsx`): links to Docs, Gallery, GitHub, report a problem (GitHub issues), contact (siphyshu@gmail.com); copyright. Privacy/terms pages are a separate launch item (add under "Before launch")
 - [ ] Moderation cards (`app/moderation/page.tsx`): kind badge neutral; empty thumbnails fall back to the first image (or a neutral placeholder with the title); buttons via `Button`

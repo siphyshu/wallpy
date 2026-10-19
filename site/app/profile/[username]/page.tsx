@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import ProfileCard from '@/components/profile/ProfileCard';
 import PacksSection from '@/components/profile/PacksSection';
 import Footer from '@/components/footer';
+import { Page } from '@/components/ui/page';
 import { getProfileByUsername, getCurrentProfile } from '@/lib/data/profiles';
 import { listPacksByOwner, listMyFavourites } from '@/lib/data/packs';
 
@@ -26,8 +27,7 @@ export default async function ProfilePage({ params }: PageProps<'/profile/[usern
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white bg-background/80">
-      <section className="relative mt-20 pt-24 px-6 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+      <Page width="wide" className="min-h-screen">
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-1/3">
               <ProfileCard user={profile} isCurrentUser={isCurrentUser} />
@@ -37,8 +37,7 @@ export default async function ProfilePage({ params }: PageProps<'/profile/[usern
               {isCurrentUser && <PacksSection type="favourited" packs={favourites} />}
             </div>
           </div>
-        </div>
-      </section>
+      </Page>
       <Footer />
     </div>
   );

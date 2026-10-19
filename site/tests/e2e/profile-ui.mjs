@@ -117,7 +117,7 @@ try {
     await phone.context().close();
   }
 
-  await me.getByRole('button', { name: 'Fill in your profile' }).click();
+  await me.getByRole('button', { name: 'Edit Profile' }).click();
   check('the nudge opens the edit form', await me.getByPlaceholder('Enter your full name').isVisible());
   check('contact email says it is public', await me.getByText('Shown publicly on your profile.').isVisible());
   await me.getByPlaceholder('Enter your full name').fill(`Profile Tester ${runId}`);

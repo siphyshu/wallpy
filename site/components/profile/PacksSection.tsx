@@ -2,20 +2,23 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { PackCard } from '@/lib/types';
 import PackOwnerControls from '@/components/packs/PackOwnerControls';
+import { Pill, type PillTone } from '@/components/ui/pill';
+import { SectionTitle } from '@/components/ui/page';
+import { buttonVariants } from '@/components/ui/button';
 
-const STATUS: Record<string, { label: string; className: string }> = {
-  public: { label: 'Published', className: 'bg-green-500/20 text-green-300 border-green-500/30' },
-  approved: { label: 'Published', className: 'bg-green-500/20 text-green-300 border-green-500/30' },
-  pending: { label: 'In review', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-  draft: { label: 'Draft', className: 'bg-white/10 text-white/70 border-white/20' },
-  rejected: { label: 'Changes requested', className: 'bg-amber-400/10 text-amber-200 border-amber-400/30' },
-  declined: { label: 'Declined', className: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  removed: { label: 'Taken down', className: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  updatePending: { label: 'Update in review', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-  updateRejected: { label: 'Update sent back', className: 'bg-amber-400/10 text-amber-200 border-amber-400/30' },
-  updateDraft: { label: 'Update withdrawn', className: 'bg-white/10 text-white/70 border-white/20' },
-  unlisted: { label: 'Unlisted', className: 'bg-white/10 text-white/70 border-white/20' },
-};
+const STATUS = {
+  public: { label: 'Published', tone: 'green' },
+  approved: { label: 'Published', tone: 'green' },
+  pending: { label: 'In review', tone: 'amber' },
+  draft: { label: 'Draft', tone: 'outline' },
+  rejected: { label: 'Changes requested', tone: 'amber' },
+  declined: { label: 'Declined', tone: 'red' },
+  removed: { label: 'Taken down', tone: 'red' },
+  updatePending: { label: 'Update in review', tone: 'amber' },
+  updateRejected: { label: 'Update sent back', tone: 'amber' },
+  updateDraft: { label: 'Update withdrawn', tone: 'outline' },
+  unlisted: { label: 'Unlisted', tone: 'outline' },
+} satisfies Record<string, { label: string; tone: PillTone }>;
 
 /** The badge on an uploaded pack: its state, and any newer version's (owners only see those). */
 function statusOf(pack: PackCard) {
@@ -27,7 +30,7 @@ function statusOf(pack: PackCard) {
     return pack.isListed ? STATUS.public : STATUS.unlisted;
   }
   if (pack.status === 'approved') return STATUS.removed; // published, then taken down
-  return STATUS[pack.review ?? pack.status ?? 'draft'] ?? STATUS.draft;
+  return STATUS[(pack.review ?? pack.status ?? 'draft') as keyof typeof STATUS] ?? STATUS.draft;
 }
 
 export default function PacksSection({ type, packs = [], canManage = false }: { type: 'uploaded' | 'favourited'; packs: PackCard[]; canManage?: boolean }) {
@@ -35,12 +38,7 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <h2 className="text-2xl font-serif text-white">{title}</h2>
-        <span className="px-3 py-1 bg-white/10 rounded-full text-sm text-white/70 border border-white/20">
-          {packs.length}
-        </span>
-      </div>
+      <SectionTitle count={packs.length}>{title}</SectionTitle>
       
       {packs.length === 0 ? (
         <div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-8 text-center">
@@ -52,14 +50,14 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
           {type === 'uploaded' ? (
             canManage ? (
               <p className="text-white/70 text-sm">No uploaded packs to display.{' '}
-                <Link href="/upload" className="text-blue-400 hover:underline">Upload your first pack</Link>.
+                <Link href="/upload" className={buttonVariants({ variant: 'link' })}>Upload your first pack</Link>.
               </p>
             ) : (
               <p className="text-white/70 text-sm">No packs yet.</p>
             )
           ) : (
             <p className="text-white/70 text-sm">No favourited packs yet.{' '}
-              <Link href="/gallery" className="text-blue-400 hover:underline">Explore the gallery</Link>.
+              <Link href="/gallery" className={buttonVariants({ variant: 'link' })}>Explore the gallery</Link>.
             </p>
           )}
         </div>
@@ -87,11 +85,13 @@ export default function PacksSection({ type, packs = [], canManage = false }: { 
                 <div className="flex items-center justify-between mt-3">
                   {/* Review status is the owner's business; visitors only see published packs anyway. */}
                   {type === 'uploaded' ? (
-                    status ? <span className={`text-xs px-2 py-1 rounded-full border ${status.className}`}>{status.label}</span> : <span />
+                    status ? <Pill tone={status.tone}>{status.label}</Pill> : <span />
                   ) : (
                     <span className="text-xs text-white/60">{pack.author}</span>
                   )}
-                  <span className="text-xs text-white/60">{pack.downloads} downloads</span>
+                  {pack.downloads > 0 && (
+                    <span className="text-xs text-white/60">{pack.downloads} {pack.downloads === 1 ? 'download' : 'downloads'}</span>
+                  )}
                 </div>
                 {/* Owners manage their packs here too: unlist, withdraw from review, delete. */}
                 {canManage && type === 'uploaded' && (

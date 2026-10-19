@@ -145,7 +145,7 @@ try {
   trackPack(kp.id);
   const k = await as(keeper);
   await k.goto(`${BASE}/profile/${keeper.username}`, { waitUntil: 'networkidle' });
-  await k.getByRole('button', { name: /Edit Profile|Fill in your profile/ }).first().click();
+  await k.getByRole('button', { name: 'Edit Profile' }).first().click();
   await k.getByRole('button', { name: 'Delete account' }).click();
   const box = k.getByTestId('delete-account');
   check('account deletion waits for a choice and the username', await box.getByRole('button', { name: 'Delete account' }).isDisabled());
