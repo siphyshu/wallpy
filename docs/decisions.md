@@ -78,3 +78,4 @@ the why) whenever something is decided.
 | 2026-10-20 | Old `main` (Python CLI 2.25.0) archived as tag + GitHub release `python-v2.25.0`; `main` fast-forwarded to the monorepo; the Go CLI is numbered from v3.0.0 | The Python CLI was already 2.x on PyPI, so "v1" would mislead and restarting at 1.0 would go backwards |
 | 2026-10-20 | Host the site on Vercel; Supabase kept awake on the free plan by a daily Vercel Cron hitting `/api/keepalive` | Next.js' native host; the free plan pauses after about a week without requests |
 | 2026-10-20 | Fresh start on production: keep the four real packs (Zelda Wind Waker, Tokyo Street, Ocean Hours, Greasy Diner) and only Jaiyank's account | Test users and packs go; real content stays |
+| 2026-10-20 | One branch: work on `main`, push to deploy (the `monorepo` branch was merged and deleted) | Simple; Vercel previews are there if a branch is ever needed |

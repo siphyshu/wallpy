@@ -25,7 +25,7 @@ runs them (cli/, being rewritten in Go), and the pack format both follow (spec/)
 - The DB is the security boundary: RLS, column grants and `moderate()`. Every schema change gets attack checks in `supabase/tests/security.sql`.
 - Local dev and e2e tests use **production** Supabase + R2; tests must clean up after themselves.
 - Don't push, deploy or change Cloudflare/Supabase settings without asking. Keep secrets out of chat; they live in `site/.env.local`.
-- Commit when a piece of work is done and tested (branch `monorepo`).
+- Commit when a piece of work is done and tested, on `main`. Pushing `main` deploys the live site (Vercel), so push only when Jaiyank says to go live.
 
 ## Before calling site work done
 
