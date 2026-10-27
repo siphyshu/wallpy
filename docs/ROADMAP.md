@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-20 (packs seeded; SEO and CLI release next)
+Last updated: 2026-10-27 (site feedback noted; SEO and CLI release next)
 
 ## Goal
 
@@ -142,6 +142,16 @@ To do (in order)
 - [x] Profile pack cards: owner actions moved into a ⋯ menu on the cover (right-click the card opens it too); confirms still show inline on the card
 - [x] Docs: on desktop a sticky "On this page" list beside the text marks the current section; chips under the header below `lg`
 - [x] Homepage redesign (2026-10-19, direction A of six on the canvas https://claude.ai/artifact/Rw7anchvc9ZqgLKtTGAv55): hero keeps the headline and pill buttons, new subtitle, and a Dawn/Day/Dusk/Night switcher over crossfading images (steps on its own until clicked, not with reduced motion); "Three ways a pack changes" (Daypack, Weekpack, Album); "From the gallery" (top 3); the 3-step install; "Make your own wallpack"; a Questions FAQ (free, location, performance, monitors, own images, uninstall; answers checked against the CLI). One spacing rhythm: every section `py-12 md:py-16`. Order: hero → pack kinds → gallery → make your own → install → questions. Subtitle names it a "small command-line app" so nobody expects a double-click app. Hero images are ~100–150 KB WebP (were 4–5 MB JPEGs each, ~18 MB per first visit)
+
+### Site feedback (Jaiyank, 2026-10-27)
+
+- [ ] Homepage hero: the wallpaper moves through the day as one continuous crossfade (e.g. blend between neighbouring frames by time of day), not four discrete Dawn/Day/Dusk/Night jumps; the switcher still works, reduced motion still holds still
+- [ ] Homepage: a short "What is Wallpy" section (a wallpaper that changes with the day, the week or on a timer; packs from the gallery; a small background app). Move Install to second, right after the hero, for visitors who arrive already knowing what it is. New order to settle: hero → install → what it is → pack kinds → gallery → make your own → questions
+- [ ] Pack page schedule (`PackSchedule`): too long and too technical. Make a compact version, e.g. one 24h strip of image thumbnails with a now marker for Daypacks, one row of seven for Weekpacks, a filmstrip + "every N min" for Albums, with the full list behind "Show all"
+- [ ] Pack page: "More packs" at the bottom (same category first, then same creator, then popular; 3–6 cards, excluding this pack)
+- [ ] Pack page "Don't have Wallpy yet? Install it first." links to `/#install`; point it at `/docs#install` (per-OS instructions) instead (`app/packs/[slug]/page.tsx:232`)
+- [ ] Gallery category switch takes seconds. Found: each switch is an uncached `/api/packs` call taking ~0.9–1.2s from India (the function runs in Vercel `iad1`; Supabase answers simple reads in ~0.35–0.5s directly; check the Supabase project's region and pin the function next to it), plus `count: 'exact'` on every query; `GalleryGrid` swaps the cards for a full-page spinner while it waits, then the 9 covers load. Fixes to weigh: keep the old cards up (dimmed) instead of the spinner, cache the listing (`s-maxage` + stale-while-revalidate, or prefetch category counts), co-locate the function region with the DB
+- [ ] Navbar order: Gallery first, Docs second (Gallery is what most visitors want; Docs mostly matters once they install)
 
 ## Go CLI: feature-complete (publish after the site)
 
