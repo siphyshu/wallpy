@@ -244,7 +244,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
               <div className="flex flex-col gap-2">
                 <InstallCommand slug={pack.slug} />
                 <DownloadZipButton slug={pack.slug} />
-                <Link href="/#install" className="text-xs text-white/50 hover:text-white mt-1">
+                <Link href="/docs#install" className="text-xs text-white/50 hover:text-white mt-1">
                   Don&apos;t have Wallpy yet? Install it first.
                 </Link>
               </div>

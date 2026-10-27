@@ -43,32 +43,37 @@ export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, h
       return;
     }
     skip.current = undefined;
+    // A newer view cancels this one, so a slow answer can't replace a newer one.
+    const controller = new AbortController();
     const fetchPacks = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(`/api/packs?${query}`);
+        const response = await fetch(`/api/packs?${query}`, { signal: controller.signal });
         if (!response.ok) {
           throw new Error('Failed to fetch packs');
         }
         const data = await response.json();
         setPacks(data.packs);
         setTotalPages(Math.max(1, Math.ceil(data.total / GALLERY_PAGE_SIZE)));
-
+        setLoading(false);
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching packs:', err);
         setError(errorMessage(err));
         setPacks([]);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchPacks();
+    return () => controller.abort();
   }, [query]);
 
-  if (loading) {
+  // Nothing to show yet (first visit without a server-rendered page): the spinner.
+  // Otherwise the current cards stay, dimmed, until the new ones arrive.
+  if (loading && packs.length === 0) {
     return (
       <div className="flex justify-center items-center py-24">
         <div className="text-center">
@@ -103,7 +108,8 @@ export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, h
   }
 
   return (
-    <>
+    // The dim waits 150 ms, so a quick answer never flickers.
+    <div aria-busy={loading} className={`transition-opacity duration-200 ${loading ? 'opacity-50 delay-150' : 'opacity-100'}`}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {packs.map((pack) => (
           <GalleryCard key={pack.id} wallpaper={pack} />
@@ -138,6 +144,6 @@ export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, h
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -223,8 +223,8 @@ const NavBar = () => {
                         />
                     </Link>
                     <div className="flex items-center gap-4 md:gap-8">
-                        <Link href="/docs" className="hidden md:inline hover:underline whitespace-nowrap">Docs</Link>
                         <Link href="/gallery" className="hidden md:inline hover:underline whitespace-nowrap">Gallery</Link>
+                        <Link href="/docs" className="hidden md:inline hover:underline whitespace-nowrap">Docs</Link>
                         {loading ? (
                             <div className="w-9 h-9 rounded-full bg-white/10 animate-pulse"></div>
                         ) : isAuthenticated ? (
@@ -275,8 +275,8 @@ const NavBar = () => {
                                bg-black/60 backdrop-blur-md text-white shadow-2xl border-2 border-white/10
                                rounded-2xl p-2 text-base flex flex-col"
                 >
-                    <Link href="/docs" className={menuItem} onClick={closeMenu}>Docs</Link>
                     <Link href="/gallery" className={menuItem} onClick={closeMenu}>Gallery</Link>
+                    <Link href="/docs" className={menuItem} onClick={closeMenu}>Docs</Link>
                     {isAuthenticated && (
                         <>
                             <div className="h-px bg-white/10 my-2 mx-2" />
