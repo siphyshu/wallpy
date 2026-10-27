@@ -141,7 +141,7 @@ the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 
 ## Retire the Python CLI on PyPI
 
-`cli/python/farewell/` is `wallpy` 2.26.0, the last PyPI release: no
+`cli/python/farewell/` is `wallpy` 2.26.1, the last PyPI release (the original 2.25.0 README under a "moved" note): no
 dependencies; any command prints how to move to the new app (remove with
 pip/pipx, the Windows `WallpyService` task, install with brew/winget) and
 exits 1; `python -m wallpy.service` (what the old Windows task runs) exits
