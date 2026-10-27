@@ -2,7 +2,7 @@
 
 import sys
 
-__version__ = "2.26.0"
+__version__ = "2.26.1"
 
 SITE = "https://wallpy.siphyshu.me"
 

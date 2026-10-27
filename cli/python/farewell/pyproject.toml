@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wallpy"
-version = "2.26.0"
-description = "Wallpy has moved: it's now a standalone app. See https://wallpy.siphyshu.me"
+version = "2.26.1"
+description = "Dynamic wallpaper engine to change wallpaper based on time of day and location. Now a standalone app: wallpy.siphyshu.me"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Jaiyank Saxena", email = "siphyshu@gmail.com" }]
