@@ -3,7 +3,7 @@ import UploadWizard from '@/components/upload/UploadWizard';
 import { getCurrentProfile } from '@/lib/data/profiles';
 import { getPackForEditing } from '@/lib/data/editing';
 
-export const metadata = { title: 'Update a wallpack | Wallpy' };
+export const metadata = { title: 'Update a wallpack | Wallpy', robots: { index: false } };
 
 /** A new version of one of your packs: changes after review, or an update. */
 export default async function EditPackPage({ params }: PageProps<'/packs/[slug]/edit'>) {

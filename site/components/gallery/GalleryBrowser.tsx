@@ -1,37 +1,33 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { X } from 'lucide-react';
 import { isCategory } from '@/lib/packs/categories';
-import { normalizeTag } from '@/lib/packs/limits';
 import type { PackSort } from '@/lib/data/packs';
+import { categoryFromPath, galleryPath, parseGalleryQuery, type GalleryInitial } from '@/lib/gallery';
 import GalleryGrid from '@/components/gallery/GalleryGrid';
 import GalleryFilters from '@/components/gallery/GalleryFilters';
 import { Page, PageHeader } from '@/components/ui/page';
 import GallerySearch from '@/components/gallery/GallerySearch';
 import Footer from '@/components/footer';
 
-const SORTS: readonly PackSort[] = ['newest', 'popular', 'rating'];
-
 /**
- * The gallery's filters live in the URL (?q=&category=&tag=&sort=&ai=hide&page=)
+ * The gallery's filters live in the URL (/gallery/<category>?q=&tag=&sort=&ai=hide&page=)
  * so back/forward and shared links show the same results. Changes push a
- * history entry; typing in search replaces it (debounced).
+ * history entry; typing in search replaces it (debounced). `initial` is the
+ * first page, rendered on the server.
  */
-export default function GalleryBrowser() {
+export default function GalleryBrowser({ initial = null }: { initial?: GalleryInitial | null }) {
   const params = useSearchParams();
+  const pathname = usePathname();
+  const query = parseGalleryQuery(categoryFromPath(pathname), (k) => params.get(k));
   const urlSearch = params.get('q') ?? '';
-  const categoryParam = params.get('category');
-  const selectedCategory = isCategory(categoryParam) ? categoryParam : 'all';
-  const tag = normalizeTag(params.get('tag') ?? '');
-  const sortBy: PackSort = SORTS.find((s) => s === params.get('sort')) ?? 'newest';
-  const hideAi = params.get('ai') === 'hide';
-  const page = Math.max(1, parseInt(params.get('page') ?? '1', 10) || 1);
+  const selectedCategory = query.category ?? 'all';
+  const { tag, sort: sortBy, hideAi, page } = query;
 
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const itemsPerPage = 9;
   const dropdownRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -44,8 +40,11 @@ export default function GalleryBrowser() {
   }
   useEffect(() => () => clearTimeout(searchTimer.current), []);
 
-  /** Write changes to the URL. Anything but a page change starts again from page 1. */
-  const update = useCallback((changes: Record<string, string | null>, mode: 'push' | 'replace' = 'push') => {
+  /**
+   * Write changes to the URL. Anything but a page change starts again from
+   * page 1. `path` switches category (/gallery/<category>), keeping the rest.
+   */
+  const update = useCallback((changes: Record<string, string | null>, mode: 'push' | 'replace' = 'push', path = window.location.pathname) => {
     const next = new URLSearchParams(window.location.search);
     if (!('page' in changes)) next.delete('page');
     for (const [key, value] of Object.entries(changes)) {
@@ -53,7 +52,7 @@ export default function GalleryBrowser() {
       else next.set(key, value);
     }
     const qs = next.toString();
-    const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+    const url = `${path}${qs ? `?${qs}` : ''}`;
     if (mode === 'push') window.history.pushState(null, '', url);
     else window.history.replaceState(null, '', url);
   }, []);
@@ -63,7 +62,7 @@ export default function GalleryBrowser() {
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => update({ q: query.trim() || null }, 'replace'), 300);
   };
-  const changeCategory = (category: string) => update({ category: category === 'all' ? null : category });
+  const changeCategory = (category: string) => update({}, 'push', galleryPath(isCategory(category) ? category : null));
   const clearTag = () => update({ tag: null });
   const toggleHideAi = () => update({ ai: hideAi ? null : 'hide' });
   const setPage = (n: number) => update({ page: n > 1 ? String(n) : null });
@@ -218,14 +217,14 @@ export default function GalleryBrowser() {
           {/* Gallery Grid */}
           <div ref={gridRef}>
             <GalleryGrid
-              searchQuery={urlSearch}
+              searchQuery={query.search}
               category={selectedCategory}
               tag={tag}
               sortBy={sortBy}
               hideAi={hideAi}
               page={page}
-              itemsPerPage={itemsPerPage}
               onPageChange={setPage}
+              initial={initial}
             />
           </div>
         </div>

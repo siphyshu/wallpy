@@ -6,7 +6,7 @@ import Footer from '@/components/footer';
 import { getCurrentProfile } from '@/lib/data/profiles';
 import { listMyNotices, markNoticesSeen, NOTICE_LABELS, NOTICE_TONE } from '@/lib/data/notices';
 
-export const metadata = { title: 'Notices | Wallpy' };
+export const metadata = { title: 'Notices | Wallpy', robots: { index: false } };
 
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();

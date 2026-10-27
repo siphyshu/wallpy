@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import MultiStepSignUp from '@/components/auth/multi-step-sign-up';
 import AuthShell from '@/components/auth/AuthShell';
 
-export const metadata = { title: 'Sign up | Wallpy' };
+export const metadata = { title: 'Sign up | Wallpy', robots: { index: false } };
 
 export default function SignUpPage() {
   return (

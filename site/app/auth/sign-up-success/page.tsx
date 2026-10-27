@@ -3,7 +3,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AuthShell from '@/components/auth/AuthShell';
 
-export const metadata = { title: 'Check your email | Wallpy' };
+export const metadata = { title: 'Check your email | Wallpy', robots: { index: false } };
 
 export default function SignUpSuccessPage() {
   return (

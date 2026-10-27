@@ -6,6 +6,7 @@ import { Code, CONTACT, LegalSection, UPDATED } from '@/components/legal';
 export const metadata = {
   title: 'Privacy | Wallpy',
   description: 'What Wallpy collects, why, who can see it, and how to delete it.',
+  alternates: { canonical: '/privacy' },
 };
 
 // Every statement here describes what the code does today (site/lib, supabase/migrations,

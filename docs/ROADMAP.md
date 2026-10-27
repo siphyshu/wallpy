@@ -4,7 +4,7 @@ Where Wallpy is and what's next. **Update this at the end of every piece of
 work** (tick it off, add what you found). Decisions go in
 [decisions.md](decisions.md); how-tos in [operations.md](operations.md).
 
-Last updated: 2026-10-27 (site feedback noted; SEO and CLI release next)
+Last updated: 2026-10-27 (technical SEO done; site feedback and CLI release next)
 
 ## Goal
 
@@ -150,7 +150,7 @@ To do (in order)
 - [ ] Pack page schedule (`PackSchedule`): too long and too technical. Make a compact version, e.g. one 24h strip of image thumbnails with a now marker for Daypacks, one row of seven for Weekpacks, a filmstrip + "every N min" for Albums, with the full list behind "Show all"
 - [ ] Pack page: "More packs" at the bottom (same category first, then same creator, then popular; 3–6 cards, excluding this pack)
 - [ ] Pack page "Don't have Wallpy yet? Install it first." links to `/#install`; point it at `/docs#install` (per-OS instructions) instead (`app/packs/[slug]/page.tsx:232`)
-- [ ] Gallery category switch takes seconds. Found: each switch is an uncached `/api/packs` call taking ~0.9–1.2s from India (the function runs in Vercel `iad1`; Supabase answers simple reads in ~0.35–0.5s directly; check the Supabase project's region and pin the function next to it), plus `count: 'exact'` on every query; `GalleryGrid` swaps the cards for a full-page spinner while it waits, then the 9 covers load. Fixes to weigh: keep the old cards up (dimmed) instead of the spinner, cache the listing (`s-maxage` + stale-while-revalidate, or prefetch category counts), co-locate the function region with the DB
+- [ ] Gallery category switch takes seconds (2026-10-27: functions moved to `bom1` next to the database and the first page is server-rendered; still to do: keep the old cards up instead of the spinner, caching). Found: each switch is an uncached `/api/packs` call taking ~0.9–1.2s from India (the function runs in Vercel `iad1`; Supabase answers simple reads in ~0.35–0.5s directly; check the Supabase project's region and pin the function next to it), plus `count: 'exact'` on every query; `GalleryGrid` swaps the cards for a full-page spinner while it waits, then the 9 covers load. Fixes to weigh: keep the old cards up (dimmed) instead of the spinner, cache the listing (`s-maxage` + stale-while-revalidate, or prefetch category counts), co-locate the function region with the DB
 - [ ] Navbar order: Gallery first, Docs second (Gallery is what most visitors want; Docs mostly matters once they install)
 
 ## Go CLI: feature-complete (publish after the site)
@@ -206,7 +206,9 @@ Next sessions (2026-10-20): (1) seed Jaiyank's new packs: each as a folder with 
 - [x] Homepage hero art: kept, credited to Matt Vince (the pack's artist) under the time switcher (Jaiyank, 2026-10-20)
 - [x] Push the `monorepo` branch (2026-10-20); old `main` archived as tag + release `python-v2.25.0`, `main` fast-forwarded to `monorepo`
 - [x] Supabase free plan pauses after ~a week idle: `/api/keepalive` (one public read) called daily by Vercel Cron (`site/vercel.json`), registered on the live project
-- [ ] SEO (next session): sitemap.xml + robots.txt (public packs, categories, pages; not unlisted/moderation/upload), Open Graph share images per pack + home, category pages at real URLs (`/gallery/landscapes`), then per-OS pages (dynamic wallpapers for Windows / Linux / macOS) and a "Make a wallpack" guide
+- [x] SEO, technical (2026-10-27; operations.md "SEO"): `robots.txt` + `sitemap.xml` (public pages, categories in use, listed packs, their owners' profiles); `noindex` on private pages, unlisted packs and searches; canonical links; share cards for the site (dawn/day/dusk/night time slice) and every pack (cover, title, kind, credit), JPEG ~70–130 KB; category pages at real URLs (`/gallery/landscapes`, old `?category=` links redirect, chips are links); the gallery's first page and the homepage's "From the gallery" now come in the HTML (homepage static, rebuilt every 10 min); functions moved to `bom1` next to the database
+- [ ] SEO, after the push: submit the sitemap in Google Search Console and Bing Webmaster Tools (DNS TXT verification); check a pack link's preview in WhatsApp, X, Discord, Slack
+- [ ] SEO, content: per-OS pages (dynamic wallpapers for Windows / Linux / macOS) and a "Make a wallpack" guide (copy to agree with Jaiyank first)
 
 ## Later / ideas
 

@@ -133,7 +133,15 @@ the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 - Vercel project `wallpy` (team siphyshu's projects). Pushing `main` deploys production; other branches get preview URLs. The local `.vercel/` link sits at the repo root.
 - Project root `site/`, production domain `wallpy.siphyshu.me` (DNS: `CNAME wallpy → cname.vercel-dns.com`, DNS only in Cloudflare).
 - Environment variables: everything in `site/.env.local`, plus `CRON_SECRET`.
+- Functions run in `bom1` (Mumbai, `regions` in `site/vercel.json`), next to the Supabase project (`ap-south-1`). They ran in `iad1` (US East) until 2026-10-27, so every database read crossed the globe (~1s per gallery request). If either moves, move the other.
 - `site/vercel.json` runs `/api/keepalive` daily (06:17 UTC): one public read so the Supabase free plan never pauses for inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`; other callers get 401 when the secret is set.
+
+## SEO
+
+- `/robots.txt` (`app/robots.ts`) blocks only `/api/`; private pages (sign-in, upload, moderation, notices, editing) say `noindex` in their own metadata, and so do unlisted packs, packs not yet public and gallery searches. `/sitemap.xml` (`app/sitemap.ts`, rebuilt hourly) lists the public pages, gallery categories that have packs, every listed pack and the profiles that own them.
+- Canonical links: each public page sets `alternates.canonical`; the gallery's canonical keeps only the category (in the path), `tag` and `page`.
+- Share cards: `app/opengraph-image.tsx` (the site's, used by every page without its own) and `app/packs/[slug]/opengraph-image.tsx` (the pack's cover, title, kind and credit; CDN-cached for an hour). Rendered with `next/og`, then converted to JPEG by `sharp` (`lib/og.tsx`) to stay well under WhatsApp's ~300 KB. Fonts in `site/assets/fonts/` (Instrument Serif, Inter; OFL). Preview one at `/packs/<slug>/opengraph-image`; after a change, re-scrape with the platforms' debuggers (e.g. https://developers.facebook.com/tools/debug/).
+- After going live: submit `https://wallpy.siphyshu.me/sitemap.xml` in Google Search Console and Bing Webmaster Tools (needs a DNS TXT record to verify the domain).
 
 ## Releases
 

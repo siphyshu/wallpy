@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { blobUrl, fileUrl } from '@/lib/storage';
 import { DEFAULT_AVATAR } from '@/lib/data/profile-shape';
 import type { AiUse, Credit, PackCard, PackCategory, PackDetail, PackFile, PackKind, Schedule, VersionStatus } from '@/lib/types';
@@ -113,7 +114,8 @@ export async function listPublicPacks({ search, tag, category, kind, hideAi = fa
   limit?: number;
   offset?: number;
 } = {}): Promise<{ packs: PackCard[]; total: number }> {
-  const supabase = await createClient();
+  // Listed public packs look the same to everyone, so no session is needed.
+  const supabase = createPublicClient();
   let query = supabase
     .from('packs')
     .select(`${PACK_COLUMNS}, ${OWNER}, version:pack_versions!packs_current_version_fkey!inner(${VERSION_SUMMARY})`, {
@@ -276,4 +278,44 @@ export async function listPublicTags(): Promise<string[]> {
     return [];
   }
   return data.map((r) => r.tag);
+}
+
+/** Every listed public pack and the profiles that own them, for the sitemap. */
+export async function listSitemapPacks(): Promise<{ slug: string; updatedAt: string; owner: string | null; categories: PackCategory[] }[]> {
+  const { data, error } = await createPublicClient()
+    .from('packs')
+    .select('slug, owner:profiles!packs_owner_id_fkey(username), version:pack_versions!packs_current_version_fkey!inner(created_at, categories)')
+    .not('current_version_id', 'is', null)
+    .eq('is_listed', true)
+    .is('removed_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5000);
+  if (error) {
+    console.error('listSitemapPacks:', error);
+    return [];
+  }
+  return data.map((p) => ({ slug: p.slug, updatedAt: p.version.created_at, owner: p.owner?.username ?? null, categories: p.version.categories }));
+}
+
+/**
+ * What a pack's share image shows: title, kind, credit and the cover preview.
+ * Public packs only (listed or not: unlisted ones are shared by link).
+ */
+export async function getPackShare(slug: string): Promise<{ title: string; kindLabel: string; credit: string; image: string | null } | null> {
+  const { data: pack, error } = await createPublicClient()
+    .from('packs')
+    .select(`${PACK_COLUMNS}, ${OWNER}, version:pack_versions!packs_current_version_fkey!inner(${VERSION_SUMMARY},
+             preview:blobs!pack_versions_preview_sha256_fkey(sha256))`)
+    .eq('slug', slug)
+    .is('removed_at', null)
+    .maybeSingle();
+  if (error) console.error('getPackShare:', error);
+  if (!pack) return null;
+  const card = toCard(pack, pack.version);
+  return {
+    title: pack.version.title,
+    kindLabel: card.kindLabel,
+    credit: card.author,
+    image: blobUrl(pack.version.preview?.sha256) ?? blobUrl(pack.version.thumb?.sha256),
+  };
 }

@@ -9,7 +9,12 @@ import { listPacksByOwner, listMyFavourites } from '@/lib/data/packs';
 export async function generateMetadata({ params }: PageProps<'/profile/[username]'>) {
   const profile = await getProfileByUsername((await params).username);
   if (!profile) return { title: 'Profile not found | Wallpy' };
-  return { title: `${profile.name || profile.username} (@${profile.username}) | Wallpy` };
+  const name = profile.name || profile.username;
+  return {
+    title: `${name} (@${profile.username}) | Wallpy`,
+    description: profile.bio?.trim() || `Dynamic wallpaper packs by ${name} on Wallpy.`,
+    alternates: { canonical: `/profile/${profile.username}` },
+  };
 }
 
 export default async function ProfilePage({ params }: PageProps<'/profile/[username]'>) {

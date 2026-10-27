@@ -143,7 +143,7 @@ try {
   const v = await as(visitor);
   await step(v, 'visitor: gallery → Cities → search → open pack → install command', async () => {
     await v.goto(`${BASE}/gallery`, { waitUntil: 'networkidle' });
-    await v.getByRole('button', { name: 'Cities', exact: true }).click();
+    await v.getByRole('link', { name: 'Cities', exact: true }).click();
     await v.getByPlaceholder(/Search/).fill(title);
     await v.waitForTimeout(1500); await v.waitForLoadState('networkidle');
     await v.getByRole('link', { name: title }).first().click();

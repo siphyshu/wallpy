@@ -8,6 +8,7 @@ import DocsContents from '@/components/docs/DocsContents';
 export const metadata = {
   title: 'Docs | Wallpy',
   description: 'Install the Wallpy CLI, use a pack, and how it keeps your wallpaper changing.',
+  alternates: { canonical: '/docs' },
 };
 
 // Content follows cli/README.md; keep the two in step.

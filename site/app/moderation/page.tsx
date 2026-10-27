@@ -16,7 +16,7 @@ import { Pill } from '@/components/ui/pill';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export const metadata = { title: 'Moderation | Wallpy' };
+export const metadata = { title: 'Moderation | Wallpy', robots: { index: false } };
 
 const LICENSES: Record<string, string> = {
   'personal-use': 'Personal use only', 'cc-by-4.0': 'CC BY 4.0', 'cc-by-nc-4.0': 'CC BY-NC 4.0', cc0: 'CC0', other: 'Other',

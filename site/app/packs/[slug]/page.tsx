@@ -20,7 +20,7 @@ import { Page } from '@/components/ui/page';
 import { Notice } from '@/components/ui/notice';
 import { Pill, pillClasses } from '@/components/ui/pill';
 import { buttonVariants } from '@/components/ui/button';
-import type { PackLicense, VersionStatus } from '@/lib/types';
+import type { PackKind, PackLicense, VersionStatus } from '@/lib/types';
 
 const LICENSES: Record<PackLicense, string> = {
   'personal-use': 'Personal use only',
@@ -28,6 +28,13 @@ const LICENSES: Record<PackLicense, string> = {
   'cc-by-nc-4.0': 'CC BY-NC 4.0',
   cc0: 'CC0 (public domain)',
   other: 'Other',
+};
+
+/** How each kind of pack changes, for the meta description. */
+const CHANGES: Record<PackKind, string> = {
+  timeblocks: 'change with the time of day',
+  days: 'change with the day of the week',
+  album: 'take turns on a timer',
 };
 
 /** What happens after a version is submitted; owners see it while they wait. */
@@ -98,11 +105,19 @@ function ownerNotice(
 export async function generateMetadata({ params }: PageProps<'/packs/[slug]'>) {
   const pack = await getPackBySlug((await params).slug);
   if (!pack) return { title: 'Pack not found | Wallpy' };
+  const title = `${pack.name} by ${pack.credit.name}`;
+  const n = pack.files.length;
+  const description = pack.version.description?.trim() ||
+    `${pack.kindLabel} by ${pack.credit.name}: ${n} ${n === 1 ? 'wallpaper' : 'wallpapers'} that ${CHANGES[pack.version.kind]}. Free for macOS, Windows and Linux with Wallpy.`;
   return {
-    title: `${pack.name} by ${pack.credit.name} | Wallpy`,
-    description: pack.version.description || `A ${pack.kindLabel.toLowerCase()} for Wallpy.`,
-    // Unlisted packs work by link but stay out of search engines too.
-    ...(pack.isListed ? {} : { robots: { index: false } }),
+    title: `${title} | Wallpy`,
+    description,
+    alternates: { canonical: `/packs/${pack.slug}` },
+    // The image comes from opengraph-image.tsx next to this page.
+    openGraph: { title, description, url: `/packs/${pack.slug}` },
+    // Unlisted packs work by link but stay out of search engines too; so do
+    // drafts and packs in review, which only their owner and moderators see.
+    ...(pack.isListed && pack.isPublic ? {} : { robots: { index: false } }),
   };
 }
 
@@ -194,7 +209,7 @@ export default async function PackPage({ params }: PageProps<'/packs/[slug]'>) {
             {(version.categories.length > 0 || version.tags.length > 0) && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {version.categories.map((c) => (
-                  <Link key={c} href={`/gallery?category=${c}`} className={pillClasses({ tone: 'outline', className: 'hover:bg-white/10 hover:text-white transition-colors' })}>
+                  <Link key={c} href={`/gallery/${c}`} className={pillClasses({ tone: 'outline', className: 'hover:bg-white/10 hover:text-white transition-colors' })}>
                     {categoryName(c)}
                   </Link>
                 ))}

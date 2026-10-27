@@ -1,50 +1,60 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import GalleryCard from '@/components/gallery/GalleryCard';
 import type { PackSort } from '@/lib/data/packs';
 import type { PackCard } from '@/lib/types';
+import { isCategory } from '@/lib/packs/categories';
 import { errorMessage } from '@/lib/utils';
+import { GALLERY_PAGE_SIZE, galleryApiParams, type GalleryInitial } from '@/lib/gallery';
 
-export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, hideAi = false, page = 1, itemsPerPage = 9, onPageChange }: {
+export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, hideAi = false, page = 1, onPageChange, initial = null }: {
   searchQuery: string;
   hideAi?: boolean;
   category: string;
   tag?: string;
   sortBy: PackSort;
   page?: number;
-  itemsPerPage?: number;
   onPageChange: (page: number) => void;
+  /** The first page, rendered on the server; used while the view still matches it. */
+  initial?: GalleryInitial | null;
 }) {
-  const [packs, setPacks] = useState<PackCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Filtering, sorting and pagination all happen on the server.
+  const query = galleryApiParams({
+    search: searchQuery,
+    category: isCategory(category) ? category : null,
+    tag,
+    sort: sortBy,
+    hideAi,
+    page,
+  }).toString();
+  const fromServer = initial?.key === query ? initial : null;
+
+  const [packs, setPacks] = useState<PackCard[]>(fromServer?.packs ?? []);
+  const [loading, setLoading] = useState(!fromServer);
   const [error, setError] = useState<string | null>(null);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState(Math.max(1, Math.ceil((fromServer?.total ?? 0) / GALLERY_PAGE_SIZE)));
+  // The server already answered the first view; don't fetch it again on mount.
+  const skip = useRef(fromServer?.key);
 
   useEffect(() => {
+    if (skip.current === query) {
+      skip.current = undefined;
+      return;
+    }
+    skip.current = undefined;
     const fetchPacks = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // Filtering, sorting and pagination all happen on the server.
-        const params = new URLSearchParams({
-          limit: itemsPerPage.toString(),
-          offset: ((page - 1) * itemsPerPage).toString(),
-          sort: sortBy,
-        });
-        if (searchQuery) params.append('search', searchQuery);
-        if (category && category !== 'all') params.append('category', category);
-        if (tag) params.append('tag', tag);
-        if (hideAi) params.append('ai', 'hide');
-
-        const response = await fetch(`/api/packs?${params.toString()}`);
+        const response = await fetch(`/api/packs?${query}`);
         if (!response.ok) {
           throw new Error('Failed to fetch packs');
         }
         const data = await response.json();
         setPacks(data.packs);
-        setTotalPages(Math.max(1, Math.ceil(data.total / itemsPerPage)));
+        setTotalPages(Math.max(1, Math.ceil(data.total / GALLERY_PAGE_SIZE)));
 
       } catch (err) {
         console.error('Error fetching packs:', err);
@@ -56,7 +66,7 @@ export default function GalleryGrid({ searchQuery, category, tag = '', sortBy, h
     };
 
     fetchPacks();
-  }, [searchQuery, category, tag, sortBy, hideAi, page, itemsPerPage]);
+  }, [query]);
 
   if (loading) {
     return (

@@ -102,9 +102,10 @@ try {
   await up.goto(`${BASE}/profile/${uploader.username}`, { waitUntil: 'networkidle' });
   const declinedCard = up.locator('div.group', { hasText: `Decline Me ${runId}` });
   check('profile marks the pack as declined', await declinedCard.getByText('Declined', { exact: true }).isVisible());
-  // Every pack its owner can see offers Delete now (owner controls); a declined one needs no typed name.
-  check('the declined pack offers Delete', await declinedCard.getByRole('button', { name: 'Delete', exact: true }).isVisible());
-  await declinedCard.getByRole('button', { name: 'Delete', exact: true }).click();
+  // Every pack its owner can see offers Delete in the card's ⋯ menu; a declined one needs no typed name.
+  await declinedCard.getByRole('button', { name: /^Actions for / }).click();
+  check('the declined pack offers Delete', await declinedCard.getByRole('menuitem', { name: 'Delete' }).isVisible());
+  await declinedCard.getByRole('menuitem', { name: 'Delete' }).click();
   await shot(up, 'mod-5-delete-confirm');
   await declinedCard.getByRole('button', { name: 'Delete pack' }).click();
   await declinedCard.waitFor({ state: 'detached', timeout: 30_000 });

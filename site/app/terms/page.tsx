@@ -6,6 +6,7 @@ import { CONTACT, LegalSection, UPDATED } from '@/components/legal';
 export const metadata = {
   title: 'Terms | Wallpy',
   description: 'The rules for using Wallpy and sharing packs on it.',
+  alternates: { canonical: '/terms' },
 };
 
 const ISSUES = 'https://github.com/siphyshu/wallpy/issues';
