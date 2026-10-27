@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import GalleryBrowser from '@/components/gallery/GalleryBrowser';
 import { listPublicPacks } from '@/lib/data/packs';
 import { categoryName, isCategory, type PackCategory } from '@/lib/packs/categories';
@@ -57,18 +57,6 @@ function metadataFor(query: GalleryQuery): Metadata {
 export default async function GalleryPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const category = pathCategory((await params).category);
-
-  // Links from before categories had their own address: /gallery?category=games.
-  const legacy = first(sp.category);
-  if (!category && isCategory(legacy)) {
-    const rest = new URLSearchParams();
-    for (const [k, v] of Object.entries(sp)) {
-      const value = first(v);
-      if (k !== 'category' && value) rest.set(k, value);
-    }
-    const qs = rest.toString();
-    redirect(`${galleryPath(legacy)}${qs ? `?${qs}` : ''}`);
-  }
 
   const query = parseGalleryQuery(category, (k) => first(sp[k]));
   let initial: GalleryInitial | null = null;

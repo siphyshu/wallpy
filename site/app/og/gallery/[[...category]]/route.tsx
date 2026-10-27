@@ -1,3 +1,5 @@
+// Satori draws these elements into an image; next/image doesn't apply here.
+/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from 'next/og';
 import { listPublicPacks } from '@/lib/data/packs';
 import { isCategory, type PackCategory } from '@/lib/packs/categories';
