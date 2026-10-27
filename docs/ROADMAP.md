@@ -209,7 +209,7 @@ Next sessions (2026-10-20): (1) seed Jaiyank's new packs: each as a folder with 
 - [x] SEO, technical (2026-10-27; operations.md "SEO"): `robots.txt` + `sitemap.xml` (public pages, categories in use, listed packs, their owners' profiles); `noindex` on private pages, unlisted packs and searches; canonical links; share cards for the site (dawn/day/dusk/night time slice) and every pack (cover, title, kind, credit), JPEG ~70–130 KB; category pages at real URLs (`/gallery/landscapes`, old `?category=` links redirect, chips are links); the gallery's first page and the homepage's "From the gallery" now come in the HTML (homepage static, rebuilt every 10 min); functions moved to `bom1` next to the database
 - [x] Share cards for every page (2026-10-27; operations.md "SEO", decisions.md): pack placard, homepage time slice, gallery grid, category wall, profile, docs terminal
 - [x] SEO, after the push: sitemap submitted in Google Search Console (Domain property `siphyshu.me`, TXT on the root: `wallpy` is a CNAME and can't carry one) and Bing (imported) (2026-10-27)
-- [ ] Check a pack link's preview in WhatsApp, X, Discord, Slack
+- [x] Check a pack link's preview (WhatsApp, by Jaiyank, 2026-10-27)
 - [ ] SEO, content: per-OS pages (dynamic wallpapers for Windows / Linux / macOS) and a "Make a wallpack" guide (copy to agree with Jaiyank first)
 
 ## Later / ideas
