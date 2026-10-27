@@ -4,6 +4,10 @@
 version: 2
 project_name: wallpy
 
+git:
+  # The Python CLI's archive tag (python-v2.25.0) isn't a version of this CLI.
+  ignore_tags: ["python-*"]
+
 before:
   hooks:
     - go mod tidy
@@ -105,6 +109,11 @@ winget:
 
 aurs:
   - name: wallpy-bin
+    # Off until the AUR account exists (registrations were closed on
+    # 2026-10-27). To turn on: create the account, add ~/.ssh/aur.pub to it,
+    # `gh secret set AUR_KEY < ~/.ssh/aur`, pass AUR_KEY in
+    # .github/workflows/release.yml, and delete this line.
+    disable: true
     homepage: https://wallpy.siphyshu.me
     description: Dynamic wallpapers for your desktop.
     maintainers: ["Jaiyank Saxena <siphyshu@gmail.com>"]

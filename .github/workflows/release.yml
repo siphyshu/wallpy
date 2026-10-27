@@ -1,0 +1,36 @@
+# Publishes the CLI when a v* tag is pushed (docs/operations.md, "Release the
+# CLI"): GoReleaser builds every target from cli/, creates the GitHub release
+# and updates the Homebrew tap, the Scoop bucket and the winget pull request.
+# RELEASE_TOKEN is a classic token with public_repo; it can push to the tap
+# and bucket and open the pull request on microsoft/winget-pkgs.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the changelog and version come from the tags
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+          workdir: cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          WINGET_GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

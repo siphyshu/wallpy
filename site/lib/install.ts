@@ -28,7 +28,7 @@ export const INSTALL: Record<Os, { name: string; methods: InstallMethod[] }> = {
     name: 'Linux',
     methods: [
       { label: 'Homebrew', command: 'brew install siphyshu/tap/wallpy' },
-      { label: 'Arch (AUR)', command: 'yay -S wallpy-bin' },
+      // Arch (AUR) `yay -S wallpy-bin` comes back once the AUR account exists (cli/.goreleaser.yaml).
       { label: 'Debian, Fedora, Alpine', link: { href: RELEASES_URL, text: 'Download the .deb, .rpm or .apk' } },
     ],
   },

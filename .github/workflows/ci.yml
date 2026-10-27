@@ -1,0 +1,51 @@
+# Checks on every push to main and every pull request: the Go CLI's tests on
+# macOS, Linux and Windows (the per-OS wallpaper setters and background agent
+# only run where they're built), and the site's typecheck, lint and unit tests.
+# The site's e2e suites need production Supabase + R2, so they stay local.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  cli:
+    name: CLI (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - run: go vet ./...
+      - run: go test ./...
+
+  site:
+    name: Site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test

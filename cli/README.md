@@ -17,7 +17,6 @@ wallpy                        # what's showing, today's schedule, what's next
 | macOS, Linux | `brew install siphyshu/tap/wallpy` |
 | Windows | `winget install siphyshu.Wallpy` or `scoop bucket add siphyshu https://github.com/siphyshu/scoop-bucket; scoop install wallpy` |
 | Debian, Fedora, Alpine | `.deb`, `.rpm` or `.apk` from the [releases](https://github.com/siphyshu/wallpy/releases) |
-| Arch | `yay -S wallpy-bin` |
 
 One binary, no runtime. To remove it, run `wallpy uninstall`: it removes the
 background agent (and, if you like, your packs) and shows the command that

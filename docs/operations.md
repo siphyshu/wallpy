@@ -109,24 +109,42 @@ from https://download.geonames.org/export/dump/ into a folder, then
 
 ## Release the CLI
 
-Config: `cli/.goreleaser.yaml`. Dry run (everything but publishing, no tag
-needed): `cd cli && goreleaser release --snapshot --clean`, then look in
-`cli/dist/`.
+Config: `cli/.goreleaser.yaml`; it ignores the `python-*` tags (the old CLI's
+archive). Dry run (everything but publishing, no tag needed):
+`cd cli && goreleaser release --snapshot --clean`, then look in `cli/dist/`.
 
-To publish (ask first; it's public and permanent):
+Publishing runs in GitHub Actions (`.github/workflows/release.yml`) when a
+`v*` tag is pushed. Ask first; it's public and permanent:
 
-1. One-time: create `siphyshu/homebrew-tap` and `siphyshu/scoop-bucket` on
-   GitHub, fork `microsoft/winget-pkgs` to `siphyshu/winget-pkgs`, and make an
-   AUR account with an SSH key for `wallpy-bin`.
-2. Tokens in the environment: `GITHUB_TOKEN` (releases on siphyshu/wallpy),
-   `HOMEBREW_TAP_GITHUB_TOKEN`, `SCOOP_BUCKET_GITHUB_TOKEN`,
-   `WINGET_GITHUB_TOKEN`, `AUR_KEY` (the private key).
-3. `git tag v0.1.0 && git push origin v0.1.0`, then
-   `cd cli && goreleaser release --clean`.
+1. One-time (done 2026-10-27): `siphyshu/homebrew-tap` and
+   `siphyshu/scoop-bucket` (each with a README, so they have a branch), the
+   `siphyshu/winget-pkgs` fork of `microsoft/winget-pkgs`, and the repo
+   secret `RELEASE_TOKEN`: a classic token with `public_repo` (it pushes the
+   cask and the Scoop manifest and opens the winget pull request; fine-grained
+   tokens can't open pull requests on Microsoft's repo). The release itself
+   uses the workflow's own `GITHUB_TOKEN`.
+2. `git tag v3.0.0 && git push origin v3.0.0` (the Go CLI starts at v3: the
+   Python CLI was 2.x on PyPI). Watch it with `gh run watch`.
+3. winget: the first pull request to `microsoft/winget-pkgs` is reviewed by
+   hand and takes a few days; later versions are usually merged automatically.
+
+AUR (`wallpy-bin`) is off: registrations were closed on 2026-10-27. When they
+reopen: make the account, add `~/.ssh/aur.pub` to it,
+`gh secret set AUR_KEY --repo siphyshu/wallpy < ~/.ssh/aur`, pass `AUR_KEY` in
+`release.yml`, delete `disable: true` under `aurs` in `.goreleaser.yaml`, and
+put the `yay -S wallpy-bin` line back in `site/lib/install.ts` and
+`cli/README.md`.
 
 Tags `v*` version the CLI (the site isn't versioned). Binaries are unsigned:
 the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 (macOS) and code signing (Windows SmartScreen) are on the roadmap.
+
+## CI
+
+`.github/workflows/ci.yml` on every push to `main` and every pull request: the
+CLI's `go vet` and `go test` on macOS, Linux and Windows, and the site's
+typecheck, lint and unit tests. The site's e2e suites need production
+Supabase + R2, so they stay local.
 
 ## Hosting (Vercel)
 
