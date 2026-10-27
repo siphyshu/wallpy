@@ -188,7 +188,7 @@ hidden `run` for the service.
 - [ ] AUR (`wallpy-bin`): turn on once AUR registrations reopen (closed 2026-10-27); steps in operations.md
 - [ ] Sign and notarize macOS binaries (Apple Developer ID); sign Windows binaries (SmartScreen). Deferred (Jaiyank, 2026-10-27): macOS costs $99/yr; Windows warnings mostly hit browser downloads, not winget/Scoop installs. If Defender false positives show up: SignPath Foundation (free for open source) or Certum's open-source cloud certificate
 - [ ] Run on a real Linux desktop (GNOME, KDE, sway) and a real Windows machine: setters and agent are compile-checked and unit-tested only
-- [ ] Final PyPI release of the Python CLI pointing at the new installers: built and checked (`cli/python/farewell`, 2.26.0), upload pending
+- [x] Final PyPI release of the Python CLI (2026-10-27): `wallpy` 2.26.0 (`cli/python/farewell`) prints how to move to the new app. Old packs share the new CLI's folder on macOS/Windows and show as broken; not handled (Jaiyank: the Python CLI had almost no users outside his own Windows machine)
 - [x] E2E (2026-10-17, by Jaiyank): upload on the site → approve → install with the CLI → wallpaper changes
 
 ## Before launch
