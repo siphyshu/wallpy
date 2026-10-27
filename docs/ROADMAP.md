@@ -207,6 +207,7 @@ Next sessions (2026-10-20): (1) seed Jaiyank's new packs: each as a folder with 
 - [x] Push the `monorepo` branch (2026-10-20); old `main` archived as tag + release `python-v2.25.0`, `main` fast-forwarded to `monorepo`
 - [x] Supabase free plan pauses after ~a week idle: `/api/keepalive` (one public read) called daily by Vercel Cron (`site/vercel.json`), registered on the live project
 - [x] SEO, technical (2026-10-27; operations.md "SEO"): `robots.txt` + `sitemap.xml` (public pages, categories in use, listed packs, their owners' profiles); `noindex` on private pages, unlisted packs and searches; canonical links; share cards for the site (dawn/day/dusk/night time slice) and every pack (cover, title, kind, credit), JPEG ~70–130 KB; category pages at real URLs (`/gallery/landscapes`, old `?category=` links redirect, chips are links); the gallery's first page and the homepage's "From the gallery" now come in the HTML (homepage static, rebuilt every 10 min); functions moved to `bom1` next to the database
+- [x] Share cards for every page (2026-10-27; operations.md "SEO", decisions.md): pack placard, homepage time slice, gallery grid, category wall, profile, docs terminal
 - [ ] SEO, after the push: submit the sitemap in Google Search Console and Bing Webmaster Tools (DNS TXT verification); check a pack link's preview in WhatsApp, X, Discord, Slack
 - [ ] SEO, content: per-OS pages (dynamic wallpapers for Windows / Linux / macOS) and a "Make a wallpack" guide (copy to agree with Jaiyank first)
 

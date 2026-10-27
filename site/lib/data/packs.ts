@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
+import { shareStrip } from '@/lib/share';
 import { blobUrl, fileUrl } from '@/lib/storage';
 import { DEFAULT_AVATAR } from '@/lib/data/profile-shape';
 import type { AiUse, Credit, PackCard, PackCategory, PackDetail, PackFile, PackKind, Schedule, VersionStatus } from '@/lib/types';
@@ -298,24 +299,57 @@ export async function listSitemapPacks(): Promise<{ slug: string; updatedAt: str
 }
 
 /**
- * What a pack's share image shows: title, kind, credit and the cover preview.
- * Public packs only (listed or not: unlisted ones are shared by link).
+ * What a pack's share card shows: title, kind, credit, image count, the
+ * cover and the sky strip's images (thumbnails). Public packs only, listed or
+ * not: unlisted ones are shared by link.
  */
-export async function getPackShare(slug: string): Promise<{ title: string; kindLabel: string; credit: string; image: string | null } | null> {
+export async function getPackShare(slug: string): Promise<PackShare | null> {
   const { data: pack, error } = await createPublicClient()
     .from('packs')
-    .select(`${PACK_COLUMNS}, ${OWNER}, version:pack_versions!packs_current_version_fkey!inner(${VERSION_SUMMARY},
-             preview:blobs!pack_versions_preview_sha256_fkey(sha256))`)
+    .select(`${PACK_COLUMNS}, ${OWNER}, version:pack_versions!packs_current_version_fkey!inner(${VERSION_SUMMARY}, schedule, cover_file_id,
+             preview:blobs!pack_versions_preview_sha256_fkey(sha256),
+             files:version_files!version_files_version_id_fkey(id, path, thumb_sha256, sha256, blob:blobs!version_files_sha256_fkey(size)))`)
     .eq('slug', slug)
     .is('removed_at', null)
     .maybeSingle();
   if (error) console.error('getPackShare:', error);
   if (!pack) return null;
-  const card = toCard(pack, pack.version);
+  const { version } = pack;
+  const card = toCard(pack, version);
+  const kind = version.kind ?? 'timeblocks';
+  const byPath = new Map(version.files.map((f) => [f.path, f]));
+  const cover = version.files.find((f) => f.id === version.cover_file_id) ?? version.files[0];
+  const strip = shareStrip(version.schedule as Schedule, kind);
   return {
-    title: pack.version.title,
+    slug: pack.slug,
+    title: version.title,
+    kind,
     kindLabel: card.kindLabel,
     credit: card.author,
-    image: blobUrl(pack.version.preview?.sha256) ?? blobUrl(pack.version.thumb?.sha256),
+    imageCount: version.files.length,
+    bytes: version.files.reduce((n, f) => n + (f.blob?.size ?? 0), 0),
+    cover: blobUrl(version.preview?.sha256) ?? blobUrl(cover?.sha256),
+    stops: strip.stops.flatMap((stop) => {
+      const f = byPath.get(stop.image);
+      return f ? [{ label: stop.label, image: blobUrl(f.thumb_sha256 ?? f.sha256)! }] : [];
+    }),
+    caption: strip.caption,
   };
 }
+
+export type PackShare = {
+  slug: string;
+  title: string;
+  kind: PackKind;
+  kindLabel: string;
+  credit: string;
+  imageCount: number;
+  /** the images' total size */
+  bytes: number;
+  /** the cover's 1920px preview */
+  cover: string | null;
+  /** up to six images in schedule order, as thumbnails */
+  stops: { label: string; image: string }[];
+  /** Albums: how often the image changes */
+  caption: string | null;
+};

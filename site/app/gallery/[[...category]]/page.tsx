@@ -4,27 +4,13 @@ import { notFound, redirect } from 'next/navigation';
 import GalleryBrowser from '@/components/gallery/GalleryBrowser';
 import { listPublicPacks } from '@/lib/data/packs';
 import { categoryName, isCategory, type PackCategory } from '@/lib/packs/categories';
-import { GALLERY_PAGE_SIZE, galleryApiParams, galleryPath, parseGalleryQuery, type GalleryInitial, type GalleryQuery } from '@/lib/gallery';
+import { GALLERY_PAGE_SIZE, categoryTitle, galleryCardUrl, galleryApiParams, galleryPath, parseGalleryQuery, type GalleryInitial, type GalleryQuery } from '@/lib/gallery';
 
 // /gallery and /gallery/<category> are one page, so switching category in the
 // browser only changes the URL. Search, tag, sort, the AI filter and the page
 // stay in the query string. The first page of results renders here, so
 // visitors and search engines get packs in the HTML; GalleryBrowser fetches
 // from /api/packs after that.
-
-/** How each category reads in a page title ("Landscape dynamic wallpapers"). */
-const TITLE_NOUN: Record<PackCategory, string> = {
-  landscapes: 'Landscape',
-  cities: 'City',
-  space: 'Space',
-  anime: 'Anime',
-  games: 'Video game',
-  illustration: 'Illustrated',
-  photography: 'Photographic',
-  'pixel-art': 'Pixel art',
-  minimal: 'Minimal',
-  abstract: 'Abstract',
-};
 
 type Params = { category?: string[] };
 type Search = Record<string, string | string[] | undefined>;
@@ -46,7 +32,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
 function metadataFor(query: GalleryQuery): Metadata {
   const { category, tag, page, search } = query;
   const title = category
-    ? `${TITLE_NOUN[category]} dynamic wallpapers`
+    ? categoryTitle(category)
     : tag ? `Dynamic wallpapers tagged #${tag}` : 'Gallery';
   const description = category
     ? `${categoryName(category)} wallpaper packs for macOS, Windows and Linux that change with the time of day, the day of the week or on a timer. Free on Wallpy.`
@@ -60,6 +46,9 @@ function metadataFor(query: GalleryQuery): Metadata {
     title: `${title}${page > 1 ? ` (page ${page})` : ''} | Wallpy`,
     description,
     alternates: { canonical: `${galleryPath(category)}${qs ? `?${qs}` : ''}` },
+    // The card is a route (app/og/gallery): Next allows no opengraph-image file here.
+    openGraph: { images: [{ url: galleryCardUrl(category), width: 1200, height: 630, alt: description }] },
+    twitter: { card: 'summary_large_image', images: [galleryCardUrl(category)] },
     // Search results are endless and thin; keep them out of the index.
     ...(search ? { robots: { index: false } } : {}),
   };

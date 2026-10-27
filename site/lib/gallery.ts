@@ -30,9 +30,33 @@ export function parseGalleryQuery(category: string | null | undefined, get: (key
   };
 }
 
+/** How each category reads in a title ("Landscape dynamic wallpapers"). */
+const TITLE_NOUN: Record<PackCategory, string> = {
+  landscapes: 'Landscape',
+  cities: 'City',
+  space: 'Space',
+  anime: 'Anime',
+  games: 'Video game',
+  illustration: 'Illustrated',
+  photography: 'Photographic',
+  'pixel-art': 'Pixel art',
+  minimal: 'Minimal',
+  abstract: 'Abstract',
+};
+
+/** The category page's title, e.g. "Video game dynamic wallpapers". */
+export function categoryTitle(category: PackCategory): string {
+  return `${TITLE_NOUN[category]} dynamic wallpapers`;
+}
+
 /** The category's address: /gallery or /gallery/<category>. */
 export function galleryPath(category: PackCategory | null): string {
   return category ? `/gallery/${category}` : '/gallery';
+}
+
+/** The gallery's share card: /og/gallery or /og/gallery/<category>. */
+export function galleryCardUrl(category: PackCategory | null): string {
+  return category ? `/og/gallery/${category}` : '/og/gallery';
 }
 
 /** The category in a gallery path, or null. */
