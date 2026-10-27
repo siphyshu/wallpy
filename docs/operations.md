@@ -139,6 +139,20 @@ Tags `v*` version the CLI (the site isn't versioned). Binaries are unsigned:
 the Homebrew cask clears macOS's quarantine flag; signing and notarizing
 (macOS) and code signing (Windows SmartScreen) are on the roadmap.
 
+## Retire the Python CLI on PyPI
+
+`cli/python/farewell/` is `wallpy` 2.26.0, the last PyPI release: no
+dependencies; any command prints how to move to the new app (remove with
+pip/pipx, the Windows `WallpyService` task, install with brew/winget) and
+exits 1; `python -m wallpy.service` (what the old Windows task runs) exits
+quietly. Build and upload (needs a PyPI API token for the `wallpy` project):
+
+```
+cd cli/python/farewell
+python3 -m venv /tmp/twine && /tmp/twine/bin/pip install build twine
+/tmp/twine/bin/python -m build && /tmp/twine/bin/twine upload dist/*
+```
+
 ## CI
 
 `.github/workflows/ci.yml` on every push to `main` and every pull request: the

@@ -1,0 +1,28 @@
+# The last release of the Python CLI on PyPI: it only says where Wallpy went.
+# The Python CLI itself is archived (tag python-v2.25.0, ../src). Publish with
+# `python3 -m build && python3 -m twine upload dist/*` (docs/operations.md).
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wallpy"
+version = "2.26.0"
+description = "Wallpy has moved: it's now a standalone app. See https://wallpy.siphyshu.me"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Jaiyank Saxena", email = "siphyshu@gmail.com" }]
+requires-python = ">=3.9"
+dependencies = []
+classifiers = ["Development Status :: 7 - Inactive"]
+
+[project.urls]
+Homepage = "https://wallpy.siphyshu.me"
+Install = "https://wallpy.siphyshu.me/docs#install"
+Source = "https://github.com/siphyshu/wallpy"
+
+[project.scripts]
+wallpy = "wallpy:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
