@@ -178,6 +178,7 @@ Supabase + R2, so they stay local.
   - Gallery and categories `app/og/gallery/[[...category]]/route.tsx` (a route, since Next allows no opengraph-image under an optional catch-all; the gallery page's metadata points to it): the gallery is a bento of the six most downloaded covers (one over 2 × 2 cells, five around it) under a wallpack count; a category is a wall of its own covers, or the gallery card while it has none.
   - Profile `app/profile/[username]/opengraph-image.tsx`: cover banner, avatar, name, pack count, four packs. Docs `app/docs/opengraph-image.tsx`: a terminal with the install and `wallpy use deku-tree`, in the CLI's own output format, rebuilt daily.
   - Data-driven cards are CDN-cached for an hour. Fonts in `site/assets/fonts/` (Instrument Serif, Inter; OFL); glyphs outside them (e.g. Chinese titles) are fetched by `next/og` from Google Fonts. Preview any card at its URL (e.g. `/packs/<slug>/opengraph-image`, `/og/gallery/games`); after a change, re-scrape with the platforms' debuggers (e.g. https://developers.facebook.com/tools/debug/).
+- Icons: `app/favicon.ico` (16, 32, 48 px), `app/icon.png` (512), `app/apple-icon.png` (180, on `#111111`), `public/icon-192.png` and `app/manifest.ts`. All come from `public/waves.png`; after changing the logo, run `node scripts/icons.mjs` in `site/` and commit the outputs.
 - After going live: submit `https://wallpy.siphyshu.me/sitemap.xml` in Google Search Console and Bing Webmaster Tools (needs a DNS TXT record to verify the domain).
 
 ## Releases
